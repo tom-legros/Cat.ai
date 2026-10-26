@@ -17,6 +17,7 @@ et s'il arrivait quand même jusqu'à l'envoi, rien ne partirait.
 ## Ce qu'il sait faire
 
 - **Discuter de mes projets** : il ouvre un dossier quand je le cite (« regarde mon portfolio »), lit les fichiers et s'appuie sur le vrai code.
+- **Chercher dans le projet** : pour savoir où une fonction ou un texte est utilisé, il fouille tous les fichiers d'un coup (`chercher`, texte ou expression régulière) au lieu de les lire un par un. Les fichiers sensibles, binaires ou trop gros ne sont pas fouillés.
 - **Modifier des fichiers** : chaque modification passe par une fenêtre avant / après (lignes retirées et ajoutées) que je dois valider.
   Pour corriger un fichier, il ne remplace que le passage concerné (`remplacer_texte`) au lieu de tout réécrire : c'est plus rapide, et un petit modèle n'abîme plus le reste du fichier. Le passage doit apparaître une seule fois, sinon il doit préciser (ou demander à tout remplacer, pour un renommage).
   Une écriture refusée (par moi, le mode prof ou le rôle) s'affiche dans la réponse, même si le modèle prétend le contraire.

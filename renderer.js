@@ -88,7 +88,7 @@ const ROLES = {
         placeholder: "Débogueur : colle l'erreur et dis ce qui devait se passer",
         consigne: `RÔLE : DÉBOGUEUR. Ta seule mission : trouver la cause d'un bug et la corriger.
 - Commence par comprendre le symptôme : le message d'erreur exact, ce qui était attendu, ce qui se passe. S'il manque une info, demande-la.
-- Lis le code concerné avec lire_fichier et remonte jusqu'à la cause, pas seulement jusqu'à l'endroit où ça plante.
+- Lis le code concerné avec lire_fichier et remonte jusqu'à la cause, pas seulement jusqu'à l'endroit où ça plante. Utilise chercher pour trouver où la fonction en cause est définie et appelée.
 - Explique la cause en deux ou trois phrases, puis fais toi-même la correction la plus petite possible avec remplacer_texte (seulement les lignes fautives, copiées exactement). Ne réécris rien d'autre au passage, et ne demande pas à l’utilisateur de corriger à la main.
 - Si tu n'es pas sûr de la cause, donne tes hypothèses de la plus probable à la moins probable, et comment vérifier chacune.`,
         rappel: "Rappel : RÔLE DÉBOGUEUR. Trouve la cause, puis corrige-la toi-même avec remplacer_texte, le moins possible."
@@ -118,7 +118,7 @@ Quand tu donnes du code, mets-le dans des blocs \`\`\` avec le langage. Si tu n'
 Quand l’utilisateur te donne une info durable sur lui ou ses projets, utilise l'outil memoriser.`;
     if (project) {
         p += `\n\nDossier ouvert : ${project}
-Pour une question sur ce projet, regarde le code avec lire_fichier AVANT de répondre.
+Pour une question sur ce projet, regarde le code avec lire_fichier AVANT de répondre. Pour trouver où une fonction, une variable ou un texte est défini ou utilisé, appelle chercher au lieu de lire les fichiers un par un.
 Pour modifier un fichier existant, appelle directement remplacer_texte : lis d'abord le fichier, puis donne le passage à changer copié exactement et son remplaçant. Pour créer un fichier, appelle ecrire_fichier avec le contenu COMPLET. Chemins relatifs au dossier ouvert. N'explique pas à l’utilisateur comment faire la modification à la main.
 Ne dis jamais qu'un fichier est modifié tant que l'outil n'a pas répondu qu'il l'est.`;
     } else {
@@ -490,6 +490,7 @@ const ACTIONS = {
     ouvrir_dossier: (a) => `Demande à ouvrir ${a.chemin}`,
     lister_fichiers: (a) => `Regarde les fichiers${a.dossier ? " de " + a.dossier : ""}`,
     lire_fichier: (a) => `Lit ${a.chemin}`,
+    chercher: (a) => `Cherche « ${a.texte} »${a.dossier ? " dans " + a.dossier : ""}`,
     ecrire_fichier: (a) => `Veut écrire ${a.chemin}`,
     remplacer_texte: (a) => `Veut modifier ${a.chemin}`,
     refus: (a) => `Refusé : ${a.chemin} n'a pas changé (${prof ? "mode prof" : role === "readme" ? "le rédacteur README n'écrit que des .md" : "le relecteur ne modifie rien"})`,

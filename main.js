@@ -211,16 +211,77 @@ async function accordLectureSensible(chemin, fournisseurId) {
   return response === 1;
 }
 
-function listFiles(dir, prefix = '', out = []) {
+// max : 300 pour la liste donnée au modèle, plus pour une recherche qui doit fouiller tout le projet
+function listFiles(dir, prefix = '', out = [], max = 300) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (IGNORED.has(entry.name) || out.length >= 300) continue;
+    if (IGNORED.has(entry.name) || out.length >= max) continue;
     const rel = prefix + entry.name;
     if (entry.isDirectory()) {
       out.push(rel + '/');
-      listFiles(path.join(dir, entry.name), rel + '/', out);
+      listFiles(path.join(dir, entry.name), rel + '/', out, max);
     } else out.push(rel);
   }
   return out;
+}
+
+// Cherche un texte (ou une expression régulière) dans les fichiers du projet : une ligne « fichier:ligne: extrait »
+// par résultat. Mêmes protections que lire_fichier : chemins vérifiés, fichiers sensibles jamais fouillés,
+// fichiers binaires et trop gros ignorés.
+const MAX_RESULTATS = 50;
+const MAX_FICHIERS_FOUILLES = 3000;
+
+function chercherDansProjet(texte, { regex = false, dossier = '' } = {}) {
+  const motif = String(texte ?? '');
+  if (!motif) return 'Donne le texte à chercher.';
+  let correspond;
+  if (regex) {
+    if (motif.length > 200) return 'Expression régulière trop longue (200 caractères au plus) : simplifie-la.';
+    let expression;
+    try {
+      expression = new RegExp(motif, 'i');
+    } catch (err) {
+      return `Expression régulière invalide (${err.message}). Corrige-la, ou cherche un texte simple sans regex.`;
+    }
+    // Lignes coupées à 1 000 caractères : une regex mal écrite sur une ligne de code minifié pourrait bloquer l'app
+    correspond = (ligne) => expression.test(ligne.slice(0, 1000));
+  } else {
+    const minuscules = motif.toLowerCase();
+    correspond = (ligne) => ligne.toLowerCase().includes(minuscules);
+  }
+
+  const sousDossier = String(dossier || '').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
+  const base = safePath(sousDossier);
+  if (!fs.statSync(base).isDirectory()) return `${sousDossier} n'est pas un dossier. Pour un seul fichier, utilise lire_fichier.`;
+
+  const resultats = [];
+  let sensibles = 0;
+  for (const rel of listFiles(base, '', [], MAX_FICHIERS_FOUILLES)) {
+    if (rel.endsWith('/')) continue;
+    const relatif = sousDossier ? `${sousDossier}/${rel}` : rel;
+    if (estSensible(relatif)) { sensibles++; continue; }
+    let full;
+    try {
+      full = safePath(relatif);
+    } catch {
+      continue; // lien qui mène hors du projet
+    }
+    const stat = fs.statSync(full);
+    if (!stat.isFile() || stat.size > MAX_FILE) continue;
+    const contenu = fs.readFileSync(full, 'utf8');
+    if (contenu.includes('\u0000')) continue; // binaire
+    const lignes = contenu.split(/\r?\n/);
+    for (let i = 0; i < lignes.length && resultats.length <= MAX_RESULTATS; i++) {
+      if (correspond(lignes[i])) resultats.push(`${relatif}:${i + 1}: ${lignes[i].trim().slice(0, 200)}`);
+    }
+    if (resultats.length > MAX_RESULTATS) break;
+  }
+
+  const ou = sousDossier ? ` dans ${sousDossier}` : '';
+  const noteSensibles = sensibles ? `\n(${sensibles} fichier${sensibles > 1 ? 's' : ''} sensible${sensibles > 1 ? 's' : ''}, comme .env, non fouillé${sensibles > 1 ? 's' : ''})` : '';
+  if (!resultats.length) return `Aucun résultat pour « ${motif} »${ou}.${noteSensibles}`;
+  const trop = resultats.length > MAX_RESULTATS;
+  const lignes = resultats.slice(0, MAX_RESULTATS).join('\n');
+  return lignes + (trop ? `\n… et d'autres résultats : précise ta recherche (un texte plus long, ou un sous-dossier).` : '') + noteSensibles;
 }
 
 const TOOLS = [
@@ -246,6 +307,22 @@ const TOOLS = [
       name: 'lire_fichier',
       description: 'Lit le contenu d\'un fichier du projet.',
       parameters: { type: 'object', properties: { chemin: { type: 'string', description: 'Chemin relatif au projet' } }, required: ['chemin'] },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'chercher',
+      description: "Cherche un texte dans tous les fichiers du projet (ou d'un sous-dossier) et renvoie chaque ligne trouvée sous la forme fichier:ligne: extrait. À utiliser pour trouver où une fonction, une variable ou un message est défini ou utilisé, au lieu de lire les fichiers un par un. Majuscules et minuscules sont confondues.",
+      parameters: {
+        type: 'object',
+        properties: {
+          texte: { type: 'string', description: 'Texte à chercher (ou expression régulière si regex vaut true)' },
+          regex: { type: 'boolean', description: 'true si texte est une expression régulière' },
+          dossier: { type: 'string', description: 'Sous-dossier relatif où chercher, vide pour tout le projet' },
+        },
+        required: ['texte'],
+      },
     },
   },
   {
@@ -368,6 +445,9 @@ async function runTool(name, args, mode) {
         return `L’utilisateur a refusé la lecture de ${args.chemin} : ce fichier peut contenir des secrets. Fais sans, ou demande-lui l'information dont tu as besoin.`;
       }
       return fs.readFileSync(full, 'utf8');
+    }
+    case 'chercher': {
+      return chercherDansProjet(args.texte, { regex: args.regex === true || args.regex === 'true', dossier: args.dossier });
     }
     case 'ecrire_fichier': {
       return ecrireAvecAccord(args.chemin, String(args.contenu ?? ''));
