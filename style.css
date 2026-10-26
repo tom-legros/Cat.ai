@@ -559,3 +559,21 @@ select.pastille.is-on { color: var(--oeil); }
 .bloc--espace { margin-top: 14px; }
 .fournisseurs { margin-top: 12px; }
 optgroup { background: var(--surface); color: var(--texte-3); font-style: normal; }
+
+/* Raccourci du modèle, à droite sous la saisie, avec le quota du jour en petit rond */
+.raccourci { position: relative; margin-left: auto; }
+.quota { width: 16px; height: 16px; transform: rotate(-90deg); flex-shrink: 0; }
+.quota circle { fill: none; stroke-width: 2.5; }
+.quota__fond { stroke: var(--ligne-2); }
+.quota__plein { stroke: var(--oeil); stroke-linecap: round; transition: stroke-dasharray .4s ease; }
+.quota__plein.is-bas { stroke: #e06c5a; }
+.menu-modeles {
+    position: absolute; right: 0; bottom: calc(100% + 8px); z-index: 20; min-width: 230px; max-height: 300px; overflow-y: auto;
+    display: flex; flex-direction: column; padding: 6px; background: var(--surface); border: 1px solid var(--ligne-2);
+    border-radius: var(--rayon); box-shadow: 0 20px 50px rgba(0, 0, 0, .6); animation: arrivee .15s ease-out both;
+}
+.menu-modeles[hidden] { display: none; }
+.menu-modeles__choix { padding: 8px 10px; border-radius: var(--rayon-petit); text-align: left; font-size: 13px; color: var(--texte-2); }
+.menu-modeles__choix:hover { background: var(--surface-2); color: var(--texte); }
+.menu-modeles__choix.is-on { color: var(--oeil); }
+.menu-modeles__autre { margin-top: 4px; border-top: 1px solid var(--ligne); border-radius: 0 0 var(--rayon-petit) var(--rayon-petit); color: var(--texte-3); }

@@ -60,6 +60,16 @@ function modeleParDefaut(models, fournisseurId) {
     return [...models].sort((a, b) => noteModele(b, fournisseurId) - noteModele(a, fournisseurId))[0];
 }
 // Où obtenir une clé gratuite, affiché dans le panneau
+// Messages gratuits par jour, à peu près (offres gratuites d'octobre 2026) : sert au petit rond du raccourci.
+// Ollama n'a pas de limite. Ce n'est qu'une estimation : le fournisseur peut changer ses règles.
+function quotaDuJour(fournisseurId, modele) {
+    if (fournisseurId === "ollama") return Infinity;
+    if (fournisseurId === "gemini") return /lite/.test(modele) ? 1000 : 250;
+    if (fournisseurId === "groq") return 1000;
+    if (fournisseurId === "openrouter") return 50;
+    return null; // serveur personnalisé : inconnu
+}
+
 const LIENS_CLES = {
     gemini: "https://aistudio.google.com/apikey",
     groq: "https://console.groq.com/keys",

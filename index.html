@@ -95,6 +95,14 @@
           <select id="role" class="pastille" title="Rôle du chat"></select>
           <button id="open-roles" class="pastille pastille--x" type="button" title="Créer un rôle">+</button>
         </span>
+        <!-- Raccourci du modèle, avec le quota du jour dans le petit rond (comme sur Claude) -->
+        <span class="raccourci">
+          <button id="modele-raccourci" class="pastille" type="button" aria-haspopup="true">
+            <svg class="quota" viewBox="0 0 20 20" aria-hidden="true"><circle class="quota__fond" cx="10" cy="10" r="7"/><circle id="quota-arc" class="quota__plein" cx="10" cy="10" r="7"/></svg>
+            <span id="modele-nom">…</span>
+          </button>
+          <div id="menu-modeles" class="menu-modeles" hidden></div>
+        </span>
       </div>
     </form>
 

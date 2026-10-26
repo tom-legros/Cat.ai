@@ -278,6 +278,7 @@ async function send(text) {
         return;
     }
     envoiEnCours = true;
+    compterMessage();
     try {
         const trouve = text && (await detectProject(text));
         if (trouve && trouve !== project) project = await window.api.openProjectPath(trouve);
@@ -954,6 +955,7 @@ let conseille = null;
 const conseilEl = $("#conseil-modele");
 
 function afficherConseil() {
+    renderRaccourci();
     const id = fournisseurActif().id;
     const choisi = modelSel.value;
     conseilEl.innerHTML = "";
@@ -980,6 +982,62 @@ function afficherConseil() {
         conseilEl.append(bouton);
     }
 }
+
+/* ---------- Raccourci du modèle, sous la saisie ---------- */
+
+// Messages envoyés aujourd'hui, par fournisseur (sur ce PC seulement)
+const cleQuota = () => `quota-${fournisseurActif().id}-${new Date().toISOString().slice(0, 10)}`;
+function messagesDuJour() {
+    try { return Number(localStorage.getItem(cleQuota())) || 0; } catch { return 0; }
+}
+function compterMessage() {
+    try { localStorage.setItem(cleQuota(), String(messagesDuJour() + 1)); } catch {}
+    renderRaccourci();
+}
+
+const nomCourt = (m) => m.split("/").pop().replace(/:free$/, "");
+
+function renderRaccourci() {
+    const f = fournisseurActif();
+    const modele = modelSel.value;
+    $("#modele-nom").textContent = modele ? nomCourt(modele) : "Aucun modèle";
+    const limite = quotaDuJour(f.id, modele);
+    const faits = messagesDuJour();
+    // Le rond est plein quand il reste tout le quota, et se vide au fil des messages
+    const reste = limite === Infinity ? 1 : limite ? Math.max(0, 1 - faits / limite) : 1;
+    const tour = 2 * Math.PI * 7;
+    const arc = $("#quota-arc");
+    arc.style.strokeDasharray = `${tour * reste} ${tour}`;
+    arc.classList.toggle("is-bas", reste < 0.15);
+    $("#modele-raccourci").title = limite === Infinity
+        ? `${f.nom} sur ton PC : sans limite`
+        : limite
+            ? `${f.nom} : ${faits} message${faits > 1 ? "s" : ""} aujourd'hui, sur environ ${limite} gratuits par jour`
+            : `${f.nom} : ${faits} message${faits > 1 ? "s" : ""} aujourd'hui`;
+}
+
+// Le menu : les versions du cerveau choisi, et de quoi en changer
+function ouvrirMenuModeles() {
+    const menu = $("#menu-modeles");
+    menu.replaceChildren();
+    [...modelSel.options].forEach((o) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "menu-modeles__choix" + (o.value === modelSel.value ? " is-on" : "");
+        b.textContent = o.textContent;
+        b.onclick = () => { modelSel.value = o.value; modelSel.dispatchEvent(new Event("change")); menu.hidden = true; };
+        menu.append(b);
+    });
+    const autre = document.createElement("button");
+    autre.type = "button";
+    autre.className = "menu-modeles__choix menu-modeles__autre";
+    autre.textContent = "Changer de cerveau…";
+    autre.onclick = () => { menu.hidden = true; ouvrirFournisseurs(); };
+    menu.append(autre);
+    menu.hidden = false;
+}
+$("#modele-raccourci").onclick = (e) => { e.stopPropagation(); $("#menu-modeles").hidden ? ouvrirMenuModeles() : ($("#menu-modeles").hidden = true); };
+document.addEventListener("click", (e) => { if (!e.target.closest(".raccourci")) $("#menu-modeles").hidden = true; });
 
 // Le modèle choisi est retenu pour chaque fournisseur
 modelSel.addEventListener("change", async () => {
