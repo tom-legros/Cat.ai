@@ -1006,6 +1006,9 @@ function renderRaccourci() {
     const f = fournisseurActif();
     const modele = modelSel.value;
     $("#fournisseur-nom").textContent = f.nom.replace(/ \(local\)$/, "");
+    const affichage = FOURNISSEURS_AFFICHAGE[f.id] || FOURNISSEURS_AFFICHAGE.perso;
+    $("#fournisseur-icone").className = `menu-icone menu-icone--petite menu-icone--${affichage.couleur}`;
+    $("#fournisseur-icone").innerHTML = icone(affichage.icone);
     $("#modele-nom").textContent = modele ? nomCourt(modele) : "aucun";
     const limite = quotaDuJour(f.id, modele);
     const faits = messagesDuJour();
@@ -1023,11 +1026,27 @@ function renderRaccourci() {
 }
 
 // Un choix dans un menu de raccourci
-function choixMenu(menu, texte, actif, action, classe = "") {
+function choixMenu(menu, texte, actif, action, classe = "", deco = null) {
     const b = document.createElement("button");
     b.type = "button";
     b.className = `menu-modeles__choix ${classe}${actif ? " is-on" : ""}`;
-    b.textContent = texte;
+    if (deco) {
+        // Icône en couleur, nom, et petit conseil en dessous
+        const pastille = document.createElement("span");
+        pastille.className = `menu-icone menu-icone--${deco.couleur}`;
+        pastille.innerHTML = icone(deco.icone);
+        const textes = document.createElement("span");
+        textes.className = "menu-textes";
+        const nom = document.createElement("span");
+        nom.textContent = texte;
+        textes.append(nom);
+        if (deco.conseil) {
+            const petit = document.createElement("small");
+            petit.textContent = deco.conseil;
+            textes.append(petit);
+        }
+        b.append(pastille, textes);
+    } else b.textContent = texte;
     b.onclick = () => { menu.hidden = true; action(); };
     menu.append(b);
 }
@@ -1037,13 +1056,13 @@ function ouvrirMenuFournisseurs() {
     const menu = $("#menu-fournisseurs");
     menu.replaceChildren();
     reglages.fournisseurs.filter((f) => f.type === "ollama" || f.aCle).forEach((f) => {
-        choixMenu(menu, f.nom, f.id === reglages.actif, () => {
+        choixMenu(menu, f.nom.replace(/ \(local\)$/, ""), f.id === reglages.actif, () => {
             if (f.id === reglages.actif) return;
             fournisseurSel.value = f.id;
             fournisseurSel.dispatchEvent(new Event("change"));
-        });
+        }, "", FOURNISSEURS_AFFICHAGE[f.id] || FOURNISSEURS_AFFICHAGE.perso);
     });
-    choixMenu(menu, "Ajouter un fournisseur (clé gratuite)…", false, ouvrirFournisseurs, "menu-modeles__autre");
+    choixMenu(menu, "Ajouter un fournisseur", false, ouvrirFournisseurs, "menu-modeles__autre", { icone: "plus", couleur: "gris", conseil: "Avec une clé gratuite" });
     menu.hidden = false;
 }
 
@@ -1052,7 +1071,7 @@ function ouvrirMenuModeles() {
     const menu = $("#menu-modeles");
     menu.replaceChildren();
     [...modelSel.options].forEach((o) => {
-        choixMenu(menu, o.textContent, o.value === modelSel.value, () => { modelSel.value = o.value; modelSel.dispatchEvent(new Event("change")); });
+        choixMenu(menu, nomCourt(o.value), o.value === modelSel.value, () => { modelSel.value = o.value; modelSel.dispatchEvent(new Event("change")); }, "", conseilModele(o.value, fournisseurActif().id, conseille));
     });
     if (!modelSel.options.length) choixMenu(menu, "Aucun modèle : ouvre les réglages", false, ouvrirFournisseurs, "menu-modeles__autre");
     menu.hidden = false;
@@ -1259,10 +1278,16 @@ function ouvrirMenuRoles() {
             t.className = "menu-modeles__titre";
             t.textContent = enfant.label;
             menu.append(t);
-            for (const o of enfant.children) choixMenu(menu, o.textContent, o.value === role, choisir(o.value));
-        } else choixMenu(menu, enfant.textContent, enfant.value === role, choisir(enfant.value));
+            for (const o of enfant.children) choixMenu(menu, o.textContent, o.value === role, choisir(o.value), "", { icone: "code", couleur: "vert", conseil: ROLES[o.value].detail });
+        } else {
+            const r = ROLES[enfant.value];
+            const deco = !r ? { icone: "bulle", couleur: "jaune", conseil: "Aide pour tout" }
+                : enfant.value === "redacteur" ? { icone: "stylo", couleur: "rose", conseil: r.detail }
+                : { icone: "etoile", couleur: "bleu", conseil: r.detail };
+            choixMenu(menu, enfant.textContent, enfant.value === role, choisir(enfant.value), "", deco);
+        }
     }
-    choixMenu(menu, "+ Créer un rôle", false, ouvrirRoles, "menu-modeles__autre");
+    choixMenu(menu, "Créer un rôle", false, ouvrirRoles, "menu-modeles__autre", { icone: "plus", couleur: "gris", conseil: "Ta propre mission pour le chat" });
     menu.hidden = false;
 }
 $("#close-roles").onclick = () => ($("#roles-modal").hidden = true);

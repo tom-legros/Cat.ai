@@ -70,6 +70,39 @@ function quotaDuJour(fournisseurId, modele) {
     return null; // serveur personnalisé : inconnu
 }
 
+// Icône, couleur et conseil de chaque fournisseur, pour les menus et la pastille
+const ICONES = {
+    pc: '<path d="M3 4h18v12H3zM8 20h8M12 16v4"/>',
+    etincelle: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
+    eclair: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
+    route: '<circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18h7a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h7"/>',
+    serveur: '<rect x="3" y="4" width="18" height="7" rx="1.5"/><rect x="3" y="13" width="18" height="7" rx="1.5"/><path d="M7 7.5h.01M7 16.5h.01"/>',
+    etoile: '<path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.9z"/>',
+    poids: '<path d="M6 8h12l2 12H4z"/><path d="M9 8a3 3 0 0 1 6 0"/>',
+    puce: '<rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/>',
+    bulle: '<path d="M4 5h16v11H9l-5 4z"/>',
+    stylo: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
+    code: '<path d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>'
+};
+const icone = (nom) => `<svg class="icone" viewBox="0 0 24 24" aria-hidden="true">${ICONES[nom] || ICONES.puce}</svg>`;
+
+const FOURNISSEURS_AFFICHAGE = {
+    ollama: { icone: "pc", couleur: "vert", conseil: "Sur ton PC · sans limite · PC puissant conseillé" },
+    gemini: { icone: "etincelle", couleur: "bleu", conseil: "En ligne, chez Google · le plus simple" },
+    groq: { icone: "eclair", couleur: "jaune", conseil: "En ligne · très rapide" },
+    openrouter: { icone: "route", couleur: "rose", conseil: "En ligne · plein de modèles, petit quota" },
+    perso: { icone: "serveur", couleur: "gris", conseil: "Ton propre serveur" }
+};
+
+// Le conseil sous un modèle : pourquoi il est conseillé, pourquoi il est gourmand, ou son quota
+function conseilModele(modele, fournisseurId, conseille) {
+    if (modele === conseille) return { icone: "etoile", couleur: "jaune", conseil: `Conseillé · ${RAISON_CONSEIL[fournisseurId] || "le meilleur choix ici"}` };
+    if (estGourmand(modele, fournisseurId)) return { icone: "poids", couleur: "rose", conseil: `Gourmand · ${GOURMANDS[fournisseurId].raison}` };
+    const limite = quotaDuJour(fournisseurId, modele);
+    return { icone: "puce", couleur: "gris", conseil: limite === Infinity ? "Sans limite" : limite ? `Environ ${limite} messages par jour` : "" };
+}
+
 const LIENS_CLES = {
     gemini: "https://aistudio.google.com/apikey",
     groq: "https://console.groq.com/keys",

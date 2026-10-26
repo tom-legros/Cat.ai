@@ -658,3 +658,23 @@ optgroup { background: var(--surface); color: var(--texte-3); font-style: normal
 .pastille--discrete:hover { border-color: var(--ligne-2); background: var(--surface); }
 .pastille__terme { font-size: 11px; letter-spacing: .04em; text-transform: uppercase; margin-right: 2px; }
 .menu-modeles--gauche { left: 0; right: auto; }
+
+/* Menus : icône en couleur + nom + petit conseil */
+.menu-modeles { min-width: 280px; }
+.menu-modeles__choix { display: flex; align-items: center; gap: 11px; }
+.menu-icone { display: grid; place-items: center; width: 30px; height: 30px; flex-shrink: 0; border-radius: 9px; transition: transform .25s cubic-bezier(.3, 1.6, .5, 1); }
+.menu-icone .icone { width: 16px; height: 16px; }
+.menu-icone--petite { width: 20px; height: 20px; border-radius: 6px; }
+.menu-icone--petite .icone { width: 12px; height: 12px; }
+.menu-icone--jaune { color: rgb(var(--jaune)); background: rgba(var(--jaune), .13); }
+.menu-icone--rose { color: rgb(var(--rose)); background: rgba(var(--rose), .13); }
+.menu-icone--bleu { color: rgb(var(--bleu)); background: rgba(var(--bleu), .13); }
+.menu-icone--vert { color: rgb(var(--vert)); background: rgba(var(--vert), .13); }
+.menu-icone--gris { color: var(--texte-2); background: var(--surface-2); }
+.menu-modeles__choix:hover .menu-icone { transform: scale(1.1) rotate(-5deg); }
+.menu-textes { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.menu-textes span { color: var(--texte); }
+.menu-textes small { font-size: 11.5px; line-height: 1.3; color: var(--texte-3); }
+.menu-modeles__choix.is-on { background: rgba(var(--oeil-rvb), .08); }
+.menu-modeles__choix.is-on .menu-textes span { color: var(--oeil); }
+.menu-modeles__autre .menu-textes span { color: var(--texte-2); }
