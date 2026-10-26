@@ -581,3 +581,66 @@ optgroup { background: var(--surface); color: var(--texte-3); font-style: normal
 .menu-modeles__autre { margin-top: 4px; border-top: 1px solid var(--ligne); border-radius: 0 0 var(--rayon-petit) var(--rayon-petit); color: var(--texte-3); }
 .menu-modeles__titre { margin: 6px 10px 2px; font-family: var(--police-titre); font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--texte-3); }
 #modele-raccourci { max-width: 280px; }
+
+/* ==========================================================
+   Ménage « fun » : icônes en couleur, bouton d'envoi rond, animations
+   ========================================================== */
+:root { --jaune: 232, 197, 71; --rose: 236, 140, 178; --bleu: 108, 180, 238; --vert: 126, 208, 140; }
+
+/* Barre de gauche */
+.bouton--nouveau { display: flex; align-items: center; justify-content: center; gap: 8px; background: transparent; color: var(--texte); border: 1px solid var(--ligne-2); }
+.bouton--nouveau:hover { background: var(--lumiere); color: var(--bg); box-shadow: var(--lueur-bouton); }
+.bouton--nouveau .icone { transition: transform .3s ease; }
+.bouton--nouveau:hover .icone { transform: rotate(90deg); }
+.lien__icone { display: inline-flex; align-items: center; gap: 10px; }
+.lien--bloc { transition: background .15s ease, color .15s ease, border-color .15s ease; }
+.lien--bloc:hover { background: var(--surface); border-color: var(--ligne-2); text-shadow: none; }
+#open-reglages:hover .icone { transform: rotate(60deg); }
+#open-reglages .icone, #open-memory .icone { transition: transform .4s ease; }
+#open-memory:hover .icone { transform: scale(1.2); color: rgb(var(--rose)); }
+.discussions li { display: flex; align-items: center; gap: 10px; }
+.discussions li::before { content: ""; width: 6px; height: 6px; border-radius: 2px; flex-shrink: 0; background: var(--ligne-2); transition: background .2s ease, box-shadow .2s ease; }
+.discussions li.is-active::before { background: var(--oeil); box-shadow: 0 0 8px var(--oeil-lueur); }
+
+/* Le grand chat flotte doucement */
+.mascotte__bouton { animation: flotte 4s ease-in-out infinite; }
+@keyframes flotte { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+.mascotte.is-asleep .mascotte__bouton { animation-duration: 7s; }
+
+/* Suggestions : une icône en couleur, un titre, trois mots */
+.suggestion { display: flex; align-items: center; gap: 14px; text-align: left; }
+.suggestion__icone { display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; font-size: 16px; transition: transform .3s cubic-bezier(.3, 1.6, .5, 1); }
+.suggestion__icone .icone { width: 19px; height: 19px; }
+.suggestion__icone--jaune { color: rgb(var(--jaune)); background: rgba(var(--jaune), .12); }
+.suggestion__icone--rose { color: rgb(var(--rose)); background: rgba(var(--rose), .12); }
+.suggestion__icone--bleu { color: rgb(var(--bleu)); background: rgba(var(--bleu), .12); }
+.suggestion__icone--vert { color: rgb(var(--vert)); background: rgba(var(--vert), .12); }
+.suggestion:hover .suggestion__icone { transform: scale(1.12) rotate(-6deg); }
+.suggestion__texte { display: flex; flex-direction: column; gap: 2px; }
+.suggestion__texte strong { font-weight: 500; color: var(--texte); }
+.suggestion__texte small { font-size: 12.5px; color: var(--texte-3); }
+.suggestions .suggestion { animation: arrivee .5s ease-out both; }
+.suggestions .suggestion:nth-child(2) { animation-delay: .07s; }
+.suggestions .suggestion:nth-child(3) { animation-delay: .14s; }
+.suggestions .suggestion:nth-child(4) { animation-delay: .21s; }
+
+/* Bouton d'envoi rond, qui s'allume quand il y a un message */
+.bouton-envoi { display: grid; place-items: center; width: 42px; height: 42px; flex-shrink: 0; border-radius: 12px; background: var(--surface-2); color: var(--texte-3); transition: background .2s ease, color .2s ease, transform .15s ease, box-shadow .2s ease; }
+.bouton-envoi .icone { width: 20px; height: 20px; stroke-width: 2.2; }
+.bouton-envoi.is-pret { background: var(--lumiere); color: var(--bg); box-shadow: 0 0 22px rgba(var(--oeil-rvb), .35); animation: pret .3s cubic-bezier(.3, 1.6, .5, 1); }
+.bouton-envoi:hover { transform: translateY(-1px); }
+.bouton-envoi:active { transform: scale(.92); }
+@keyframes pret { from { transform: scale(.8); } to { transform: scale(1); } }
+.icone--stop { display: none; }
+.bouton-envoi.is-stop { background: var(--surface-2); color: var(--texte); box-shadow: none; }
+.bouton-envoi.is-stop .icone--envoi { display: none; }
+.bouton-envoi.is-stop .icone--stop { display: block; fill: currentColor; animation: clignote 1.4s ease-in-out infinite; }
+
+/* Pastilles : petit rebond */
+.pastille { transition: color .15s ease, border-color .15s ease, background .15s ease, transform .15s ease; }
+.pastille:active { transform: scale(.95); }
+
+@media (prefers-reduced-motion: reduce) {
+    .mascotte__bouton, .suggestions .suggestion, .bouton-envoi.is-pret, .bouton-envoi.is-stop .icone--stop { animation: none; }
+}
+.bouton--nouveau { justify-content: flex-start; padding: 11px 14px; font-family: var(--police-texte); font-size: 14px; letter-spacing: 0; text-transform: none; }

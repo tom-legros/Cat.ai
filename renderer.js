@@ -11,6 +11,8 @@ const messagesEl = $("#messages");
 const welcomeEl = $("#welcome");
 const input = $("#input");
 const sendBtn = $("#send");
+const majEnvoi = () => sendBtn.classList.toggle("is-pret", !!$("#input").value.trim());
+$("#input").addEventListener("input", majEnvoi);
 const modelSel = $("#model");
 const statusEl = $("#status");
 const convList = $("#conv-list");
@@ -161,7 +163,8 @@ function renderList() {
 const save = () => window.api.saveConvs(convs);
 
 function setStreaming(on) {
-    sendBtn.textContent = on ? "Stop" : "Envoyer";
+    sendBtn.title = on ? "Arrêter" : "Envoyer (Entrée)";
+    sendBtn.setAttribute("aria-label", on ? "Arrêter" : "Envoyer");
     sendBtn.classList.toggle("is-stop", on);
 }
 
@@ -442,6 +445,7 @@ $("#composer").addEventListener("submit", (e) => {
     if (streaming) { window.api.stop(streaming.id); return; }
     send(input.value);
     input.value = "";
+    majEnvoi();
     input.style.height = "auto";
 });
 
@@ -575,7 +579,7 @@ function renderProf() {
         ? "Mode prof : pose ta question, il t'aide à trouver par toi-même"
         : role
             ? ROLES[role].placeholder
-            : "Écris au chat… (tu peux aussi glisser un fichier)";
+            : "Écris au chat…";
 }
 
 boutonProf.onclick = () => {
@@ -1220,7 +1224,16 @@ function appliquerPerso() {
     if (suggestions.length) {
         $(".suggestions").replaceChildren(...suggestions.map((s) => {
             const b = document.createElement("button");
-            b.textContent = texte(s.titre);
+            b.className = "suggestion";
+            const icone = document.createElement("span");
+            icone.className = "suggestion__icone suggestion__icone--jaune";
+            icone.textContent = "✦";
+            const titre = document.createElement("strong");
+            titre.textContent = texte(s.titre);
+            const bloc = document.createElement("span");
+            bloc.className = "suggestion__texte";
+            bloc.append(titre);
+            b.append(icone, bloc);
             b.onclick = () => send(texte(s.message));
             return b;
         }));
