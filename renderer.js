@@ -89,9 +89,9 @@ const ROLES = {
         consigne: `RÔLE : DÉBOGUEUR. Ta seule mission : trouver la cause d'un bug et la corriger.
 - Commence par comprendre le symptôme : le message d'erreur exact, ce qui était attendu, ce qui se passe. S'il manque une info, demande-la.
 - Lis le code concerné avec lire_fichier et remonte jusqu'à la cause, pas seulement jusqu'à l'endroit où ça plante.
-- Explique la cause en deux ou trois phrases, puis fais la correction la plus petite possible avec ecrire_fichier. Ne réécris rien d'autre au passage.
+- Explique la cause en deux ou trois phrases, puis fais toi-même la correction la plus petite possible avec remplacer_texte (seulement les lignes fautives, copiées exactement). Ne réécris rien d'autre au passage, et ne demande pas à l’utilisateur de corriger à la main.
 - Si tu n'es pas sûr de la cause, donne tes hypothèses de la plus probable à la moins probable, et comment vérifier chacune.`,
-        rappel: "Rappel : RÔLE DÉBOGUEUR. Trouve la cause avant de corriger, et corrige le moins possible."
+        rappel: "Rappel : RÔLE DÉBOGUEUR. Trouve la cause, puis corrige-la toi-même avec remplacer_texte, le moins possible."
     },
     readme: {
         detail: "Écrit ou met à jour la doc du projet (fichiers .md seulement)",
@@ -100,7 +100,8 @@ const ROLES = {
 - Lis d'abord le projet : lister_fichiers, le README existant s'il y en a un, package.json ou son équivalent, puis les fichiers principaux. N'invente rien : chaque fonctionnalité, commande ou dépendance citée doit exister dans le code.
 - Plan habituel : ce que fait le projet en une ou deux phrases, ce qu'il sait faire, installation, utilisation, organisation des fichiers, crédits et licence. Garde les sections qui existent déjà et le ton de l’utilisateur.
 - Écris en français, en Markdown clair, avec les commandes dans des blocs de code.
-- Tu ne peux écrire que des fichiers .md : ne touche jamais au code.`,
+- Pour créer le README, utilise ecrire_fichier ; pour mettre à jour une section d'un README existant, remplacer_texte.
+- Tu ne peux écrire que des fichiers .md : ne touche jamais au code. Si l’utilisateur te demande de modifier du code, dis-lui que ce n'est pas ton rôle.`,
         rappel: "Rappel : RÔLE RÉDACTEUR README. Ne cite que ce qui existe dans le code, n'écris que des fichiers .md."
     }
 };
@@ -117,7 +118,9 @@ Quand tu donnes du code, mets-le dans des blocs \`\`\` avec le langage. Si tu n'
 Quand l’utilisateur te donne une info durable sur lui ou ses projets, utilise l'outil memoriser.`;
     if (project) {
         p += `\n\nDossier ouvert : ${project}
-Pour une question sur ce projet, regarde le code avec lire_fichier AVANT de répondre. Pour créer ou modifier un fichier, appelle directement ecrire_fichier avec le contenu COMPLET (chemin relatif au dossier ouvert). N'explique pas à l’utilisateur comment le créer à la main.`;
+Pour une question sur ce projet, regarde le code avec lire_fichier AVANT de répondre.
+Pour modifier un fichier existant, appelle directement remplacer_texte : lis d'abord le fichier, puis donne le passage à changer copié exactement et son remplaçant. Pour créer un fichier, appelle ecrire_fichier avec le contenu COMPLET. Chemins relatifs au dossier ouvert. N'explique pas à l’utilisateur comment faire la modification à la main.
+Ne dis jamais qu'un fichier est modifié tant que l'outil n'a pas répondu qu'il l'est.`;
     } else {
         p += `\n\nAucun dossier n'est ouvert. Si l’utilisateur parle d'un dossier de son ordinateur, appelle ouvrir_dossier avec le chemin complet. Si tu ne connais pas le chemin, demande-le-lui.`;
         if (knownProjects.length) p += `\nSes dossiers de projets :\n- ${knownProjects.join("\n- ")}`;
@@ -488,6 +491,8 @@ const ACTIONS = {
     lister_fichiers: (a) => `Regarde les fichiers${a.dossier ? " de " + a.dossier : ""}`,
     lire_fichier: (a) => `Lit ${a.chemin}`,
     ecrire_fichier: (a) => `Veut écrire ${a.chemin}`,
+    remplacer_texte: (a) => `Veut modifier ${a.chemin}`,
+    refus: (a) => `Refusé : ${a.chemin} n'a pas changé (${prof ? "mode prof" : role === "readme" ? "le rédacteur README n'écrit que des .md" : "le relecteur ne modifie rien"})`,
     memoriser: (a) => `Retient : ${a.fait}`,
     pause: (a) => `Pause de ${a.secondes} s : limite par minute du fournisseur, je réessaie tout seul`
 };
@@ -838,6 +843,11 @@ window.api.onConfirmWrite(({ id, chemin, ancien, nouveau, existe }) => {
 function repondreConfirmation(ok) {
     if (confirmationEnCours === null) return;
     window.api.replyConfirmWrite(confirmationEnCours, ok);
+    // Le refus apparaît aussi dans la réponse, pour qu'on ne puisse pas croire que le fichier a changé
+    if (!ok && streaming) {
+        streaming.text += etiquetteAction("Tu as refusé : le fichier n'a pas changé");
+        afficherFlux();
+    }
     confirmationEnCours = null;
     $("#diff-modal").hidden = true;
 }

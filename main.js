@@ -198,7 +198,7 @@ const TOOLS = [
     type: 'function',
     function: {
       name: 'ecrire_fichier',
-      description: "Crée ou remplace un fichier du projet avec le contenu COMPLET donné. L'utilisateur doit confirmer.",
+      description: "Crée un fichier, ou remplace un fichier entier avec le contenu COMPLET donné. Pour modifier une partie d'un fichier existant, utilise plutôt remplacer_texte. L'utilisateur doit confirmer.",
       parameters: {
         type: 'object',
         properties: {
@@ -206,6 +206,23 @@ const TOOLS = [
           contenu: { type: 'string', description: 'Contenu complet du fichier' },
         },
         required: ['chemin', 'contenu'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'remplacer_texte',
+      description: "Modifie un passage d'un fichier existant du projet : remplace ancien_texte par nouveau_texte. ancien_texte doit être copié EXACTEMENT depuis le fichier (espaces et retours à la ligne compris) et apparaître une seule fois : prends quelques lignes autour si besoin. Pour renommer quelque chose partout dans le fichier : ancien_texte = SEULEMENT l'ancien nom (ex : calculer), nouveau_texte = le nouveau nom, et remplacer_partout à true. C'est la bonne façon de corriger ou modifier un fichier. L'utilisateur doit confirmer.",
+      parameters: {
+        type: 'object',
+        properties: {
+          chemin: { type: 'string', description: 'Chemin relatif au projet' },
+          ancien_texte: { type: 'string', description: 'Passage actuel, copié exactement depuis le fichier' },
+          nouveau_texte: { type: 'string', description: 'Ce qui le remplace (vide pour le supprimer)' },
+          remplacer_partout: { type: 'boolean', description: 'true pour remplacer toutes les occurrences (renommage) ; sinon ancien_texte doit être unique' },
+        },
+        required: ['chemin', 'ancien_texte', 'nouveau_texte'],
       },
     },
   },
@@ -222,18 +239,49 @@ const TOOLS = [
 // En mode prof, le chat n'a pas le droit d'écrire : il explique, l’utilisateur code.
 // Les rôles (consignes dans renderer.js) : le relecteur n'écrit rien, le rédacteur README n'écrit que des .md.
 // mode = { prof, role }
+const OUTILS_ECRITURE = new Set(['ecrire_fichier', 'remplacer_texte']);
 const peutEcrire = ({ prof, role } = {}) => !prof && role !== 'relecteur';
-const outilsPour = (mode) => (peutEcrire(mode) ? TOOLS : TOOLS.filter((t) => t.function.name !== 'ecrire_fichier'));
+const outilsPour = (mode) => (peutEcrire(mode) ? TOOLS : TOOLS.filter((t) => !OUTILS_ECRITURE.has(t.function.name)));
+
+// Les petits modèles annoncent parfois une modification qui n'a pas eu lieu : chaque refus le dit clairement
+const RIEN_N_A_CHANGE = " Le fichier n'a pas changé : ne dis pas à l’utilisateur qu'il est modifié.";
 
 // Renvoie la raison du refus, ou rien si l'écriture est permise
 function ecritureRefusee({ prof, role } = {}, chemin) {
-  if (prof) return "Mode prof activé : tu n'as pas le droit d'écrire de fichier. Explique à l’utilisateur ce qu'il doit faire et laisse-le coder.";
-  if (role === 'relecteur') return "Rôle relecteur : tu ne modifies aucun fichier. Liste les problèmes à l’utilisateur, il choisira quoi corriger.";
-  if (role === 'readme' && !/\.md$/i.test(String(chemin || ''))) return "Rôle rédacteur README : tu n'écris que des fichiers Markdown (.md), jamais de code.";
+  if (prof) return "Mode prof activé : tu n'as pas le droit d'écrire de fichier. Explique à l’utilisateur ce qu'il doit faire et laisse-le coder." + RIEN_N_A_CHANGE;
+  if (role === 'relecteur') return "Rôle relecteur : tu ne modifies aucun fichier. Liste les problèmes à l’utilisateur, il choisira quoi corriger." + RIEN_N_A_CHANGE;
+  if (role === 'readme' && !/\.md$/i.test(String(chemin || ''))) return "Rôle rédacteur README : tu n'écris que des fichiers Markdown (.md), jamais de code. Dis à l’utilisateur que modifier ce fichier n'est pas ton rôle, et qu'il peut passer en Généraliste ou en Débogueur pour ça. Ne fais rien d'autre à la place." + RIEN_N_A_CHANGE;
 }
 
+// Remplace le passage `ancien` de `contenu` par `nouveau`. Renvoie { contenu, fois } ou { erreur } pour le modèle.
+// Par défaut, l'ancien texte doit apparaître exactement une fois : s'il apparaît plusieurs fois, on ne devine pas
+// lequel modifier. Avec partout (renommage), toutes les occurrences sont remplacées : L’utilisateur les voit toutes dans l'avant / après.
+// Pas de String.replace : il interprète $& ou $1 dans le nouveau texte, fréquents dans du code (PHP, regex…).
+function remplacerTexte(contenu, ancien, nouveau, partout = false) {
+  if (!ancien) return { erreur: 'ancien_texte est vide : copie le passage à modifier depuis le fichier.' };
+  // qwen3 « échappe deux fois » : il envoie les deux caractères \ et n au lieu d'un vrai retour à la ligne.
+  // On essaie d'abord le passage tel quel (un vrai "\n" dans du code doit rester trouvable), puis déséchappé.
+  const essais = [[ancien, nouveau]];
+  if (/\\[nrt"\\]/.test(ancien)) essais.push([desechapper(ancien), desechapper(nouveau)]);
+  for (let [a, n] of essais) {
+    // Fichier Windows (fins de ligne \r\n) mais passage écrit avec de simples \n : on s'aligne sur le fichier
+    if (contenu.includes('\r\n') && !a.includes('\r\n')) {
+      a = a.replace(/\n/g, '\r\n');
+      n = n.replace(/\r?\n/g, '\r\n');
+    }
+    const morceaux = contenu.split(a);
+    const fois = morceaux.length - 1;
+    if (!fois) continue;
+    if (fois > 1 && !partout) return { erreur: `ancien_texte apparaît ${fois} fois dans le fichier : ajoute quelques lignes autour pour qu'il n'apparaisse qu'une fois, ou mets remplacer_partout à true pour tout remplacer.` + RIEN_N_A_CHANGE };
+    return { contenu: morceaux.join(n), fois };
+  }
+  return { erreur: "ancien_texte est introuvable dans le fichier. Relis-le avec lire_fichier et copie le passage exactement, espaces et retours à la ligne compris (de vrais retours à la ligne, pas \\n)." + RIEN_N_A_CHANGE };
+}
+
+const desechapper = (texte) => texte.replace(/\\([nrt"\\])/g, (_, c) => ({ n: '\n', r: '\r', t: '\t', '"': '"', '\\': '\\' })[c]);
+
 async function runTool(name, args, mode) {
-  if (name === 'ecrire_fichier') {
+  if (OUTILS_ECRITURE.has(name)) {
     const refus = ecritureRefusee(mode, args.chemin);
     if (refus) return refus;
   }
@@ -265,7 +313,20 @@ async function runTool(name, args, mode) {
       return fs.readFileSync(full, 'utf8');
     }
     case 'ecrire_fichier': {
-      return writeWithConfirm(args.chemin, String(args.contenu ?? ''));
+      return ecrireAvecAccord(args.chemin, String(args.contenu ?? ''));
+    }
+    case 'remplacer_texte': {
+      const full = safePath(args.chemin);
+      if (!fs.existsSync(full)) return `Le fichier ${args.chemin} n'existe pas. Pour créer un fichier, utilise ecrire_fichier.`;
+      if (fs.statSync(full).size > MAX_FILE) return 'Fichier trop gros pour être modifié par le chat.' + RIEN_N_A_CHANGE;
+      const partout = args.remplacer_partout === true || args.remplacer_partout === 'true';
+      const resultat = remplacerTexte(fs.readFileSync(full, 'utf8'), String(args.ancien_texte ?? ''), String(args.nouveau_texte ?? ''), partout);
+      if (resultat.erreur) return resultat.erreur;
+      const reponse = await ecrireAvecAccord(args.chemin, resultat.contenu);
+      // Le nombre de passages changés aide à repérer un renommage incomplet. Pas de consigne ici :
+      // qwen3 recopie parfois la réponse de l'outil telle quelle à l’utilisateur.
+      if (!reponse.startsWith('Fichier modifié') || !partout) return reponse;
+      return `${reponse} (${resultat.fois} remplacement${resultat.fois > 1 ? 's' : ''})`;
     }
     case 'memoriser': {
       const memory = readJson('memory.json', []);
@@ -281,6 +342,14 @@ async function runTool(name, args, mode) {
 
 // Toute écriture passe par la fenêtre avant / après de l'interface (renderer.js),
 // qui répond par 'confirm-write-reply'
+const REFUS_ECRITURE = "L'utilisateur a refusé la modification.";
+
+// Pour le modèle seulement : le bouton Enregistrer des blocs de code affiche le message de writeWithConfirm à l’utilisateur
+async function ecrireAvecAccord(chemin, contenu) {
+  const resultat = await writeWithConfirm(chemin, contenu);
+  return resultat === REFUS_ECRITURE ? resultat + RIEN_N_A_CHANGE : resultat;
+}
+
 const confirmations = new Map();
 let prochaineConfirmation = 1;
 
@@ -306,7 +375,7 @@ async function writeWithConfirm(chemin, contenu) {
     ancien = fs.readFileSync(full, 'utf8');
   }
   const ok = await demanderConfirmation({ chemin: full, ancien, nouveau: contenu, existe: exists });
-  if (!ok) return "L'utilisateur a refusé la modification.";
+  if (!ok) return REFUS_ECRITURE;
   fs.mkdirSync(path.dirname(full), { recursive: true });
   fs.writeFileSync(full, contenu);
   return `Fichier ${exists ? 'modifié' : 'créé'} : ${chemin}`;
@@ -631,7 +700,12 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, role, fournisseurI
       if (!toolCalls.length) break;
       for (const call of toolCalls) {
         const { name, arguments: args } = call.function;
-        event.sender.send('chat-tool', { id, name, args: { ...args, contenu: undefined } });
+        // Les étiquettes montrent seulement le chemin, pas les gros textes
+        event.sender.send('chat-tool', { id, name, args: { ...args, contenu: undefined, ancien_texte: undefined, nouveau_texte: undefined } });
+        // Écriture refusée par le mode prof ou le rôle : L’utilisateur le voit, même si le modèle prétend le contraire
+        if (OUTILS_ECRITURE.has(name) && ecritureRefusee({ prof, role }, args?.chemin)) {
+          event.sender.send('chat-tool', { id, name: 'refus', args: { chemin: args.chemin } });
+        }
         let result;
         try {
           result = await runTool(name, args || {}, { prof, role });
