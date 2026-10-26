@@ -274,7 +274,7 @@ async function send(text) {
         const f = fournisseurActif();
         // Ollama installé mais arrêté : il suffit de relancer. Sinon, l'accueil explique comment avoir un modèle.
         const sansModele = f.type === "ollama" && (!etatOllama.installe || etatOllama.repond);
-        addMessage("error", sansModele ? "Il me faut d'abord un modèle. Ouvre une nouvelle discussion : l'accueil t'explique comment en avoir un gratuit." : f.type === "ollama" ? REPLIQUES.ollamaOff : `Pas de modèle disponible chez ${f.nom}. ${statusEl.title || "Vérifie la clé dans « Clés API »."}`);
+        addMessage("error", sansModele ? "Il me faut d'abord un modèle. Ouvre une nouvelle discussion : l'accueil t'explique comment en avoir un gratuit." : f.type === "ollama" ? REPLIQUES.ollamaOff : `Pas de modèle disponible chez ${f.nom}. ${statusEl.title || "Vérifie ta clé dans « Réglages »."}`);
         return;
     }
     envoiEnCours = true;
@@ -588,7 +588,11 @@ const roleSel = $("#role");
 
 // Les rôles du menu : « Assistant » (aucun rôle), ceux de l'app, puis ceux créés dans Réglages
 function renderListeRoles() {
-    roleSel.replaceChildren(new Option("Assistant", ""), ...Object.entries(ROLES).map(([cle, r]) => new Option(r.nom, cle)));
+    const option = ([cle, r]) => new Option(r.nom, cle);
+    const code = document.createElement("optgroup");
+    code.label = "Pour coder";
+    code.append(...Object.entries(ROLES).filter(([, r]) => r.code).map(option));
+    roleSel.replaceChildren(new Option("Assistant", ""), ...Object.entries(ROLES).filter(([, r]) => !r.code).map(option), code);
 }
 
 function renderRole() {
@@ -1015,11 +1019,6 @@ function renderPanneauFournisseurs() {
             champUrl.placeholder = "Serveur sur ton PC (ex : http://localhost:1234/v1)";
             champUrl.value = f.baseUrl || "";
             carte.append(champNom, champUrl);
-        } else {
-            const url = document.createElement("p");
-            url.className = "fournisseur__url";
-            url.textContent = f.baseUrl;
-            carte.append(url);
         }
 
         const rangee = document.createElement("div");
@@ -1028,7 +1027,7 @@ function renderPanneauFournisseurs() {
         champCle.type = "password";
         champCle.autocomplete = "off";
         champCle.spellcheck = false;
-        champCle.placeholder = f.aCle ? "Clé enregistrée : laisse vide pour la garder" : "Colle ta clé API ici";
+        champCle.placeholder = f.aCle ? "Clé enregistrée : laisse vide pour la garder" : "Colle ta clé ici";
         const ok = document.createElement("button");
         ok.className = "bouton";
         ok.textContent = "Enregistrer";
@@ -1089,14 +1088,11 @@ function renderPanneauFournisseurs() {
 function ouvrirFournisseurs() {
     // Qui protège vraiment les clés, selon le système (main.js le sait : Windows, trousseau de Linux…)
     $("#protection-cles").textContent = reglages.chiffrementDispo
-        ? `Les clés sont chiffrées sur ton PC par ${reglages.protection} et ne sont jamais réaffichées.`
-        : `Le chiffrement par ${reglages.protection} n'est pas disponible ici : aucune nouvelle clé ne peut être enregistrée.`;
+        ? "Elle reste secrète sur ton PC."
+        : `Ici, ton PC ne peut pas garder une clé secrète (${reglages.protection} indisponible) : utilise plutôt Ollama.`;
     renderPanneauFournisseurs();
-    $("#fournisseurs-modal").hidden = false;
+    $("#reglages-modal").hidden = false;
 }
-$("#open-fournisseurs").onclick = ouvrirFournisseurs;
-$("#close-fournisseurs").onclick = () => ($("#fournisseurs-modal").hidden = true);
-$("#fournisseurs-modal").onclick = (e) => { if (e.target.id === "fournisseurs-modal") e.target.hidden = true; };
 
 
 // Le texte de l'accueil dit la vérité : tout reste sur le PC seulement avec Ollama ou un serveur local
@@ -1153,7 +1149,10 @@ function appliquerPerso() {
 }
 
 // Fenêtre Réglages : fournisseur, modèle, clés et rôles perso
-$("#open-reglages").onclick = () => { renderRolesPerso(); $("#reglages-modal").hidden = false; };
+$("#open-reglages").onclick = ouvrirFournisseurs;
+$("#open-roles").onclick = () => { renderRolesPerso(); $("#roles-modal").hidden = false; $("#role-nom").focus(); };
+$("#close-roles").onclick = () => ($("#roles-modal").hidden = true);
+$("#roles-modal").onclick = (e) => { if (e.target.id === "roles-modal") e.target.hidden = true; };
 $("#close-reglages").onclick = () => ($("#reglages-modal").hidden = true);
 $("#reglages-modal").onclick = (e) => { if (e.target.id === "reglages-modal") e.target.hidden = true; };
 
@@ -1202,6 +1201,9 @@ $("#role-form").addEventListener("submit", async (e) => {
     $("#role-consigne").value = "";
     appliquerRolesPerso();
     renderRolesPerso();
+    roleSel.value = `perso-${rolesPerso.length - 1}`;
+    roleSel.onchange();
+    $("#roles-modal").hidden = true;
 });
 
 (async () => {

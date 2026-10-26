@@ -21,7 +21,6 @@ const REPLIQUES = {
     clics: [
         "Pas les oreilles, s'il te plaît.",
         "Je ne suis pas un bouton. Enfin, si.",
-        "C'est qui Jason ?",
         "Tu me caresses ou tu bosses ?",
         "Encore une fois et je m'installe sur ton clavier.",
         "Ronron. C'est tout ce que tu auras."
@@ -89,6 +88,7 @@ const ROLES = {
         rappel: "Rappel : RÔLE RÉDACTION. Demande ce qui manque, puis propose un texte prêt à copier."
     },
     relecteur: {
+        code: true,
         nom: "Relecteur de code",
         detail: "Relit ton code et liste les problèmes, sans rien modifier",
         placeholder: "Relecteur : dis-lui quel fichier ou quelle partie relire",
@@ -100,6 +100,7 @@ const ROLES = {
         rappel: "Rappel : RÔLE RELECTEUR. Lis le code avant de juger, classe les problèmes, ne modifie rien."
     },
     debogueur: {
+        code: true,
         nom: "Débogueur",
         detail: "Trouve la cause d'un bug et propose la plus petite correction",
         placeholder: "Débogueur : colle l'erreur et dis ce qui devait se passer",
@@ -111,6 +112,7 @@ const ROLES = {
         rappel: "Rappel : RÔLE DÉBOGUEUR. Trouve la cause, puis corrige-la toi-même avec remplacer_texte, le moins possible."
     },
     readme: {
+        code: true,
         nom: "Rédacteur README",
         detail: "Écrit ou met à jour la doc du projet (fichiers .md seulement)",
         placeholder: "Rédacteur README : dis-lui quoi documenter",

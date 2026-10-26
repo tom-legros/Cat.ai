@@ -556,3 +556,6 @@ select.pastille option { background: var(--surface); color: var(--texte); }
 .pastille[hidden] { display: none; }
 select.pastille { width: auto; font-family: inherit; font-size: 13px; background-color: transparent; color: var(--texte-3); }
 select.pastille.is-on { color: var(--oeil); }
+.bloc--espace { margin-top: 14px; }
+.fournisseurs { margin-top: 12px; }
+optgroup { background: var(--surface); color: var(--texte-3); font-style: normal; }

@@ -91,7 +91,10 @@
           <svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><circle cx="7" cy="14" r="3.5"/><circle cx="17" cy="14" r="3.5"/><path d="M10.5 14h3M3.5 13l1.5-5M20.5 13L19 8"/></svg>
           Mode prof
         </button>
-        <select id="role" class="pastille" title="Rôle du chat"></select>
+        <span class="pastille-groupe">
+          <select id="role" class="pastille" title="Rôle du chat"></select>
+          <button id="open-roles" class="pastille pastille--x" type="button" title="Créer un rôle">+</button>
+        </span>
       </div>
     </form>
 
@@ -100,39 +103,40 @@
     </div>
   </main>
 
+  <!-- Réglages : tout au même endroit, en mots simples -->
   <div id="reglages-modal" class="fenetre" hidden>
     <div class="fenetre__boite">
       <p class="etiquette">Réglages</p>
       <h2 class="fenetre__titre">Le cerveau du chat</h2>
-      <div class="bloc">
-        <div class="rangee rangee--entre">
-          <label class="etiquette" for="fournisseur">Fournisseur</label>
-          <button id="open-fournisseurs" class="lien lien--petit" type="button">Clés API</button>
-        </div>
+      <p class="discret">C'est lui qui fait réfléchir le chat. Tous sont gratuits.</p>
+      <div class="bloc bloc--espace">
+        <label class="etiquette" for="fournisseur">Qui fait réfléchir le chat ?</label>
         <select id="fournisseur"></select>
-        <label class="etiquette etiquette--suite" for="model">Modèle</label>
+        <label class="etiquette etiquette--suite" for="model">Version</label>
         <select id="model"></select>
         <p id="conseil-modele" class="conseil"></p>
       </div>
-      <h2 class="fenetre__titre fenetre__titre--suite">Mes rôles</h2>
-      <p class="discret">Un rôle, c'est une mission que le chat garde en tête : « Rédacteur de mails », « Coach de révisions »…</p>
-      <ul id="roles-liste" class="souvenirs"></ul>
-      <form id="role-form" class="role-form">
-        <input id="role-nom" maxlength="40" placeholder="Nom du rôle (ex : Rédacteur de mails)">
-        <textarea id="role-consigne" rows="3" maxlength="1000" placeholder="Ce qu'il doit faire (ex : écrire des mails clairs et polis, me demander d'abord à qui et pourquoi)"></textarea>
-        <button class="bouton">Ajouter le rôle</button>
-      </form>
+      <h2 class="fenetre__titre fenetre__titre--suite">Mes clés</h2>
+      <p class="discret">Pour les cerveaux en ligne, il faut une clé gratuite : clique sur « Obtenir une clé », copie-la, colle-la ici. <span id="protection-cles">Elle reste secrète sur ton PC.</span></p>
+      <div id="fournisseurs-liste" class="fournisseurs"></div>
       <div class="rangee rangee--fin"><button id="close-reglages" class="lien" type="button">Fermer</button></div>
     </div>
   </div>
 
-  <div id="fournisseurs-modal" class="fenetre" hidden>
+  <!-- Mes rôles : ouvert par le « + » à côté de la pastille du rôle -->
+  <div id="roles-modal" class="fenetre" hidden>
     <div class="fenetre__boite">
-      <p class="etiquette">Fournisseurs</p>
-      <h2 class="fenetre__titre">Clés API</h2>
-      <p class="discret"><span id="protection-cles">Les clés sont chiffrées sur ton PC et ne sont jamais réaffichées.</span> Avec un fournisseur en ligne, tes messages, ta mémoire et les fichiers que le chat lit partent sur ses serveurs : Ollama reste le seul 100 % local.</p>
-      <div id="fournisseurs-liste" class="fournisseurs"></div>
-      <div class="rangee rangee--fin"><button id="close-fournisseurs" class="lien" type="button">Fermer</button></div>
+      <p class="etiquette">Rôles</p>
+      <h2 class="fenetre__titre">Créer un rôle</h2>
+      <p class="discret">Un rôle, c'est une mission que le chat garde en tête. Exemples : « Rédacteur de mails », « Coach de révisions », « Cuisinier ».</p>
+      <form id="role-form" class="role-form">
+        <input id="role-nom" maxlength="40" placeholder="Son nom (ex : Coach de révisions)">
+        <textarea id="role-consigne" rows="3" maxlength="1000" placeholder="Ce qu'il doit faire (ex : me poser des questions sur mon cours, une par une)"></textarea>
+        <button class="bouton">Créer le rôle</button>
+      </form>
+      <p class="etiquette etiquette--suite">Mes rôles</p>
+      <ul id="roles-liste" class="souvenirs"></ul>
+      <div class="rangee rangee--fin"><button id="close-roles" class="lien" type="button">Fermer</button></div>
     </div>
   </div>
 
