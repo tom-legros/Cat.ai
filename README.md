@@ -20,6 +20,8 @@ et s'il arrivait quand même jusqu'à l'envoi, rien ne partirait.
 - **Modifier des fichiers** : chaque modification passe par une fenêtre avant / après (lignes retirées et ajoutées) que je dois valider.
   Pour corriger un fichier, il ne remplace que le passage concerné (`remplacer_texte`) au lieu de tout réécrire : c'est plus rapide, et un petit modèle n'abîme plus le reste du fichier. Le passage doit apparaître une seule fois, sinon il doit préciser (ou demander à tout remplacer, pour un renommage).
   Une écriture refusée (par moi, le mode prof ou le rôle) s'affiche dans la réponse, même si le modèle prétend le contraire.
+- **Fichiers sensibles protégés** : le contenu d'un `.env`, d'une clé privée (`.pem`, `id_rsa`…) ou d'un fichier de jetons (`.npmrc`…) n'est jamais joint tout seul à un message. Si le chat veut en lire un, une fenêtre me demande mon accord et me dit si le contenu resterait sur mon PC ou partirait en ligne. Les modèles comme `.env.example` restent lisibles.
+- **Il reste dans le dossier ouvert**, même si un lien symbolique ou une jonction Windows mène ailleurs.
 - **Mode prof** : il explique, donne des pistes et me pose des questions, mais n'écrit pas le code à ma place.
 - **Rôles** : une seule mission à la fois, pour qu'il reste concentré (surtout avec un petit modèle local). Choix dans la barre de gauche :
   - **Relecteur de code** : lit le code et liste les problèmes (bugs, sécurité, lisibilité, performance), sans rien modifier.

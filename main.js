@@ -149,12 +149,66 @@ function createWindow() {
 }
 
 // ---------- Outils que le modèle peut utiliser ----------
-// Empêche le modèle de sortir du dossier projet choisi
+// Empêche le modèle de sortir du dossier projet choisi, y compris par un lien symbolique
+// ou une jonction Windows placés dans le projet : on vérifie aussi où mène vraiment le chemin
 function safePath(rel) {
   if (!projectDir) throw new Error("Aucun dossier projet ouvert. Demande à l'utilisateur d'en ouvrir un.");
   const full = path.resolve(projectDir, rel || '.');
-  if (full !== projectDir && !full.startsWith(projectDir + path.sep)) throw new Error('Chemin en dehors du projet.');
+  if (!estDans(full, projectDir) || !estDans(cheminReel(full), cheminReel(projectDir))) throw new Error('Chemin en dehors du projet.');
   return full;
+}
+
+const estDans = (chemin, dossier) => chemin === dossier || chemin.startsWith(dossier + path.sep);
+
+// Vraie destination d'un chemin, liens suivis. Pour un fichier qui n'existe pas encore (ecrire_fichier),
+// on résout le dossier parent le plus proche qui existe, puis on rajoute la fin du chemin.
+function cheminReel(chemin) {
+  try {
+    return fs.realpathSync.native(chemin);
+  } catch (err) {
+    if (err.code !== 'ENOENT') throw err;
+    // Un lien cassé (sa destination n'existe pas) : impossible de savoir où il mène, et écrire dedans
+    // créerait le fichier à sa destination. On refuse.
+    if (fs.lstatSync(chemin, { throwIfNoEntry: false })) throw new Error("Lien dont la destination n'existe pas : refusé.");
+    const parent = path.dirname(chemin);
+    if (parent === chemin) return chemin;
+    return path.join(cheminReel(parent), path.basename(chemin));
+  }
+}
+
+// Fichiers qui contiennent souvent des secrets (mots de passe, clés API, clés privées).
+// Leur contenu n'est jamais joint tout seul au message : le modèle doit le lire avec lire_fichier, et l’utilisateur confirme.
+// Les modèles d'exemple (.env.example…) sont faits pour être partagés : ils restent lisibles.
+const SENSIBLES = [
+  /^\.env(\..+)?$/i,                                // .env, .env.local, .env.production…
+  /\.(pem|key|p12|pfx|jks|keystore|ppk)$/i,         // certificats et clés privées
+  /^id_(rsa|dsa|ecdsa|ed25519)$/i,                  // clés SSH privées (les .pub sont publiques)
+  /^\.(npmrc|pypirc|netrc|git-credentials)$/i,      // jetons de npm, PyPI, Git
+  /^(credentials|secrets?)(\.json)?$/i,
+];
+const EXEMPLES = /\.(example|sample|template|dist)$/i;
+
+function estSensible(chemin) {
+  const nom = path.basename(chemin);
+  return !EXEMPLES.test(nom) && SENSIBLES.some((motif) => motif.test(nom));
+}
+
+// Lecture d'un fichier sensible : L’utilisateur décide, en sachant si le contenu reste sur son PC ou part en ligne
+async function accordLectureSensible(chemin, fournisseurId) {
+  const config = configFournisseur(fournisseurId);
+  const local = !config || config.type === 'ollama' || HOTES_LOCAUX.includes(hote(config.baseUrl));
+  const { response } = await dialog.showMessageBox(win, {
+    type: 'warning',
+    buttons: ['Refuser', 'Autoriser'],
+    defaultId: 0,
+    cancelId: 0,
+    title: 'Fichier sensible',
+    message: `Le chat veut lire ${chemin}, un fichier qui contient souvent des secrets (mots de passe, clés API).`,
+    detail: local
+      ? 'Le modèle tourne sur ton PC : le contenu reste chez toi.'
+      : `Le modèle est en ligne : le contenu partira sur les serveurs de ${config.nom}.`,
+  });
+  return response === 1;
 }
 
 function listFiles(dir, prefix = '', out = []) {
@@ -238,7 +292,7 @@ const TOOLS = [
 
 // En mode prof, le chat n'a pas le droit d'écrire : il explique, l’utilisateur code.
 // Les rôles (consignes dans renderer.js) : le relecteur n'écrit rien, le rédacteur README n'écrit que des .md.
-// mode = { prof, role }
+// mode = { prof, role, fournisseurId }
 const OUTILS_ECRITURE = new Set(['ecrire_fichier', 'remplacer_texte']);
 const peutEcrire = ({ prof, role } = {}) => !prof && role !== 'relecteur';
 const outilsPour = (mode) => (peutEcrire(mode) ? TOOLS : TOOLS.filter((t) => !OUTILS_ECRITURE.has(t.function.name)));
@@ -310,6 +364,9 @@ async function runTool(name, args, mode) {
       const full = safePath(args.chemin);
       const size = fs.statSync(full).size;
       if (size > MAX_FILE) return `Fichier trop gros (${Math.round(size / 1024)} Ko), lecture refusée.`;
+      if (estSensible(full) && !(await accordLectureSensible(args.chemin, mode.fournisseurId))) {
+        return `L’utilisateur a refusé la lecture de ${args.chemin} : ce fichier peut contenir des secrets. Fais sans, ou demande-lui l'information dont tu as besoin.`;
+      }
       return fs.readFileSync(full, 'utf8');
     }
     case 'ecrire_fichier': {
@@ -708,7 +765,7 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, role, fournisseurI
         }
         let result;
         try {
-          result = await runTool(name, args || {}, { prof, role });
+          result = await runTool(name, args || {}, { prof, role, fournisseurId });
         } catch (err) {
           result = `Erreur : ${err.message}`;
         }
@@ -1123,18 +1180,42 @@ ipcMain.handle('open-project-path', async (_e, dir) => {
 ipcMain.handle('project-context', (_e, message) => {
   if (!projectDir) return null;
   const files = listFiles(projectDir);
-  const text = message.toLowerCase();
-  const mentioned = files
-    .filter((f) => !f.endsWith('/'))
-    .filter((f) => text.includes(f.toLowerCase()) || text.includes(path.basename(f).toLowerCase()))
-    .slice(0, 3)
-    .map((f) => {
-      const full = path.join(projectDir, f);
-      const content = fs.statSync(full).size > MAX_FILE ? '(fichier trop gros)' : fs.readFileSync(full, 'utf8');
-      return { path: f, content };
-    });
+  const mentioned = fichiersCites(message, files).slice(0, 3).map((f) => ({ path: f, content: contenuJoint(f) }));
   return { files: files.slice(0, 150), mentioned };
 });
+
+// Fichiers cités dans le message de l’utilisateur : leur chemin relatif, ou leur nom comme mot entier.
+// Un nom sans extension (a, test, api) n'est retenu qu'à partir de 6 lettres (Makefile, LICENSE…) :
+// sinon il serait « cité » dans presque tous les messages. Les chemins complets passent en premier.
+function fichiersCites(message, fichiers) {
+  const texte = message.toLowerCase().replace(/\\/g, '/');
+  // Mot entier : pas collé à une lettre, un tiret ou un point avant ; après, un point ne compte
+  // que s'il termine la phrase (« regarde notes.js. » oui, « notes.js.bak » non)
+  const motEntier = (nom) => new RegExp(`(^|[^\\w.-])${nom.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=$|[^\\w.-]|\\.(?!\\w))`).test(texte);
+  const parChemin = [];
+  const parNom = [];
+  for (const f of fichiers) {
+    if (f.endsWith('/')) continue;
+    const nom = path.basename(f).toLowerCase();
+    if (f.includes('/') && motEntier(f.toLowerCase())) parChemin.push(f);
+    else if ((nom.includes('.') || nom.length >= 6) && motEntier(nom)) parNom.push(f);
+  }
+  return [...parChemin, ...parNom];
+}
+
+// Ce qui est joint au message pour un fichier cité : son texte, ou la raison pour laquelle il ne l'est pas
+function contenuJoint(relatif) {
+  let full;
+  try {
+    full = safePath(relatif);
+  } catch {
+    return '(mène en dehors du projet : pas joint)';
+  }
+  if (estSensible(full)) return '(fichier sensible, pas joint automatiquement : lis-le avec lire_fichier si tu en as vraiment besoin, l’utilisateur devra confirmer)';
+  if (fs.statSync(full).size > MAX_FILE) return '(fichier trop gros)';
+  const contenu = fs.readFileSync(full, 'utf8');
+  return contenu.includes('\u0000') ? "(fichier binaire, pas joint)" : contenu;
+}
 
 // Dossiers de projets connus, donnés au modèle pour qu'il ait les chemins exacts
 ipcMain.handle('known-projects', () => {
