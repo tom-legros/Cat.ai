@@ -64,7 +64,7 @@ async function listerModeles(config) {
 
 // ---------- Fournisseurs et clés API ----------
 // Tout est dans fournisseurs.json, dans le dossier userData (jamais dans le projet ni dans Git).
-// Les clés y sont chiffrées avec safeStorage (DPAPI sur Windows : seul ton compte Windows peut les lire).
+// Les clés y sont chiffrées avec safeStorage : sur Windows par ton compte (DPAPI), sur Linux par le trousseau du système.
 // Elles ne sortent jamais de main.js : l'interface sait seulement si une clé est enregistrée ou non.
 const FOURNISSEURS_DE_BASE = [
   { id: 'ollama', type: 'ollama', nom: 'Ollama (local)' },
@@ -111,40 +111,85 @@ function avertissementFormat(id, nom) {
   return `Cette clé ne ressemble pas à une clé ${nom} (elles commencent par ${DEBUT_DES_CLES[id].exemple}). Elle est enregistrée quand même : vérifie que tu ne l'as pas collée dans la mauvaise carte.`;
 }
 
-function dechiffrer(cleChiffree) {
+// ---------- Chiffrement des clés ----------
+// API asynchrone de safeStorage : l'ancienne API synchrone disparaît dans Electron 46.
+// Une clé chiffrée avec l'ancienne API se déchiffre avec la nouvelle : rien à refaire pour les clés déjà enregistrées.
+
+// Qui protège les clés, selon le système : pour des messages qui disent la vérité
+const PROTECTION = {
+  win32: 'ton compte Windows',
+  darwin: 'le trousseau de macOS',
+  linux: 'le trousseau du système (GNOME Keyring, KWallet…)',
+};
+const protection = () => PROTECTION[process.platform] || 'le système';
+
+// Peut-on chiffrer pour de vrai ? Sous Linux sans trousseau, Electron « chiffre » avec un mot de passe écrit
+// dans son propre code (backend basic_text) : la clé ne serait pas protégée, on refuse de l'enregistrer.
+async function etatChiffrement() {
+  if (!(await safeStorage.isAsyncEncryptionAvailable())) {
+    return { dispo: false, raison: `Le chiffrement par ${protection()} n'est pas disponible : la clé n'a pas été enregistrée.` };
+  }
+  if (process.platform === 'linux' && safeStorage.getSelectedStorageBackend() === 'basic_text') {
+    return { dispo: false, raison: "Aucun trousseau (GNOME Keyring, KWallet…) n'est disponible sur ce Linux : la clé ne serait pas vraiment protégée, elle n'a pas été enregistrée. Installe ou déverrouille un trousseau, puis réessaie." };
+  }
+  return { dispo: true };
+}
+
+async function chiffrer(cle) {
+  return (await safeStorage.encryptStringAsync(cle)).toString('base64');
+}
+
+async function dechiffrer(cleChiffree, id) {
   if (!cleChiffree) return '';
   try {
-    return safeStorage.decryptString(Buffer.from(cleChiffree, 'base64'));
+    const { result, shouldReEncrypt } = await safeStorage.decryptStringAsync(Buffer.from(cleChiffree, 'base64'));
+    // Le système a changé de clé de chiffrement : on rechiffre la clé API avec la nouvelle, une fois pour toutes
+    if (shouldReEncrypt && result) await rechiffrer(id, result);
+    return result;
   } catch {
     return ''; // clé chiffrée par un autre compte ou un autre PC : illisible ici
   }
 }
 
-// Config complète d'un fournisseur à partir de son identifiant, clé déchiffrée comprise.
-// À n'utiliser que dans main.js : ce qui part vers l'interface passe par versInterface().
-function configFournisseur(id = 'ollama') {
+async function rechiffrer(id, cle) {
+  try {
+    const reglages = lireReglagesFournisseurs();
+    if (!reglages.fournisseurs[id]) return;
+    reglages.fournisseurs[id].cleChiffree = await chiffrer(cle);
+    writeJson('fournisseurs.json', reglages);
+  } catch {} // pas grave : l'ancienne version chiffrée reste lisible
+}
+
+// Ce qu'on sait d'un fournisseur SANS déchiffrer sa clé : assez pour les vérifications
+// (gratuit ou non, local ou en ligne, limites de taille). Synchrone.
+function infosFournisseur(id = 'ollama') {
   const f = tousLesFournisseurs().find((x) => x.id === id);
   if (!f) return null;
   if (f.type === 'ollama') return { id: f.id, type: 'ollama', nom: f.nom };
-  return { id: f.id, type: 'openai', nom: f.nom, baseUrl: f.baseUrl, cle: dechiffrer(f.cleChiffree) };
+  return { id: f.id, type: 'openai', nom: f.nom, baseUrl: f.baseUrl };
+}
+
+// Config complète d'un fournisseur, clé déchiffrée comprise : seulement quand il faut vraiment lui parler.
+// À n'utiliser que dans le processus principal : ce qui part vers l'interface passe par versInterface().
+async function configFournisseur(id = 'ollama') {
+  const infos = infosFournisseur(id);
+  if (!infos || infos.type === 'ollama') return infos;
+  const { cleChiffree } = tousLesFournisseurs().find((x) => x.id === id);
+  return { ...infos, cle: await dechiffrer(cleChiffree, id) };
 }
 
 // Ce que l'interface a le droit de voir : tout sauf la clé
-function versInterface() {
+async function versInterface() {
   const { actif, modeles } = lireReglagesFournisseurs();
-  return {
-    actif,
-    modeles,
-    chiffrementDispo: safeStorage.isEncryptionAvailable(),
-    fournisseurs: tousLesFournisseurs().map(({ cleChiffree, ...f }) => {
-      const cle = dechiffrer(cleChiffree);
-      const douteux = formatDouteux(f.id, cle);
-      return { ...f, aCle: f.type === 'ollama' || !!cle, formatDouteux: douteux, avertissement: douteux ? avertissementFormat(f.id, f.nom) : null };
-    }),
-  };
+  const fournisseurs = await Promise.all(tousLesFournisseurs().map(async ({ cleChiffree, ...f }) => {
+    const cle = await dechiffrer(cleChiffree, f.id);
+    const douteux = formatDouteux(f.id, cle);
+    return { ...f, aCle: f.type === 'ollama' || !!cle, formatDouteux: douteux, avertissement: douteux ? avertissementFormat(f.id, f.nom) : null };
+  }));
+  return { actif, modeles, chiffrementDispo: (await etatChiffrement()).dispo, protection: protection(), fournisseurs };
 }
 
 module.exports = {
-  FOURNISSEURS_DE_BASE, lireReglagesFournisseurs, configFournisseur, versInterface,
-  formatDouteux, avertissementFormat, modelesCasses, marquerModeleCasse, listerModeles,
+  FOURNISSEURS_DE_BASE, lireReglagesFournisseurs, infosFournisseur, configFournisseur, versInterface,
+  etatChiffrement, chiffrer, formatDouteux, avertissementFormat, modelesCasses, marquerModeleCasse, listerModeles,
 };

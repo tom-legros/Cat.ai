@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, safeStorage } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
@@ -11,8 +11,8 @@ const { LIMITES_OLLAMA, MAX_JOINT, limitesTaille, raccourcir, compacter } = requ
 const { ajouterFait } = require('./principal/memoire');
 const { OLLAMA, REFLEXION, envoyerOllama, envoyerOpenAI } = require('./principal/envoi');
 const {
-  FOURNISSEURS_DE_BASE, lireReglagesFournisseurs, configFournisseur, versInterface,
-  formatDouteux, avertissementFormat, marquerModeleCasse, listerModeles,
+  FOURNISSEURS_DE_BASE, lireReglagesFournisseurs, infosFournisseur, configFournisseur, versInterface,
+  etatChiffrement, chiffrer, formatDouteux, avertissementFormat, marquerModeleCasse, listerModeles,
 } = require('./principal/fournisseurs');
 
 const MAX_STEPS = 8;
@@ -42,15 +42,26 @@ async function ollamaRepond() {
   }
 }
 
+// Où trouver Ollama : sur Windows, son installeur le met dans LOCALAPPDATA ; sur Linux et macOS,
+// la commande « ollama » est dans le PATH (et souvent déjà lancée en service par le système).
+function commandeOllama() {
+  if (process.platform !== 'win32') return 'ollama';
+  const exe = path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Ollama', 'ollama.exe');
+  return fs.existsSync(exe) ? exe : null;
+}
+
 async function demarrerOllama() {
   if (await ollamaRepond()) return;
-  const exe = path.join(process.env.LOCALAPPDATA, 'Programs', 'Ollama', 'ollama.exe');
-  if (!fs.existsSync(exe)) return;
-  serveurOllama = spawn(exe, ['serve'], {
+  const commande = commandeOllama();
+  if (!commande) return;
+  serveurOllama = spawn(commande, ['serve'], {
     windowsHide: true,
     stdio: 'ignore',
-    env: { ...process.env, OLLAMA_VULKAN: '1' },
+    // Vulkan : réglé pour les cartes AMD sous Windows ; ailleurs, Ollama choisit seul
+    env: process.platform === 'win32' ? { ...process.env, OLLAMA_VULKAN: '1' } : process.env,
   });
+  // Pas installé : rien ne se lance, et l'interface affiche « Ollama ne répond pas »
+  serveurOllama.on('error', () => (serveurOllama = null));
   serveurOllama.on('exit', () => (serveurOllama = null));
 }
 
@@ -84,7 +95,7 @@ const safePath = (rel) => cheminSur(projectDir, rel);
 
 // Lecture d'un fichier sensible : L’utilisateur décide, en sachant si le contenu reste sur son PC ou part en ligne
 async function accordLectureSensible(chemin, fournisseurId) {
-  const config = configFournisseur(fournisseurId);
+  const config = infosFournisseur(fournisseurId);
   const local = !config || config.type === 'ollama' || HOTES_LOCAUX.includes(hote(config.baseUrl));
   const { response } = await dialog.showMessageBox(win, {
     type: 'warning',
@@ -225,8 +236,8 @@ ipcMain.handle('save-code', async (_e, { chemin, contenu }) => {
 });
 
 // La bonne fonction d'envoi selon le fournisseur ; la clé est lue ici, jamais reçue de l'interface
-function envoyeurPour(fournisseurId) {
-  const config = configFournisseur(fournisseurId);
+async function envoyeurPour(fournisseurId) {
+  const config = await configFournisseur(fournisseurId);
   if (!config) throw new Error('Fournisseur inconnu. Choisis-en un dans la liste.');
   if (config.type === 'ollama') return envoyerOllama;
   if (!config.baseUrl) throw new Error(`Aucune adresse pour ${config.nom} : remplis-la dans le panneau Fournisseurs.`);
@@ -236,7 +247,7 @@ function envoyeurPour(fournisseurId) {
 
 // Dernier garde-fou avant d'envoyer : jamais de modèle payant là où seuls les gratuits sont autorisés
 function verifierGratuit(fournisseurId, modele) {
-  const config = configFournisseur(fournisseurId);
+  const config = infosFournisseur(fournisseurId);
   if (!config) throw new Error('Fournisseur inconnu : rien n\'a été envoyé.');
   if (!modeleGratuit(config, modele)) {
     throw new Error(`${modele} n'est pas gratuit chez ${config.nom} : rien n'a été envoyé. ${conseilGratuit(config)}`);
@@ -251,10 +262,10 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, role, fournisseurI
   const onMorceau = (text) => event.sender.send('chat-chunk', { id, text });
   try {
     verifierGratuit(fournisseurId, model);
-    const envoyer = envoyeurPour(fournisseurId);
+    const envoyer = await envoyeurPour(fournisseurId);
     // Petite limite de taille (Ollama et ses 8 192 tokens, Groq gratuit) : chaque envoi est allégé,
     // pour que ce soit nous qui choisissions quoi raccourcir, et pas le modèle qui oublie la question
-    const config = configFournisseur(fournisseurId);
+    const config = infosFournisseur(fournisseurId);
     const limites = config.type === 'ollama' ? LIMITES_OLLAMA : limitesTaille(config);
     for (let step = 0; step < MAX_STEPS; step++) {
       const aEnvoyer = limites ? compacter(history, limites.total) : history;
@@ -328,7 +339,7 @@ Garde : ce que l’utilisateur veut faire, les décisions prises, les fichiers e
 ${ancienResume ? `\nRésumé de ce qui s'est passé encore avant :\n${ancienResume}\n` : ''}
 Discussion :
 ${texte}`;
-  const config = configFournisseur(fournisseurId);
+  const config = await configFournisseur(fournisseurId);
   if (!modeleGratuit(config, model)) return null; // pas de résumé payant
   try {
     if (!config || config.type === 'ollama') {
@@ -372,9 +383,19 @@ ipcMain.handle('fournisseurs-lire', () => versInterface());
 
 // Enregistre un fournisseur : { id, cle?, nom?, baseUrl? }
 // cle absente = on garde l'ancienne ; cle vide = on la supprime ; nom et baseUrl seulement pour le personnalisé
-ipcMain.handle('fournisseurs-enregistrer', (_e, { id, cle, nom, baseUrl }) => {
+ipcMain.handle('fournisseurs-enregistrer', async (_e, { id, cle, nom, baseUrl }) => {
   const base = FOURNISSEURS_DE_BASE.find((f) => f.id === id);
   if (!base || base.type === 'ollama') return { ok: false, erreur: 'Fournisseur inconnu.' };
+  // La clé est chiffrée AVANT de lire les réglages : rien ne peut les modifier entre la lecture et l'écriture
+  const propre = cle === undefined ? undefined : String(cle).trim();
+  let cleChiffree = null;
+  if (propre) {
+    // Jamais de clé en clair sur le disque, ni « protégée » par un mot de passe connu : si le chiffrement
+    // n'est pas vraiment disponible, on refuse
+    const chiffrement = await etatChiffrement();
+    if (!chiffrement.dispo) return { ok: false, erreur: chiffrement.raison };
+    cleChiffree = await chiffrer(propre);
+  }
   const reglages = lireReglagesFournisseurs();
   const f = { ...(reglages.fournisseurs[id] || {}) };
   if (base.modifiable) {
@@ -386,34 +407,29 @@ ipcMain.handle('fournisseurs-enregistrer', (_e, { id, cle, nom, baseUrl }) => {
       f.baseUrl = url;
     }
   }
-  if (cle !== undefined) {
-    const propre = String(cle).trim();
-    if (!propre) delete f.cleChiffree;
-    else {
-      // Jamais de clé en clair sur le disque : si le chiffrement n'est pas dispo, on refuse
-      if (!safeStorage.isEncryptionAvailable()) return { ok: false, erreur: "Le chiffrement de Windows n'est pas disponible : la clé n'a pas été enregistrée." };
-      f.cleChiffree = safeStorage.encryptString(propre).toString('base64');
-    }
+  if (propre !== undefined) {
+    if (cleChiffree) f.cleChiffree = cleChiffree;
+    else delete f.cleChiffree; // clé vide : on la supprime
   }
   reglages.fournisseurs[id] = f;
   writeJson('fournisseurs.json', reglages);
-  const avertissement = cle && formatDouteux(id, String(cle).trim()) ? avertissementFormat(id, base.nom) : null;
-  return { ok: true, avertissement, reglages: versInterface() };
+  const avertissement = propre && formatDouteux(id, propre) ? avertissementFormat(id, base.nom) : null;
+  return { ok: true, avertissement, reglages: await versInterface() };
 });
 
 // Choisit le fournisseur actif et, si donné, le modèle retenu pour lui
-ipcMain.handle('fournisseurs-choisir', (_e, { id, modele }) => {
+ipcMain.handle('fournisseurs-choisir', async (_e, { id, modele }) => {
   if (!FOURNISSEURS_DE_BASE.some((f) => f.id === id)) return { ok: false, erreur: 'Fournisseur inconnu.' };
   const reglages = lireReglagesFournisseurs();
   reglages.actif = id;
   // Un modèle payant n'est jamais retenu
-  if (modele && modeleGratuit(configFournisseur(id), String(modele))) reglages.modeles[id] = String(modele);
+  if (modele && modeleGratuit(infosFournisseur(id), String(modele))) reglages.modeles[id] = String(modele);
   writeJson('fournisseurs.json', reglages);
-  return { ok: true, reglages: versInterface() };
+  return { ok: true, reglages: await versInterface() };
 });
 
 ipcMain.handle('models', async (_e, fournisseurId = 'ollama') => {
-  const config = configFournisseur(fournisseurId);
+  const config = await configFournisseur(fournisseurId);
   if (!config) return { ok: false, models: [], erreur: 'Fournisseur inconnu.' };
   return listerModeles(config);
 });
@@ -481,6 +497,7 @@ ipcMain.handle('known-projects', () => {
 });
 
 ipcMain.handle('special-dirs', () => ({
+  maison: app.getPath('home'),
   bureau: app.getPath('desktop'),
   documents: app.getPath('documents'),
   téléchargements: app.getPath('downloads'),

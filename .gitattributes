@@ -1,0 +1,2 @@
+# Les scripts shell gardent toujours des fins de ligne Unix : avec des retours chariot Windows, ils plantent sous Linux
+*.sh text eol=lf

@@ -168,9 +168,10 @@ function setStreaming(on) {
 // Cherche si le message parle d'un dossier : chemin complet, projet connu, ou bureau/documents
 async function detectProject(text) {
     const t = text.toLowerCase();
-    const abs = text.match(/[a-z]:\\[^\s"'<>|?*]+/i);
+    // Chemin complet : Windows (C:\…), ou Linux et macOS (/home/…, ~/…)
+    const abs = text.match(/[a-z]:\\[^\s"'<>|?*]+/i) || text.match(/(?:^|\s)(~\/[^\s"'<>|?*]+|\/(?:home|Users|mnt|media|opt|srv|tmp)\/[^\s"'<>|?*]+)/);
     if (abs) {
-        const chemin = abs[0].replace(/[\\.,;:!]+$/, "");
+        const chemin = (abs[1] || abs[0]).trim().replace(/[\\/.,;:!]+$/, "").replace(/^~(?=\/)/, specialDirs.maison || "~");
         if (await window.api.dirExists(chemin)) return chemin;
     }
     const connu = knownProjects.find((p) => {
@@ -954,6 +955,10 @@ function renderPanneauFournisseurs() {
 }
 
 function ouvrirFournisseurs() {
+    // Qui protège vraiment les clés, selon le système (main.js le sait : Windows, trousseau de Linux…)
+    $("#protection-cles").textContent = reglages.chiffrementDispo
+        ? `Les clés sont chiffrées sur ton PC par ${reglages.protection}`
+        : "Le chiffrement n'est pas disponible ici : aucune clé ne peut être enregistrée. Les clés déjà enregistrées";
     renderPanneauFournisseurs();
     $("#fournisseurs-modal").hidden = false;
 }

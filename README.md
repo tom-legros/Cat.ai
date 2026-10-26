@@ -36,7 +36,7 @@ et s'il arrivait quand même jusqu'à l'envoi, rien ne partirait.
 - **Place dans le contexte** : avec Ollama (8 192 tokens), chaque envoi est allégé par l'app elle-même, pour qu'un gros fichier lu ne fasse jamais disparaître ma question. Les fichiers cités sont joints dans une limite raisonnable (le chat lit la suite avec `lire_fichier`, à partir de la ligne voulue), et si les consignes deviennent trop lourdes, la réponse commence par un avertissement.
 - **Glisser-déposer** : je lâche un fichier sur la fenêtre pour qu'il le lise.
 - **Plusieurs fournisseurs** : choix du fournisseur et du modèle dans la barre de gauche ; seuls les modèles capables de discuter sont proposés, et un modèle qui n'existe plus est retiré tout seul. Le modèle conseillé (bon en code, sans vider le quota gratuit) a une étoile ★, ceux qui vident vite le quota un ▲.
-- **Clés API protégées** : saisies dans le panneau « Clés API », chiffrées par Windows (`safeStorage`), jamais réaffichées ni envoyées à l'interface.
+- **Clés API protégées** : saisies dans le panneau « Clés API », chiffrées par le système (`safeStorage` : mon compte Windows, ou le trousseau de Linux), jamais réaffichées ni envoyées à l'interface. Sur un Linux sans trousseau, Electron ne protégerait la clé qu'avec un mot de passe écrit dans son code : l'app refuse alors de l'enregistrer.
 - **Le chat** : il cligne des yeux, suit la souris, s'endort quand je ne fais rien, sautille quand il a fini de répondre, et a des répliques selon l'heure et le projet ouvert.
 
 ## Installation
@@ -52,6 +52,15 @@ npm start
 L'application lance Ollama toute seule en arrière-plan si besoin.
 Pour un fournisseur en ligne : « Clés API » dans la barre de gauche, coller la clé, puis le choisir dans « Fournisseur ».
 Sur Windows, `Lancer.bat` démarre l'app sans fenêtre de console.
+
+### Sur Linux (Arch, Ubuntu…)
+
+Mêmes commandes, avec quelques différences :
+- `npm install` télécharge l'Electron pour Linux : refaire `npm install` sur chaque système, ne pas copier `node_modules` depuis Windows.
+- Ollama est souvent déjà lancé en service par le système (`systemctl status ollama`). Sinon, l'app lance `ollama serve` toute seule s'il est dans le `PATH`.
+- Pour les clés API, il faut un trousseau déverrouillé (GNOME Keyring ou KWallet).
+
+`./lancer.sh` démarre l'app sans garder de terminal ouvert.
 
 ## Organisation
 
@@ -84,7 +93,7 @@ Les modules de `principal/` ne dépendent pas d'Electron (sauf les clés, dans `
 | `style.css` | La DA, reprise de mon portfolio |
 | `outils/generer-icone.js` | Génère l'icône en pixel art à partir du sprite : `icone.png` et `icone-pixel.ico` (`node outils/generer-icone.js`) |
 
-Les données (discussions, mémoire, réglages, clés chiffrées dans `fournisseurs.json`) sont dans `%APPDATA%\assistant-ia`, jamais dans le projet.
+Les données (discussions, mémoire, réglages, clés chiffrées dans `fournisseurs.json`) sont dans `%APPDATA%\assistant-ia` sur Windows et `~/.config/assistant-ia` sur Linux, jamais dans le projet.
 
 Elles ne peuvent pas être perdues par un plantage :
 - **Écriture atomique** : chaque fichier est d'abord écrit à côté, puis remplace l'ancien d'un seul coup. Un plantage ou une coupure de courant laisse l'ancienne version ou la nouvelle, jamais un fichier à moitié écrit.

@@ -7,7 +7,7 @@ const TOOLS = [
     type: 'function',
     function: {
       name: 'ouvrir_dossier',
-      description: "Ouvre un dossier de l'ordinateur comme projet, avec son chemin complet (ex : C:\\Users\\moi\\Documents\\portfolio). À utiliser quand l'utilisateur parle d'un dossier ou d'un projet. L'utilisateur doit confirmer.",
+      description: "Ouvre un dossier de l'ordinateur comme projet, avec son chemin complet (ex : C:\\Users\\moi\\Documents\\portfolio, ou /home/moi/projets/portfolio sous Linux). À utiliser quand l'utilisateur parle d'un dossier ou d'un projet. L'utilisateur doit confirmer.",
       parameters: { type: 'object', properties: { chemin: { type: 'string', description: 'Chemin complet du dossier' } }, required: ['chemin'] },
     },
   },
