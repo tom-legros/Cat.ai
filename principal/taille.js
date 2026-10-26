@@ -36,7 +36,8 @@ function raccourcir(texte, max) {
 }
 
 // Ramène l'historique sous `total` caractères, sans casser le lien entre un appel d'outil et son résultat :
-// 1. on raccourcit les résultats d'outils, du plus ancien au plus récent ;
+// 1. on raccourcit les résultats d'outils, du plus gros au plus petit : un fichier lu en entier passe avant
+//    un résultat de recherche, court et précieux (coupé, le modèle relançait sans fin la même recherche) ;
 // 2. puis on retire les plus vieux échanges (un message de l’utilisateur, ou une réponse avec ses résultats d'outils),
 //    en gardant toujours les consignes du début et le dernier message de l’utilisateur avec ce qui le suit.
 function compacter(messages, total) {
@@ -44,9 +45,11 @@ function compacter(messages, total) {
   const somme = () => liste.reduce((n, m) => n + taille(m), 0);
   // Les consignes (avec le contenu des fichiers cités) ne prennent jamais plus de la moitié
   if (liste[0]?.role === 'system') liste[0].content = raccourcir(liste[0].content, total / 2);
-  for (const m of liste) {
+  // sort est stable : à taille égale, le plus ancien passe en premier
+  const parTaille = liste.filter((m) => m.role === 'tool').sort((a, b) => b.content.length - a.content.length);
+  for (const m of parTaille) {
     if (somme() <= total) return liste;
-    if (m.role === 'tool' && m.content.length > 800) m.content = raccourcir(m.content, 800);
+    if (m.content.length > 800) m.content = raccourcir(m.content, 800);
   }
   // Les messages système du début (consignes, résumé de la discussion) restent toujours
   let debut = 0;

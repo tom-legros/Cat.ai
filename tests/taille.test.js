@@ -45,7 +45,7 @@ test('compacter : une discussion qui tient déjà ne change pas', () => {
   assert.deepEqual(compacter(liste, 1000), liste);
 });
 
-test('compacter : raccourcit d abord les résultats d outils, du plus ancien au plus récent', () => {
+test('compacter : à taille égale, raccourcit d abord le résultat d outil le plus ancien', () => {
   const liste = [
     { role: 'system', content: 'consignes' },
     { role: 'user', content: 'lis a.js et b.js' },
@@ -92,4 +92,23 @@ test('compacter : ne modifie pas la liste d origine', () => {
   const liste = [{ role: 'system', content: 'x'.repeat(5000) }, { role: 'user', content: 'q' }];
   compacter(liste, 1000);
   assert.equal(liste[0].content.length, 5000);
+});
+
+test('compacter : coupe d abord les plus gros résultats, le résultat de recherche reste entier (cas vu avec Groq)', () => {
+  const { LIMITES_TAILLE } = require('../principal/taille');
+  const groq = LIMITES_TAILLE['api.groq.com'];
+  const appel = (id, name) => ({ role: 'assistant', content: '', tool_calls: [{ id, function: { name, arguments: {} } }] });
+  const recherche = Array.from({ length: 19 }, (_, i) => `principal/outils.js:${100 + i}: remplacerTexte(contenu, ancien, nouveau)`).join('\n').padEnd(2452, ' ');
+  const liste = [
+    { role: 'system', content: 'c'.repeat(6000) }, // consignes + mémoire + liste des fichiers
+    { role: 'user', content: 'Où est utilisée la fonction remplacerTexte ?' },
+    appel('1', 'chercher'),
+    { role: 'tool', content: recherche, tool_call_id: '1' },
+    appel('2', 'lire_fichier'),
+    { role: 'tool', content: raccourcir('m'.repeat(20000), groq.resultatOutil), tool_call_id: '2' },
+  ];
+  const resultat = compacter(liste, groq.total);
+  assert.ok(total(resultat) <= groq.total);
+  assert.equal(resultat[3].content, recherche, 'la recherche est intacte');
+  assert.ok(resultat[5].content.length < 4000, 'la lecture de main.js est coupée');
 });
