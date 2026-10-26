@@ -175,4 +175,38 @@ function matchingBrace(s, start) {
   return -1;
 }
 
-module.exports = { TOOLS, OUTILS_ECRITURE, peutEcrire, outilsPour, RIEN_N_A_CHANGE, ecritureRefusee, remplacerTexte, desechapper, parseTextToolCalls, matchingBrace };
+// Une ligne qui résume ce qu'un outil a fait, d'après son résultat : gardée dans l'historique de la discussion
+// pour que le modèle sache, aux messages suivants, ce qu'il a déjà lu ou modifié (sans le contenu des fichiers).
+// Renvoie '' pour ce qui n'est pas une action à retenir.
+function resumerAction(nom, args = {}, resultat = '') {
+  const r = String(resultat);
+  const chemin = args.chemin || '';
+  const rate = r.startsWith('Erreur') || r.startsWith('Fichier trop gros') || r.includes("n'existe pas");
+  switch (nom) {
+    case 'lire_fichier':
+      if (r.startsWith('L’utilisateur a refusé')) return `n'a pas pu lire ${chemin} (L’utilisateur a refusé : fichier sensible)`;
+      if (rate) return `n'a pas pu lire ${chemin}`;
+      return `a lu ${chemin}${Number(args.ligne) > 1 ? ` à partir de la ligne ${Math.floor(Number(args.ligne))}` : ''}`;
+    case 'chercher': {
+      if (rate) return `n'a pas pu chercher « ${args.texte} »`;
+      const trouves = r.split('\n').filter((l) => /^[^\s(…].*:\d+: /.test(l)).length;
+      return `a cherché « ${args.texte} »${args.dossier ? ` dans ${args.dossier}` : ''} (${trouves ? `${trouves}${r.includes("d'autres résultats") ? '+' : ''} résultat${trouves > 1 ? 's' : ''}` : 'aucun résultat'})`;
+    }
+    case 'lister_fichiers':
+      return rate ? '' : `a listé les fichiers${args.dossier ? ` de ${args.dossier}` : ''}`;
+    case 'ecrire_fichier':
+    case 'remplacer_texte':
+      if (r.startsWith('Fichier créé')) return `a créé ${chemin}`;
+      if (r.startsWith('Fichier modifié')) return `a modifié ${chemin}`;
+      if (r.startsWith("L'utilisateur a refusé")) return `voulait modifier ${chemin}, mais l’utilisateur a refusé : le fichier n'a pas changé`;
+      return `n'a pas pu modifier ${chemin} : le fichier n'a pas changé`;
+    case 'memoriser':
+      return r.startsWith('Mémorisé') ? `a retenu : ${args.fait}` : '';
+    case 'ouvrir_dossier':
+      return r.startsWith('Dossier ouvert') ? `a ouvert le dossier ${chemin}` : '';
+    default:
+      return '';
+  }
+}
+
+module.exports = { TOOLS, OUTILS_ECRITURE, peutEcrire, outilsPour, RIEN_N_A_CHANGE, ecritureRefusee, remplacerTexte, desechapper, parseTextToolCalls, matchingBrace, resumerAction };

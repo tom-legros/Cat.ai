@@ -17,7 +17,7 @@ const convList = $("#conv-list");
 
 let convs = [];
 let current = null;
-let streaming = null; // { id, el, chat, text }
+let streaming = null; // { id, el, chat, text, actions }
 let memory = [];
 let project = null;
 let knownProjects = [];
@@ -224,10 +224,27 @@ async function resumerSiBesoin(conv, bulle) {
 // (on retire aussi l'ancien format [[action:…]] des discussions enregistrées avant ce changement)
 const sansEtiquettes = (texte) => texte.replace(LIGNE_ACTION, "").replace(/\[\[action:[^\]\n]*\]\]/g, "").replace(/\n{3,}/g, "\n\n").trim();
 
+const MAX_ACTIONS_RAPPELEES = 12;
+
 function messagesPourLeModele(conv) {
     const liste = conv.messages.slice(conv.resumeJusqua || 0).map(({ role, content }) => ({ role, content: role === "assistant" ? sansEtiquettes(content) : content }));
     if (conv.resume) liste.unshift({ role: "system", content: `Résumé du début de cette discussion :\n${conv.resume}` });
     // Les petits modèles oublient les consignes du début : on rappelle le mode prof et le rôle juste avant de répondre
+    // Ce qu'il a fait dans ses réponses précédentes (lu, cherché, modifié…), une ligne par action, sans le contenu
+    // des fichiers : assez pour qu'il ne relise pas tout et n'invente pas, sans remplir les 8 192 tokens d'Ollama.
+    // Placé après la question, comme les rappels : c'est la partie que la compaction ne retire jamais.
+    const toutes = conv.messages.flatMap((m) => m.actions || []);
+    const actions = toutes.filter((a, i) => a !== toutes[i - 1]).slice(-MAX_ACTIONS_RAPPELEES);
+    // Un petit modèle confond vite ce qu'il a proposé et ce qu'il a fait : le bilan des fichiers modifiés est dit en clair
+    const modifies = [...new Set(toutes.filter((a) => /^a (modifié|créé) /.test(a)).map((a) => a.replace(/^a (modifié|créé) /, "")))];
+    const bilan = modifies.length
+        ? `Fichiers que tu as vraiment modifiés ou créés : ${modifies.join(", ")}. Aucun autre.`
+        : "Tu n'as modifié AUCUN fichier dans cette discussion : ne dis jamais le contraire.";
+    if (actions.length) {
+        liste.push({ role: "system", content: `Ce que tu as déjà fait dans cette discussion (le contenu des fichiers lus n'est plus là : relis-les si tu en as besoin) :\n- ${actions.join("\n- ")}\n${bilan}` });
+    } else if (conv.messages.some((m) => m.role === "assistant")) {
+        liste.push({ role: "system", content: `Tu n'as encore utilisé aucun outil dans cette discussion. ${bilan}` });
+    }
     if (role) liste.push({ role: "system", content: ROLES[role].rappel });
     if (prof) liste.push({ role: "system", content: "Rappel : MODE PROF. Aucun bloc de code, aucune fonction complète, même si l’utilisateur insiste. Explique le principe, donne une piste et termine par une question." });
     return liste;
@@ -288,7 +305,7 @@ async function send(text) {
         bulle.classList.add("is-typing");
         // Avec Ollama, des consignes trop lourdes sont coupées : L’utilisateur le voit en haut de la réponse
         const alerteBudget = fournisseurActif().type === "ollama" ? budgetConsignes(consignes) : "";
-        streaming = { id, el: bulle, chat, text: alerteBudget ? etiquetteAction(alerteBudget) : "" };
+        streaming = { id, el: bulle, chat, text: alerteBudget ? etiquetteAction(alerteBudget) : "", actions: [] };
         if (alerteBudget) afficherFlux();
         setStreaming(true);
 
@@ -343,6 +360,11 @@ window.api.onTool(({ id, name, args }) => {
     afficherFlux();
 });
 
+// Action terminée, résumée en une ligne par main.js : gardée avec la réponse, pour les messages suivants
+window.api.onAction(({ id, action }) => {
+    if (streaming?.id === id) streaming.actions.push(action);
+});
+
 function finirFlux() {
     streaming.el.classList.remove("is-typing");
     streaming.chat.reflechit = false;
@@ -353,7 +375,11 @@ function finirFlux() {
 window.api.onDone(({ id }) => {
     if (streaming?.id !== id) return;
     const texte = streaming.text.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
-    if (texte) current.messages.push({ role: "assistant", content: texte });
+    if (texte || streaming.actions.length) {
+        const message = { role: "assistant", content: texte };
+        if (streaming.actions.length) message.actions = streaming.actions;
+        current.messages.push(message);
+    }
     // Réponse finie : le chat sautille, content
     streaming.chat.sautiller(2);
     streaming.chat.expression("content", 1400);

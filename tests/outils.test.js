@@ -1,7 +1,7 @@
 // Outils du modèle : règles d'écriture par mode et par rôle, remplacer_texte, appels d'outils écrits en texte
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { outilsPour, ecritureRefusee, remplacerTexte, parseTextToolCalls, matchingBrace } = require('../principal/outils');
+const { outilsPour, ecritureRefusee, remplacerTexte, parseTextToolCalls, matchingBrace, resumerAction } = require('../principal/outils');
 
 const noms = (mode) => outilsPour(mode).map((t) => t.function.name);
 
@@ -108,4 +108,30 @@ test('matchingBrace : ignore les accolades dans les chaînes, -1 si pas fermée'
   assert.equal(matchingBrace(s, 0), s.indexOf(' fin') - 1);
   assert.equal(matchingBrace('{"a": "\\"}"}', 0), 11);
   assert.equal(matchingBrace('{"a": 1', 0), -1);
+});
+
+test('résumé d action : lectures, recherches et listes', () => {
+  assert.equal(resumerAction('lire_fichier', { chemin: 'main.js' }, 'const a = 1;'), 'a lu main.js');
+  assert.equal(resumerAction('lire_fichier', { chemin: 'main.js', ligne: 120 }, '(main.js, à partir de la ligne 120)'), 'a lu main.js à partir de la ligne 120');
+  assert.equal(resumerAction('lire_fichier', { chemin: '.env' }, 'L’utilisateur a refusé la lecture de .env'), "n'a pas pu lire .env (L’utilisateur a refusé : fichier sensible)");
+  assert.equal(resumerAction('lire_fichier', { chemin: 'x.js' }, 'Erreur : ENOENT'), "n'a pas pu lire x.js");
+  assert.equal(resumerAction('chercher', { texte: 'moyenne' }, 'notes.js:4: function moyenne(n) {\nnotes.js:20: moyenne(notes)'), 'a cherché « moyenne » (2 résultats)');
+  assert.equal(resumerAction('chercher', { texte: 'x', dossier: 'src' }, 'Aucun résultat pour « x » dans src.'), 'a cherché « x » dans src (aucun résultat)');
+  assert.equal(resumerAction('lister_fichiers', {}, 'a.js\nb.js'), 'a listé les fichiers');
+});
+
+test('résumé d action : écritures réussies, refusées ou ratées, sans jamais mentir', () => {
+  assert.equal(resumerAction('ecrire_fichier', { chemin: 'README.md' }, 'Fichier créé : README.md'), 'a créé README.md');
+  assert.equal(resumerAction('remplacer_texte', { chemin: 'a.js' }, 'Fichier modifié : a.js (2 remplacements)'), 'a modifié a.js');
+  assert.match(resumerAction('remplacer_texte', { chemin: 'a.js' }, "L'utilisateur a refusé la modification."), /l’utilisateur a refusé : le fichier n'a pas changé/);
+  assert.match(resumerAction('remplacer_texte', { chemin: 'a.js' }, 'ancien_texte est introuvable'), /n'a pas pu modifier a\.js : le fichier n'a pas changé/);
+  assert.match(resumerAction('ecrire_fichier', { chemin: 'a.js' }, 'Mode prof activé : …'), /n'a pas pu modifier/);
+});
+
+test('résumé d action : mémoire et dossier, rien pour ce qui n est pas une action', () => {
+  assert.equal(resumerAction('memoriser', { fait: 'Sam code en C++.' }, 'Mémorisé.'), 'a retenu : Sam code en C++.');
+  assert.equal(resumerAction('memoriser', { fait: 'x' }, 'Déjà retenu : « x »'), '');
+  assert.equal(resumerAction('ouvrir_dossier', { chemin: 'C:\p' }, 'Dossier ouvert : C:\p'), 'a ouvert le dossier C:\p');
+  assert.equal(resumerAction('ouvrir_dossier', { chemin: 'C:\p' }, "L'utilisateur a refusé"), '');
+  assert.equal(resumerAction('outil_inconnu', {}, 'x'), '');
 });

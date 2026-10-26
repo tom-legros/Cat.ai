@@ -12,6 +12,8 @@ contextBridge.exposeInMainWorld('api', {
   onChunk: (cb) => ipcRenderer.on('chat-chunk', (_e, d) => cb(d)),
   onUndo: (cb) => ipcRenderer.on('chat-undo', (_e, d) => cb(d)),
   onTool: (cb) => ipcRenderer.on('chat-tool', (_e, d) => cb(d)),
+  // Résumé d'une action terminée (« a lu main.js »), gardé dans l'historique de la discussion
+  onAction: (cb) => ipcRenderer.on('chat-action', (_e, d) => cb(d)),
   onDone: (cb) => ipcRenderer.on('chat-done', (_e, d) => cb(d)),
   onError: (cb) => ipcRenderer.on('chat-error', (_e, d) => cb(d)),
   summarize: (payload) => ipcRenderer.invoke('summarize', payload),

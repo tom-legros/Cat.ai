@@ -31,6 +31,7 @@ et s'il arrivait quand même jusqu'à l'envoi, rien ne partirait.
 
   Ce que chaque rôle a le droit d'écrire est vérifié dans `main.js`, pas seulement demandé au modèle. Le mode prof passe avant le rôle.
 - **Mémoire** : il retient ce que je lui dis sur moi et mes projets, d'une discussion à l'autre. Quand il retient quelque chose tout seul, c'est affiché sous « Mémoire » avec un bouton « Annuler ». Pas de doublons (un fait plus complet remplace l'ancien), et 40 faits au plus, car toute la mémoire est relue à chaque message.
+- **Il se souvient de ce qu'il a fait** : d'un message à l'autre, il garde une ligne par action (« a lu main.js », « a modifié style.css », « L’utilisateur a refusé… »), sans le contenu des fichiers pour ne pas remplir le contexte. Il ne relit pas tout, et ne prétend pas avoir modifié un fichier qu'il n'a pas touché.
 - **Résumé automatique** : quand une discussion devient trop longue, il résume le début pour ne pas l'oublier.
 - **Place dans le contexte** : avec Ollama (8 192 tokens), chaque envoi est allégé par l'app elle-même, pour qu'un gros fichier lu ne fasse jamais disparaître ma question. Les fichiers cités sont joints dans une limite raisonnable (le chat lit la suite avec `lire_fichier`, à partir de la ligne voulue), et si les consignes deviennent trop lourdes, la réponse commence par un avertissement.
 - **Glisser-déposer** : je lâche un fichier sur la fenêtre pour qu'il le lise.

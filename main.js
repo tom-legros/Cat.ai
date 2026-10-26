@@ -5,7 +5,7 @@ const { spawn } = require('child_process');
 
 const { configurerStockage, readJson, writeJson, prendreAlertes } = require('./principal/stockage');
 const { IGNORED, MAX_FILE, cheminSur, estSensible, listFiles, chercherDansProjet, fichiersCites, contenuJoint } = require('./principal/fichiers');
-const { OUTILS_ECRITURE, RIEN_N_A_CHANGE, ecritureRefusee, remplacerTexte, parseTextToolCalls } = require('./principal/outils');
+const { OUTILS_ECRITURE, RIEN_N_A_CHANGE, ecritureRefusee, remplacerTexte, parseTextToolCalls, resumerAction } = require('./principal/outils');
 const { hote, HOTES_LOCAUX, fournisseurGratuit, modeleGratuit, conseilGratuit, adresseValide } = require('./principal/gratuit');
 const { LIMITES_OLLAMA, MAX_JOINT, limitesTaille, raccourcir, compacter } = require('./principal/taille');
 const { ajouterFait } = require('./principal/memoire');
@@ -292,6 +292,9 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, role, fournisseurI
         } catch (err) {
           result = `Erreur : ${err.message}`;
         }
+        // Une ligne qui résume l'action, gardée par l'interface dans l'historique de la discussion
+        const action = resumerAction(name, args || {}, result);
+        if (action) event.sender.send('chat-action', { id, action });
         // tool_name sert à Ollama, tool_call_id aux fournisseurs OpenAI (chacun ignore l'autre)
         const texte = limites ? raccourcir(String(result), limites.resultatOutil) : String(result);
         history.push({ role: 'tool', content: texte, tool_name: name, tool_call_id: call.id });
