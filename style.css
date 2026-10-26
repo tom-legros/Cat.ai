@@ -161,6 +161,16 @@ input, select, textarea { font: inherit; color: var(--texte); }
 .discussions .suppr:hover { color: var(--lumiere); }
 
 .bloc { display: flex; flex-direction: column; gap: 6px; }
+
+/* Réglages avancés, repliés par défaut */
+.avance summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; margin: 0; }
+.avance summary::-webkit-details-marker { display: none; }
+.avance summary::after { content: "+"; font-size: 14px; }
+.avance[open] summary::after { content: "−"; }
+.avance summary:hover { color: var(--lumiere); }
+.avance__contenu { display: flex; flex-direction: column; gap: 14px; margin-top: 12px; }
+.demarrage input { padding: 9px 12px; background: var(--bg); border: 1px solid var(--ligne-2); border-radius: 2px; }
+.demarrage ol { margin: 0; padding-left: 18px; color: var(--texte-3); font-size: 14px; }
 .projet-nom { margin: 0; font-family: var(--police-mono); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--texte-3); }
 .projet-nom.is-on { color: var(--lumiere); }
 
@@ -463,3 +473,4 @@ select {
 @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; }
 }
+#demarrage-gemini-actions { flex-direction: column; align-items: stretch; gap: 8px; }

@@ -30,6 +30,10 @@
     <button id="open-memory" class="lien lien--bloc">Mémoire <span id="memory-count" class="compteur">0</span></button>
     <p id="memoire-ajout" class="conseil" aria-live="polite"></p>
 
+    <!-- Réglages pour ceux qui veulent : repliés par défaut, pour qu'un débutant ne voie que le chat -->
+    <details id="avance" class="avance">
+      <summary class="etiquette">Réglages avancés</summary>
+      <div class="avance__contenu">
     <button id="mode-prof" class="interrupteur" role="switch" aria-checked="false" title="Le chat explique et donne des pistes, mais n'écrit ni code complet ni fichier">
       <span class="interrupteur__texte">Mode prof<span class="interrupteur__detail">Il explique, tu codes</span></span>
       <span class="interrupteur__piste"><span class="interrupteur__point"></span></span>
@@ -55,8 +59,11 @@
       <label class="etiquette etiquette--suite" for="model">Modèle</label>
       <select id="model"></select>
       <p id="conseil-modele" class="conseil"></p>
-      <p id="status" class="statut">Connexion…</p>
     </div>
+      </div>
+    </details>
+
+    <p id="status" class="statut">Connexion…</p>
   </aside>
 
   <main class="principal">
@@ -72,7 +79,7 @@
             <canvas id="grand-chat" class="mascotte__chat"></canvas>
           </button>
         </div>
-        <h1 class="accueil__titre">Qu'est-ce qu'on construit&nbsp;?</h1>
+        <h1 class="accueil__titre">On fait quoi aujourd'hui&nbsp;?</h1>
         <p class="accueil__texte" id="accueil-texte">Tout tourne sur ton PC. Gratuit, sans limite, et je ne dis rien à personne.</p>
         <!-- Sans aucun modèle (premier lancement) : les deux façons gratuites d'en avoir un, à la place des suggestions -->
         <div id="demarrage" class="demarrage" hidden>
@@ -94,10 +101,10 @@
           </div>
         </div>
         <div class="suggestions">
-          <button data-prompt="Regarde le projet que j'ai ouvert et dis-moi ce que je pourrais améliorer en premier.">Regarder mon projet</button>
-          <button data-prompt="Explique-moi une notion de programmation que je n'ai pas bien comprise, avec un petit exemple. Demande-moi d'abord laquelle.">Comprendre une notion</button>
+          <button data-prompt="Explique-moi simplement un sujet qui m'intrigue, comme si j'avais 15 ans. Demande-moi d'abord lequel.">Explique-moi un truc</button>
+          <button data-prompt="Aide-moi à écrire un message clair et sympa. Demande-moi d'abord à qui il est destiné et ce que je veux dire.">Écrire un message</button>
           <button data-prompt="J'ai un bug que je ne comprends pas. Aide-moi à le trouver étape par étape, sans me donner la solution direct.">Débugger ensemble</button>
-          <button data-prompt="Donne-moi une idée de petit projet pour progresser, avec les notions que je vais apprendre. Demande-moi d'abord quel langage j'utilise.">Idée de petit projet</button>
+          <button data-prompt="Je veux apprendre à coder depuis zéro. Pose-moi d'abord deux ou trois questions, puis dis-moi par quoi commencer.">Apprendre à coder</button>
         </div>
       </section>
     </div>

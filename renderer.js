@@ -887,8 +887,28 @@ async function renderDemarrage(f, models) {
         $("#demarrage-gemini-texte").textContent = "Ta clé Gemini est enregistrée.";
         actions.append(boutonAction("Utiliser Gemini", "bouton", () => { fournisseurSel.value = "gemini"; fournisseurSel.dispatchEvent(new Event("change")); }));
     } else {
-        $("#demarrage-gemini-texte").textContent = "Une clé gratuite en deux minutes, avec un compte Google. Tes messages et les fichiers que je lis partent chez Google.";
-        actions.append(lienExterne("Obtenir une clé", LIENS_CLES.gemini, "bouton"), boutonAction("Coller la clé", "lien", ouvrirFournisseurs));
+        // Clé guidée pas à pas, sans passer par le panneau « Clés API »
+        $("#demarrage-gemini-texte").textContent = "Gratuit, avec un compte Google. Tes messages et les fichiers que je lis partent chez Google.";
+        const etapes = document.createElement("ol");
+        etapes.innerHTML = "<li>Ouvre Google AI Studio et clique sur « Create API key ».</li><li>Copie la clé et colle-la ici.</li>";
+        const champ = document.createElement("input");
+        champ.type = "password";
+        champ.placeholder = "Colle ta clé ici";
+        champ.autocomplete = "off";
+        const message = document.createElement("p");
+        message.className = "conseil";
+        const valider = boutonAction("C'est prêt", "bouton", async () => {
+            const cle = champ.value.trim();
+            champ.value = ""; // la clé ne reste pas dans la page
+            if (!cle) return champ.focus();
+            const r = await window.api.enregistrerFournisseur({ id: "gemini", cle });
+            if (!r.ok) { message.textContent = r.erreur; return; }
+            reglages = r.reglages;
+            renderFournisseurs();
+            fournisseurSel.value = "gemini";
+            fournisseurSel.dispatchEvent(new Event("change"));
+        });
+        actions.append(etapes, lienExterne("Ouvrir Google AI Studio", LIENS_CLES.gemini, "lien"), champ, valider, message);
     }
 }
 
@@ -1126,6 +1146,10 @@ function appliquerPerso() {
     const repliques = perso.repliquesProjets && typeof perso.repliquesProjets === "object" ? perso.repliquesProjets : {};
     for (const [cle, replique] of Object.entries(repliques)) if (texte(replique)) REPLIQUES.projets[cle.toLowerCase()] = texte(replique);
 }
+
+// Les réglages avancés restent ouverts ou fermés d'une fois sur l'autre
+try { $("#avance").open = localStorage.getItem("avance") === "1"; } catch {}
+$("#avance").addEventListener("toggle", () => { try { localStorage.setItem("avance", $("#avance").open ? "1" : "0"); } catch {} });
 
 (async () => {
     appliquerNom();
