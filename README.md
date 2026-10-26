@@ -31,15 +31,37 @@ et s'il arrivait quand même jusqu'à l'envoi, rien ne partirait.
 
   Ce que chaque rôle a le droit d'écrire est vérifié dans `main.js`, pas seulement demandé au modèle. Le mode prof passe avant le rôle.
 - **Mémoire** : il retient ce que je lui dis sur moi et mes projets, d'une discussion à l'autre. Quand il retient quelque chose tout seul, c'est affiché sous « Mémoire » avec un bouton « Annuler ». Pas de doublons (un fait plus complet remplace l'ancien), et 40 faits au plus, car toute la mémoire est relue à chaque message.
-- **Il se souvient de ce qu'il a fait** : d'un message à l'autre, il garde une ligne par action (« a lu main.js », « a modifié style.css », « L’utilisateur a refusé… »), sans le contenu des fichiers pour ne pas remplir le contexte. Il ne relit pas tout, et ne prétend pas avoir modifié un fichier qu'il n'a pas touché.
+- **Il se souvient de ce qu'il a fait** : d'un message à l'autre, il garde une ligne par action (« a lu main.js », « a modifié style.css », « modification refusée… »), sans le contenu des fichiers pour ne pas remplir le contexte. Il ne relit pas tout, et ne prétend pas avoir modifié un fichier qu'il n'a pas touché.
 - **Résumé automatique** : quand une discussion devient trop longue, il résume le début pour ne pas l'oublier.
 - **Place dans le contexte** : avec Ollama (8 192 tokens), chaque envoi est allégé par l'app elle-même, pour qu'un gros fichier lu ne fasse jamais disparaître ma question. Les fichiers cités sont joints dans une limite raisonnable (le chat lit la suite avec `lire_fichier`, à partir de la ligne voulue), et si les consignes deviennent trop lourdes, la réponse commence par un avertissement.
 - **Glisser-déposer** : je lâche un fichier sur la fenêtre pour qu'il le lise.
 - **Plusieurs fournisseurs** : choix du fournisseur et du modèle dans la barre de gauche ; seuls les modèles capables de discuter sont proposés, et un modèle qui n'existe plus est retiré tout seul. Le modèle conseillé (bon en code, sans vider le quota gratuit) a une étoile ★, ceux qui vident vite le quota un ▲.
 - **Clés API protégées** : saisies dans le panneau « Clés API », chiffrées par le système (`safeStorage` : mon compte Windows, ou le trousseau de Linux), jamais réaffichées ni envoyées à l'interface. Sur un Linux sans trousseau, Electron ne protégerait la clé qu'avec un mot de passe écrit dans son code : l'app refuse alors de l'enregistrer.
+- **Pour tout le monde** : au premier lancement, il demande le prénom de la personne et s'en sert pour lui parler (modifiable dans « Mémoire »). Sans aucun modèle, l'accueil propose les deux façons gratuites d'en avoir un : installer Ollama et télécharger le modèle conseillé d'un clic (avec la progression), ou coller une clé Gemini gratuite.
 - **Le chat** : il cligne des yeux, suit la souris, s'endort quand je ne fais rien, sautille quand il a fini de répondre, et a des répliques selon l'heure et le projet ouvert.
 
-## Installation
+## Installer l'app (pour tester)
+
+Pas besoin de Node ni de terminal : il suffit de l'installateur.
+
+- **Windows** : lancer `Le-chat-noir-1.0.0-installateur.exe`. L'app n'est pas signée (un certificat coûte cher), donc Windows affiche « Windows a protégé votre ordinateur » : cliquer sur « Informations complémentaires », puis « Exécuter quand même ». L'installation se fait pour l'utilisateur, sans droits administrateur.
+- **Linux** : rendre le fichier exécutable puis le lancer : `chmod +x Le-chat-noir-1.0.0.AppImage && ./Le-chat-noir-1.0.0.AppImage`. Sur certaines distributions, il faut `fuse2` (Arch : `sudo pacman -S fuse2`).
+
+Au premier lancement, le chat demande ton prénom, puis explique comment avoir un modèle gratuit :
+[Ollama](https://ollama.com) sur ton PC (il faut une carte graphique avec 8 Go de mémoire pour être à l'aise),
+ou une [clé Gemini gratuite](https://aistudio.google.com/apikey) (tes messages partent alors chez Google).
+
+### Construire les installateurs
+
+```bash
+npm run installateur
+```
+
+Crée l'installateur Windows dans `dist/`. Pour Linux, `npm run installateur:linux`, à lancer depuis Linux (ou WSL) :
+sous Windows, l'AppImage ne peut pas être construite (il lui faut des liens symboliques).
+L'app installée garde ses données au même endroit que la version lancée depuis le code (`assistant-ia`, voir Organisation).
+
+## Lancer depuis le code
 
 Il faut [Node.js](https://nodejs.org) et [Ollama](https://ollama.com).
 
@@ -49,7 +71,7 @@ ollama pull qwen3:8b
 npm start
 ```
 
-L'application lance Ollama toute seule en arrière-plan si besoin.
+L'application lance Ollama toute seule en arrière-plan si besoin. Sous Windows avec une carte AMD et sans NVIDIA, elle l'active avec Vulkan (`OLLAMA_VULKAN=1`) ; une valeur réglée à la main est toujours respectée.
 Pour un fournisseur en ligne : « Clés API » dans la barre de gauche, coller la clé, puis le choisir dans « Fournisseur ».
 Sur Windows, `Lancer.bat` démarre l'app sans fenêtre de console.
 
@@ -121,7 +143,8 @@ Ils sont dans `tests/` et vérifient d'abord les garde-fous :
 | `fichiers.test.js` | Sur un projet piégé (lien qui mène dehors, lien cassé, `.env`, binaire) : le chat reste dans le dossier, les secrets ne partent pas |
 | `stockage.test.js` | Écriture atomique, sauvegarde, réparation d'un fichier abîmé (dans un dossier temporaire, jamais les vraies données) |
 | `taille.test.js` | Rester sous la limite d'un fournisseur sans casser la discussion |
-| `envoi.test.js` | Formats Ollama / OpenAI, erreurs des fournisseurs, attente après une limite |
+| `envoi.test.js` | Formats Ollama / OpenAI, erreurs des fournisseurs, attente après une limite, choix de Vulkan selon la carte graphique |
+| `memoire.test.js` | Mémoire sans doublons et limitée, prénom nettoyé avant d'arriver dans les consignes |
 | `modeles.test.js` | Choix du modèle conseillé ★ et repérage des gourmands ▲ |
 
 ## Crédits

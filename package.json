@@ -5,12 +5,15 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "test": "node --test"
+    "test": "node --test",
+    "installateur": "electron-builder --win",
+    "installateur:linux": "electron-builder --linux"
   },
   "author": "tom-legros",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^45.0.0"
+    "electron": "^45.0.0",
+    "electron-builder": "26.17.0"
   },
   "allowScripts": {
     "electron@45.0.0": true
@@ -20,5 +23,45 @@
     "diff": "^9.0.0",
     "dompurify": "^3.4.17",
     "marked": "^18.1.1"
+  },
+  "desktopName": "le-chat-noir.desktop",
+  "build": {
+    "appId": "fr.lechatnoir.app",
+    "productName": "Le chat noir",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer.js",
+      "chat.js",
+      "index.html",
+      "style.css",
+      "icone.png",
+      "fonts/*.woff2",
+      "interface/**",
+      "principal/**",
+      "package.json",
+      "!**/desktop.ini"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "icone.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "Le chat noir",
+      "artifactName": "Le-chat-noir-${version}-installateur.${ext}"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "icone.png",
+      "category": "Development",
+      "artifactName": "Le-chat-noir-${version}.${ext}",
+      "syncDesktopName": true
+    }
   }
 }

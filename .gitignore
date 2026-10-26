@@ -6,3 +6,6 @@ Thumbs.db
 
 # Copies de sauvegarde
 *.avant-*
+
+# Installateurs construits par electron-builder
+dist/
