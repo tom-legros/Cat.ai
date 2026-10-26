@@ -47,14 +47,26 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "icone.png"
+      "icon": "build/icone.ico"
     },
     "nsis": {
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
       "shortcutName": "Cat Ai",
-      "artifactName": "Cat-Ai-${version}-installateur.${ext}"
+      "artifactName": "Cat-Ai-${version}-installateur.${ext}",
+      "installerSidebar": "build/installateur-cote.bmp",
+      "uninstallerSidebar": "build/installateur-cote.bmp",
+      "installerHeader": "build/installateur-entete.bmp",
+      "installerIcon": "build/icone.ico",
+      "uninstallerIcon": "build/icone.ico",
+      "installerHeaderIcon": "build/icone.ico",
+      "installerLanguages": [
+        "fr_FR"
+      ],
+      "language": "1036",
+      "createDesktopShortcut": true,
+      "runAfterFinish": true
     },
     "linux": {
       "target": "AppImage",

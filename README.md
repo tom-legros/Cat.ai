@@ -1,6 +1,6 @@
 # Cat Ai
 
-Un assistant de code de bureau, avec un chat noir en pixel art. Il lit ton code, répond à tes questions et peut modifier tes fichiers, toujours après ton accord.
+Un chat noir en pixel art qui vit sur ton PC et t'aide pour tout : expliquer un sujet, écrire un message, réviser, apprendre à coder. Il sait aussi lire ton code et le modifier, toujours après ton accord.
 
 **100 % gratuit** : il tourne avec [Ollama](https://ollama.com) sur ton PC, ou avec l'offre gratuite d'un fournisseur en ligne (Gemini, Groq, OpenRouter). Aucun modèle payant ne peut être utilisé.
 
@@ -38,17 +38,31 @@ Puis il te propose deux façons gratuites de le faire parler :
 
 C'est tout : pose ta question en bas, ou clique sur une suggestion.
 
-Pour aller plus loin, ouvre **Réglages avancés** dans la barre de gauche : mode prof, rôles, choix du modèle et autres clés (Groq, OpenRouter).
+## Sous la barre de saisie
 
-![Les réglages avancés](docs/reglages.png)
+Tout se règle d'un clic, sans fouiller dans les menus :
+
+- **Dossier** : ouvre un dossier pour que le chat lise son contenu.
+- **Mode prof** : il t'aide à trouver par toi-même, sans donner la réponse.
+- **Rôle** : la mission du chat (Assistant, Rédaction, ou ceux pour coder). « Créer un rôle » pour inventer le tien : Coach de révisions, Cuisinier…
+- **Fournisseur** et **Modèle** : qui fait réfléchir le chat, et quelle version. Chaque choix a un petit conseil, et le rond montre ce qu'il reste du quota gratuit du jour.
+
+![Le menu des modèles, avec leurs conseils](docs/menu-modeles.png)
+
+![Le menu des rôles](docs/menu-roles.png)
+
+Les clés gratuites (Gemini, Groq, OpenRouter) se collent dans **Réglages**, en bas à gauche, avec un lien « Obtenir une clé » pour chacune.
+
+![Les réglages](docs/reglages.png)
 
 ## Ce qu'il sait faire
 
 - **Lire ton projet** : il ouvre un dossier, lit et cherche dans le code, et répond à partir du vrai code.
 - **Modifier des fichiers** : chaque modification s'affiche avant / après, et rien n'est écrit sans ton accord.
-- **Pour tout le monde** : il explique, aide à écrire, apprend à coder depuis zéro.
-- **Mode prof** : il explique et pose des questions, mais c'est toi qui codes.
-- **Rôles** : relecteur (liste les problèmes sans rien toucher), débogueur, rédacteur de README.
+- **Pour tout le monde** : il explique, aide à écrire, fait réviser, apprend à coder depuis zéro.
+- **Mode prof** : il explique et pose des questions, mais c'est toi qui trouves.
+- **Rôles** : Rédaction, ceux pour coder (relecteur, débogueur, README), et les tiens.
+- **Un vrai chat** : il cligne des yeux, suit ta souris, s'endort quand tu ne fais rien et a toujours une réplique selon l'heure.
 - **Mémoire** : il retient ce que tu lui dis d'une discussion à l'autre, et tu peux tout modifier.
 - **Sécurité** : un `.env` ou une clé privée n'est jamais lu sans ton accord, les clés API sont chiffrées par le système, et le chat ne sort jamais du dossier ouvert.
 
