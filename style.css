@@ -751,3 +751,21 @@ optgroup { background: var(--surface); color: var(--texte-3); font-style: normal
 .icone--chevron.icone-px { width: 8px !important; height: 8px !important; }
 /* Les fenêtres (réglages, mémoire, prénom, avant / après) passent toujours devant la discussion */
 .fenetre { z-index: 50; }
+
+/* Fenêtre plus étroite : la rangée sous la saisie reste sur une ligne */
+.saisie__outils { flex-wrap: nowrap; }
+.outils__groupe { flex-wrap: nowrap; min-width: 0; }
+.outils__groupe:last-child { flex-shrink: 1; justify-content: flex-end; }
+.outils__groupe:last-child .raccourci { min-width: 0; }
+#fournisseur-nom, #modele-nom, #project-name, #role-libelle { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+#fournisseur-raccourci, #modele-raccourci { max-width: 100%; }
+@media (max-width: 1300px) { .pastille__terme { display: none; } }
+@media (max-width: 1050px) { #mode-prof span, #project-name { display: none; } }
+
+/* Fenêtre basse : l'accueil se resserre pour que les suggestions restent visibles */
+@media (max-height: 860px) {
+    .accueil { margin-top: 2vh; }
+    .accueil__titre { margin-top: 10px; }
+    .suggestions { margin-top: 20px; }
+    .suggestion { padding-top: 10px; padding-bottom: 10px; }
+}
