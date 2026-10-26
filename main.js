@@ -106,7 +106,7 @@ async function accordLectureSensible(chemin, fournisseurId) {
     message: `Le chat veut lire ${chemin}, un fichier qui contient souvent des secrets (mots de passe, clés API).`,
     detail: local
       ? 'Le modèle tourne sur ton PC : le contenu reste chez toi.'
-      : `Le modèle est en ligne : le contenu partira sur les serveurs de ${config.nom}.`,
+      : `Le modèle est en ligne : le contenu partira sur les serveurs ${/^[aeiouyéh]/i.test(config.nom) ? "d'" : 'de '}${config.nom}.`,
   });
   return response === 1;
 }
@@ -308,6 +308,10 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, role, fournisseurI
           result = `Erreur : ${err.message}`;
         }
         // Une ligne qui résume l'action, gardée par l'interface dans l'historique de la discussion
+        // Lecture d'un fichier sensible refusée par l’utilisateur : l'étiquette « Lit .env » ne doit pas laisser croire le contraire
+        if (name === 'lire_fichier' && String(result).startsWith('L’utilisateur a refusé')) {
+          event.sender.send('chat-tool', { id, name: 'refus-lecture', args: { chemin: args.chemin } });
+        }
         const action = resumerAction(name, args || {}, result);
         if (action) event.sender.send('chat-action', { id, action });
         // tool_name sert à Ollama, tool_call_id aux fournisseurs OpenAI (chacun ignore l'autre)

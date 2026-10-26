@@ -348,6 +348,7 @@ const ACTIONS = {
     chercher: (a) => `Cherche « ${a.texte} »${a.dossier ? " dans " + a.dossier : ""}`,
     ecrire_fichier: (a) => `Veut écrire ${a.chemin}`,
     remplacer_texte: (a) => `Veut modifier ${a.chemin}`,
+    "refus-lecture": (a) => `Tu as refusé : ${a.chemin} n'a pas été lu`,
     refus: (a) => `Refusé : ${a.chemin} n'a pas changé (${prof ? "mode prof" : role === "readme" ? "le rédacteur README n'écrit que des .md" : "le relecteur ne modifie rien"})`,
     memoriser: (a) => `Retient : ${a.fait}`,
     pause: (a) => `Pause de ${a.secondes} s : limite par minute du fournisseur, je réessaie tout seul`,
