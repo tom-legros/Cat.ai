@@ -4,7 +4,8 @@
   "description": "Assistant IA local (Ollama) pour aider sur les projets de dev",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "test": "node --test"
   },
   "author": "tom-legros",
   "license": "MIT",

@@ -90,6 +90,25 @@ Elles ne peuvent pas être perdues par un plantage :
 - **Réparation** : un fichier abîmé n'est jamais écrasé. Il est mis de côté (`nom.json.illisible-date`), l'app repart de la sauvegarde et le chat prévient dans la discussion.
 - **Une seule app à la fois** : la relancer ramène la fenêtre déjà ouverte, pour que deux fenêtres n'enregistrent pas chacune leur version par-dessus l'autre.
 
+## Tests
+
+```bash
+npm test
+```
+
+Les tests utilisent `node --test`, le lanceur intégré à Node : aucune dépendance en plus, et pas besoin de lancer Electron.
+Ils sont dans `tests/` et vérifient d'abord les garde-fous :
+
+| Fichier | Ce qu'il vérifie |
+| --- | --- |
+| `gratuit.test.js` | Aucun fournisseur ni modèle payant ne passe, même avec une adresse déguisée |
+| `outils.test.js` | Ce que chaque mode ou rôle peut écrire, `remplacer_texte` (0, 1 ou plusieurs passages), appels d'outils écrits en texte |
+| `fichiers.test.js` | Sur un projet piégé (lien qui mène dehors, lien cassé, `.env`, binaire) : le chat reste dans le dossier, les secrets ne partent pas |
+| `stockage.test.js` | Écriture atomique, sauvegarde, réparation d'un fichier abîmé (dans un dossier temporaire, jamais les vraies données) |
+| `taille.test.js` | Rester sous la limite d'un fournisseur sans casser la discussion |
+| `envoi.test.js` | Formats Ollama / OpenAI, erreurs des fournisseurs, attente après une limite |
+| `modeles.test.js` | Choix du modèle conseillé ★ et repérage des gourmands ▲ |
+
 ## Crédits
 
 Ce projet s'appuie sur le travail d'autres personnes, merci à elles.
