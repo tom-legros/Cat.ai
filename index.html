@@ -124,12 +124,25 @@
       <p class="etiquette">Mémoire</p>
       <h2 class="fenetre__titre">Ce que le chat retient</h2>
       <p class="discret">D'une discussion à l'autre. Il peut ajouter des choses tout seul, et tu peux tout modifier ici.</p>
+      <p class="discret prenom-ligne">Il t'appelle <span id="prenom-actuel"></span>. <button id="changer-prenom" class="lien" type="button">Changer</button></p>
       <ul id="memory-list" class="souvenirs"></ul>
       <form id="memory-form" class="rangee">
         <input id="memory-input" placeholder="Ex : je code surtout en Python">
         <button class="bouton">Ajouter</button>
       </form>
       <div class="rangee rangee--fin"><button id="close-memory" class="lien">Fermer</button></div>
+    </div>
+  </div>
+
+  <div id="prenom-modal" class="fenetre" hidden>
+    <div class="fenetre__boite">
+      <p class="etiquette">Premier lancement</p>
+      <h2 class="fenetre__titre">Comment tu t'appelles&nbsp;?</h2>
+      <p class="discret">Le chat s'en sert pour te parler. Tu pourras le changer dans « Mémoire ».</p>
+      <form id="prenom-form" class="rangee prenom-form">
+        <input id="prenom-input" maxlength="30" placeholder="Ton prénom" autocomplete="given-name">
+        <button class="bouton">C'est moi</button>
+      </form>
     </div>
   </div>
 

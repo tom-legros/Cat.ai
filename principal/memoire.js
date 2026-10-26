@@ -21,9 +21,17 @@ function ajouterFait(memoire, texte) {
   const moinsComplet = memoire.find((f) => cle.includes(normaliser(f)));
   if (moinsComplet) return { memoire: memoire.map((f) => (f === moinsComplet ? fait : f)), fait, remplace: moinsComplet };
   if (memoire.length >= MAX_FAITS) {
-    return { erreur: `Mémoire pleine (${MAX_FAITS} faits) : rien n'a été retenu. Dis à l’utilisateur de faire du tri dans « Mémoire », dans la barre de gauche.` };
+    return { erreur: `Mémoire pleine (${MAX_FAITS} faits) : rien n'a été retenu. Dis à l'utilisateur de faire du tri dans « Mémoire », dans la barre de gauche.` };
   }
   return { memoire: [...memoire, fait], fait };
 }
 
-module.exports = { MAX_FAITS, MAX_LONGUEUR_FAIT, ajouterFait };
+// Le prénom donné au premier lancement finit dans les consignes du modèle :
+// une seule ligne, sans caractères de contrôle, et court. Renvoie '' s'il ne reste rien.
+const MAX_PRENOM = 30;
+
+function nettoyerPrenom(prenom) {
+  return String(prenom ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, MAX_PRENOM).trim();
+}
+
+module.exports = { MAX_FAITS, MAX_LONGUEUR_FAIT, MAX_PRENOM, ajouterFait, nettoyerPrenom };

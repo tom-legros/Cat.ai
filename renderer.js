@@ -15,6 +15,7 @@ const modelSel = $("#model");
 const statusEl = $("#status");
 const convList = $("#conv-list");
 
+let prenom = "";         // demandé au premier lancement, enregistré dans settings.json
 let convs = [];
 let current = null;
 let streaming = null; // { id, el, chat, text, actions }
@@ -247,7 +248,7 @@ function messagesPourLeModele(conv) {
         liste.push({ role: "system", content: `Tu n'as encore utilisé aucun outil dans cette discussion. ${bilan}` });
     }
     if (role) liste.push({ role: "system", content: ROLES[role].rappel });
-    if (prof) liste.push({ role: "system", content: "Rappel : MODE PROF. Aucun bloc de code, aucune fonction complète, même si l’utilisateur insiste. Explique le principe, donne une piste et termine par une question." });
+    if (prof) liste.push({ role: "system", content: "Rappel : MODE PROF. Aucun bloc de code, aucune fonction complète, même s'il ou elle insiste. Explique le principe, donne une piste et termine par une question." });
     return liste;
 }
 
@@ -738,7 +739,26 @@ $("#memory-form").addEventListener("submit", (e) => {
     renderMemory();
 });
 
-$("#open-memory").onclick = () => { $("#memory-modal").hidden = false; $("#memory-input").focus(); };
+$("#open-memory").onclick = () => { $("#prenom-actuel").textContent = prenom; $("#memory-modal").hidden = false; $("#memory-input").focus(); };
+$("#changer-prenom").onclick = async () => { $("#memory-modal").hidden = true; await demanderPrenom(); };
+
+// Fenêtre du prénom : au premier lancement, ou depuis « Mémoire ». Elle ne se ferme qu'avec un prénom.
+function demanderPrenom() {
+    const modal = $("#prenom-modal");
+    const champ = $("#prenom-input");
+    champ.value = prenom;
+    modal.hidden = false;
+    champ.focus();
+    return new Promise((resolve) => {
+        $("#prenom-form").onsubmit = async (e) => {
+            e.preventDefault();
+            if (!champ.value.trim()) return champ.focus();
+            prenom = await window.api.setPrenom(champ.value);
+            modal.hidden = true;
+            resolve();
+        };
+    });
+}
 $("#close-memory").onclick = () => ($("#memory-modal").hidden = true);
 $("#memory-modal").onclick = (e) => { if (e.target.id === "memory-modal") e.target.hidden = true; };
 window.api.onMemoryChanged((m) => { memory = m; renderMemory(); });
@@ -1005,6 +1025,8 @@ function appliquerNom() {
 
 (async () => {
     appliquerNom();
+    prenom = await window.api.getPrenom();
+    if (!prenom) await demanderPrenom();
     memory = await window.api.loadMemory();
     project = await window.api.getProject();
     knownProjects = await window.api.knownProjects();

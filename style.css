@@ -446,7 +446,7 @@ select {
 .souvenirs li span { flex: 1; }
 .souvenirs li button { color: var(--texte-3); font-size: 12px; }
 .souvenirs li button:hover { color: var(--lumiere); }
-#memory-input { flex: 1; padding: 9px 12px; background: var(--surface); border: 1px solid var(--ligne-2); border-radius: 2px; }
+#memory-input, #prenom-input { flex: 1; padding: 9px 12px; background: var(--surface); border: 1px solid var(--ligne-2); border-radius: 2px; }
 
 @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; }

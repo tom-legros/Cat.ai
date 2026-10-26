@@ -1,7 +1,7 @@
 // Outils du modèle : règles d'écriture par mode et par rôle, remplacer_texte, appels d'outils écrits en texte
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { outilsPour, ecritureRefusee, remplacerTexte, parseTextToolCalls, matchingBrace, resumerAction } = require('../principal/outils');
+const { outilsPour, ecritureRefusee, remplacerTexte, parseTextToolCalls, matchingBrace, resumerAction, REFUS_LECTURE } = require('../principal/outils');
 
 const noms = (mode) => outilsPour(mode).map((t) => t.function.name);
 
@@ -29,7 +29,7 @@ test('ecritureRefusee : mode prof prioritaire, relecteur, rédacteur README limi
 
 test('chaque refus interdit au modèle de prétendre que le fichier a changé', () => {
   for (const [mode, chemin] of [[{ prof: true }, 'a.js'], [{ role: 'relecteur' }, 'a.js'], [{ role: 'readme' }, 'a.js']]) {
-    assert.match(ecritureRefusee(mode, chemin), /ne dis pas à l’utilisateur qu'il est modifié/);
+    assert.match(ecritureRefusee(mode, chemin), /ne dis pas à l'utilisateur qu'il est modifié/);
   }
 });
 
@@ -113,7 +113,7 @@ test('matchingBrace : ignore les accolades dans les chaînes, -1 si pas fermée'
 test('résumé d action : lectures, recherches et listes', () => {
   assert.equal(resumerAction('lire_fichier', { chemin: 'main.js' }, 'const a = 1;'), 'a lu main.js');
   assert.equal(resumerAction('lire_fichier', { chemin: 'main.js', ligne: 120 }, '(main.js, à partir de la ligne 120)'), 'a lu main.js à partir de la ligne 120');
-  assert.equal(resumerAction('lire_fichier', { chemin: '.env' }, 'L’utilisateur a refusé la lecture de .env'), "n'a pas pu lire .env (L’utilisateur a refusé : fichier sensible)");
+  assert.equal(resumerAction('lire_fichier', { chemin: '.env' }, REFUS_LECTURE + '.env : ce fichier peut contenir des secrets.'), "n'a pas pu lire .env (lecture refusée : fichier sensible)");
   assert.equal(resumerAction('lire_fichier', { chemin: 'x.js' }, 'Erreur : ENOENT'), "n'a pas pu lire x.js");
   assert.equal(resumerAction('chercher', { texte: 'moyenne' }, 'notes.js:4: function moyenne(n) {\nnotes.js:20: moyenne(notes)'), 'a cherché « moyenne » (2 résultats)');
   assert.equal(resumerAction('chercher', { texte: 'x', dossier: 'src' }, 'Aucun résultat pour « x » dans src.'), 'a cherché « x » dans src (aucun résultat)');
@@ -123,7 +123,7 @@ test('résumé d action : lectures, recherches et listes', () => {
 test('résumé d action : écritures réussies, refusées ou ratées, sans jamais mentir', () => {
   assert.equal(resumerAction('ecrire_fichier', { chemin: 'README.md' }, 'Fichier créé : README.md'), 'a créé README.md');
   assert.equal(resumerAction('remplacer_texte', { chemin: 'a.js' }, 'Fichier modifié : a.js (2 remplacements)'), 'a modifié a.js');
-  assert.match(resumerAction('remplacer_texte', { chemin: 'a.js' }, "L'utilisateur a refusé la modification."), /l’utilisateur a refusé : le fichier n'a pas changé/);
+  assert.match(resumerAction('remplacer_texte', { chemin: 'a.js' }, "L'utilisateur a refusé la modification."), /modification a été refusée : le fichier n'a pas changé/);
   assert.match(resumerAction('remplacer_texte', { chemin: 'a.js' }, 'ancien_texte est introuvable'), /n'a pas pu modifier a\.js : le fichier n'a pas changé/);
   assert.match(resumerAction('ecrire_fichier', { chemin: 'a.js' }, 'Mode prof activé : …'), /n'a pas pu modifier/);
 });

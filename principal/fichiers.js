@@ -150,7 +150,7 @@ function contenuJoint(projet, relatif) {
   } catch {
     return '(mène en dehors du projet : pas joint)';
   }
-  if (estSensible(full)) return '(fichier sensible, pas joint automatiquement : lis-le avec lire_fichier si tu en as vraiment besoin, l’utilisateur devra confirmer)';
+  if (estSensible(full)) return "(fichier sensible, pas joint automatiquement : lis-le avec lire_fichier si tu en as vraiment besoin, l'utilisateur devra confirmer)";
   if (fs.statSync(full).size > MAX_FILE) return '(fichier trop gros)';
   const contenu = fs.readFileSync(full, 'utf8');
   return contenu.includes('\u0000') ? "(fichier binaire, pas joint)" : contenu;

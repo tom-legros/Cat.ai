@@ -32,6 +32,9 @@ contextBridge.exposeInMainWorld('api', {
   knownProjects: () => ipcRenderer.invoke('known-projects'),
   getProject: () => ipcRenderer.invoke('get-project'),
   onProjectChanged: (cb) => ipcRenderer.on('project-changed', (_e, p) => cb(p)),
+  // Prénom de l'utilisateur, vide tant qu'il ne l'a pas donné
+  getPrenom: () => ipcRenderer.invoke('get-prenom'),
+  setPrenom: (prenom) => ipcRenderer.invoke('set-prenom', prenom),
   loadMemory: () => ipcRenderer.invoke('load-memory'),
   saveMemory: (m) => ipcRenderer.invoke('save-memory', m),
   onMemoryChanged: (cb) => ipcRenderer.on('memory-changed', (_e, m) => cb(m)),

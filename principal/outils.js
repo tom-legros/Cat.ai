@@ -100,13 +100,15 @@ const peutEcrire = ({ prof, role } = {}) => !prof && role !== 'relecteur';
 const outilsPour = (mode) => (peutEcrire(mode) ? TOOLS : TOOLS.filter((t) => !OUTILS_ECRITURE.has(t.function.name)));
 
 // Les petits modèles annoncent parfois une modification qui n'a pas eu lieu : chaque refus le dit clairement
-const RIEN_N_A_CHANGE = " Le fichier n'a pas changé : ne dis pas à l’utilisateur qu'il est modifié.";
+const RIEN_N_A_CHANGE = " Le fichier n'a pas changé : ne dis pas à l'utilisateur qu'il est modifié.";
+// Début du résultat d'une lecture de fichier sensible refusée : main.js et resumerAction le reconnaissent
+const REFUS_LECTURE = "L'utilisateur a refusé la lecture de ";
 
 // Renvoie la raison du refus, ou rien si l'écriture est permise
 function ecritureRefusee({ prof, role } = {}, chemin) {
-  if (prof) return "Mode prof activé : tu n'as pas le droit d'écrire de fichier. Explique à l’utilisateur ce qu'il doit faire et laisse-le coder." + RIEN_N_A_CHANGE;
-  if (role === 'relecteur') return "Rôle relecteur : tu ne modifies aucun fichier. Liste les problèmes à l’utilisateur, il choisira quoi corriger." + RIEN_N_A_CHANGE;
-  if (role === 'readme' && !/\.md$/i.test(String(chemin || ''))) return "Rôle rédacteur README : tu n'écris que des fichiers Markdown (.md), jamais de code. Dis à l’utilisateur que modifier ce fichier n'est pas ton rôle, et qu'il peut passer en Généraliste ou en Débogueur pour ça. Ne fais rien d'autre à la place." + RIEN_N_A_CHANGE;
+  if (prof) return "Mode prof activé : tu n'as pas le droit d'écrire de fichier. Explique à l'utilisateur ce qu'il doit faire et laisse-le coder." + RIEN_N_A_CHANGE;
+  if (role === 'relecteur') return "Rôle relecteur : tu ne modifies aucun fichier. Liste les problèmes à l'utilisateur, il choisira quoi corriger." + RIEN_N_A_CHANGE;
+  if (role === 'readme' && !/\.md$/i.test(String(chemin || ''))) return "Rôle rédacteur README : tu n'écris que des fichiers Markdown (.md), jamais de code. Dis à l'utilisateur que modifier ce fichier n'est pas ton rôle, et qu'il peut passer en Généraliste ou en Débogueur pour ça. Ne fais rien d'autre à la place." + RIEN_N_A_CHANGE;
 }
 
 // Remplace le passage `ancien` de `contenu` par `nouveau`. Renvoie { contenu, fois } ou { erreur } pour le modèle.
@@ -184,7 +186,7 @@ function resumerAction(nom, args = {}, resultat = '') {
   const rate = r.startsWith('Erreur') || r.startsWith('Fichier trop gros') || r.includes("n'existe pas");
   switch (nom) {
     case 'lire_fichier':
-      if (r.startsWith('L’utilisateur a refusé')) return `n'a pas pu lire ${chemin} (L’utilisateur a refusé : fichier sensible)`;
+      if (r.startsWith(REFUS_LECTURE)) return `n'a pas pu lire ${chemin} (lecture refusée : fichier sensible)`;
       if (rate) return `n'a pas pu lire ${chemin}`;
       return `a lu ${chemin}${Number(args.ligne) > 1 ? ` à partir de la ligne ${Math.floor(Number(args.ligne))}` : ''}`;
     case 'chercher': {
@@ -198,7 +200,7 @@ function resumerAction(nom, args = {}, resultat = '') {
     case 'remplacer_texte':
       if (r.startsWith('Fichier créé')) return `a créé ${chemin}`;
       if (r.startsWith('Fichier modifié')) return `a modifié ${chemin}`;
-      if (r.startsWith("L'utilisateur a refusé")) return `voulait modifier ${chemin}, mais l’utilisateur a refusé : le fichier n'a pas changé`;
+      if (r.startsWith("L'utilisateur a refusé")) return `voulait modifier ${chemin}, mais la modification a été refusée : le fichier n'a pas changé`;
       return `n'a pas pu modifier ${chemin} : le fichier n'a pas changé`;
     case 'memoriser':
       return r.startsWith('Mémorisé') ? `a retenu : ${args.fait}` : '';
@@ -209,4 +211,4 @@ function resumerAction(nom, args = {}, resultat = '') {
   }
 }
 
-module.exports = { TOOLS, OUTILS_ECRITURE, peutEcrire, outilsPour, RIEN_N_A_CHANGE, ecritureRefusee, remplacerTexte, desechapper, parseTextToolCalls, matchingBrace, resumerAction };
+module.exports = { TOOLS, OUTILS_ECRITURE, peutEcrire, outilsPour, RIEN_N_A_CHANGE, REFUS_LECTURE, ecritureRefusee, remplacerTexte, desechapper, parseTextToolCalls, matchingBrace, resumerAction };

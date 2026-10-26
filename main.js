@@ -5,10 +5,10 @@ const { spawn } = require('child_process');
 
 const { configurerStockage, readJson, writeJson, prendreAlertes } = require('./principal/stockage');
 const { IGNORED, MAX_FILE, cheminSur, estSensible, listFiles, chercherDansProjet, fichiersCites, contenuJoint } = require('./principal/fichiers');
-const { OUTILS_ECRITURE, RIEN_N_A_CHANGE, ecritureRefusee, remplacerTexte, parseTextToolCalls, resumerAction } = require('./principal/outils');
+const { OUTILS_ECRITURE, RIEN_N_A_CHANGE, REFUS_LECTURE, ecritureRefusee, remplacerTexte, parseTextToolCalls, resumerAction } = require('./principal/outils');
 const { hote, HOTES_LOCAUX, fournisseurGratuit, modeleGratuit, conseilGratuit, adresseValide } = require('./principal/gratuit');
 const { LIMITES_OLLAMA, MAX_JOINT, limitesTaille, raccourcir, compacter } = require('./principal/taille');
-const { ajouterFait } = require('./principal/memoire');
+const { ajouterFait, nettoyerPrenom } = require('./principal/memoire');
 const { OLLAMA, REFLEXION, envoyerOllama, envoyerOpenAI } = require('./principal/envoi');
 const {
   FOURNISSEURS_DE_BASE, lireReglagesFournisseurs, infosFournisseur, configFournisseur, versInterface,
@@ -142,7 +142,7 @@ async function runTool(name, args, mode) {
       const size = fs.statSync(full).size;
       if (size > MAX_FILE) return `Fichier trop gros (${Math.round(size / 1024)} Ko), lecture refusée.`;
       if (estSensible(full) && !(await accordLectureSensible(args.chemin, mode.fournisseurId))) {
-        return `L’utilisateur a refusé la lecture de ${args.chemin} : ce fichier peut contenir des secrets. Fais sans, ou demande-lui l'information dont tu as besoin.`;
+        return `${REFUS_LECTURE}${args.chemin} : ce fichier peut contenir des secrets. Fais sans, ou demande-lui l'information dont tu as besoin.`;
       }
       const contenu = fs.readFileSync(full, 'utf8');
       // Lire la suite d'un long fichier coupé pour tenir dans la limite du modèle
@@ -309,7 +309,7 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, role, fournisseurI
         }
         // Une ligne qui résume l'action, gardée par l'interface dans l'historique de la discussion
         // Lecture d'un fichier sensible refusée par l’utilisateur : l'étiquette « Lit .env » ne doit pas laisser croire le contraire
-        if (name === 'lire_fichier' && String(result).startsWith('L’utilisateur a refusé')) {
+        if (name === 'lire_fichier' && String(result).startsWith(REFUS_LECTURE)) {
           event.sender.send('chat-tool', { id, name: 'refus-lecture', args: { chemin: args.chemin } });
         }
         const action = resumerAction(name, args || {}, result);
@@ -343,9 +343,10 @@ ipcMain.on('chat-stop', (_e, id) => {
 
 // Résume le début d'une longue discussion, pour que le modèle ne l'oublie pas
 ipcMain.handle('summarize', async (_e, { model, messages, ancienResume, fournisseurId = 'ollama' }) => {
-  const texte = messages.map((m) => `${m.role === 'user' ? 'L’utilisateur' : 'Le chat'} : ${m.content}`).join('\n\n');
-  const consigne = `Résume cette discussion entre l’utilisateur et son assistant en 10 lignes maximum, en français.
-Garde : ce que l’utilisateur veut faire, les décisions prises, les fichiers et noms importants, ce qui reste à faire. Pas de blabla.
+  const nom = lirePrenom() || "L'utilisateur";
+  const texte = messages.map((m) => `${m.role === 'user' ? nom : 'Le chat'} : ${m.content}`).join('\n\n');
+  const consigne = `Résume cette discussion entre ${nom} et son assistant en 10 lignes maximum, en français.
+Garde : ce que ${nom} veut faire, les décisions prises, les fichiers et noms importants, ce qui reste à faire. Pas de blabla.
 ${ancienResume ? `\nRésumé de ce qui s'est passé encore avant :\n${ancienResume}\n` : ''}
 Discussion :
 ${texte}`;
@@ -520,6 +521,18 @@ ipcMain.handle('dir-exists', (_e, dir) => {
   } catch {
     return false;
   }
+});
+
+// Le prénom de l'utilisateur, demandé au premier lancement : le chat s'en sert pour lui parler
+const lirePrenom = () => String(readJson('settings.json', {}).prenom || '');
+
+ipcMain.handle('get-prenom', () => lirePrenom());
+
+ipcMain.handle('set-prenom', (_e, prenom) => {
+  const propre = nettoyerPrenom(prenom);
+  if (!propre) return lirePrenom();
+  writeJson('settings.json', { ...readJson('settings.json', {}), prenom: propre });
+  return propre;
 });
 
 ipcMain.handle('get-project', () => {
