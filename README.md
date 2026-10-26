@@ -12,13 +12,13 @@ Un chat noir en pixel art qui vit sur ton PC et t'aide pour tout : expliquer un 
 
 Va dans les [Releases](https://github.com/tom-legros/Cat.ai/releases/latest) et prends le fichier de ton système :
 
-- **Windows** : `Cat-Ai-1.0.0-installateur.exe`
-- **Linux** : `Cat-Ai-1.0.0.AppImage`
+- **Windows** : `Cat-Ai-1.0.1-installateur.exe`
+- **Linux** : `Cat-Ai-1.0.1.AppImage`
 
 ### 2. Installer
 
 - **Windows** : double-clique sur l'installateur. L'app n'est pas signée (un certificat coûte cher), donc Windows affiche « Windows a protégé votre ordinateur » : clique sur **Informations complémentaires**, puis **Exécuter quand même**. Pas besoin d'être administrateur.
-- **Linux** : `chmod +x Cat-Ai-1.0.0.AppImage && ./Cat-Ai-1.0.0.AppImage` (sur Arch, il peut falloir `fuse2`).
+- **Linux** : `chmod +x Cat-Ai-1.0.1.AppImage && ./Cat-Ai-1.0.1.AppImage` (sur Arch, il peut falloir `fuse2`).
 
 ### 3. Premier lancement
 
