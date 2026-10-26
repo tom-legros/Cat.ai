@@ -61,7 +61,7 @@ async function envoyerOpenAI(config, messages, modele, onMorceau, signal, option
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${config.cle}`,
-      'X-Title': 'Le chat noir', // OpenRouter affiche ce nom dans ses statistiques
+      'X-Title': 'Cat Ai', // OpenRouter affiche ce nom dans ses statistiques
     },
     body: JSON.stringify(body),
     signal,

@@ -1,5 +1,5 @@
 /* ==========================================================
-   Le chat noir en pixel art
+   Cat Ai : le chat noir en pixel art
    Sprite et dessin repris de mon portfolio (public/js/script.js),
    transformés en classe pour avoir plusieurs chats dans l'app :
    le grand sur l'accueil et le petit à côté de chaque réponse.

@@ -1,7 +1,7 @@
 {
   "name": "assistant-ia",
   "version": "1.0.0",
-  "description": "Le chat noir : assistant de code de bureau 100 % gratuit, avec Ollama en local ou un fournisseur en ligne gratuit (Gemini, Groq, OpenRouter)",
+  "description": "Cat Ai : assistant de code de bureau 100 % gratuit, avec Ollama en local ou un fournisseur en ligne gratuit (Gemini, Groq, OpenRouter)",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -24,10 +24,10 @@
     "dompurify": "^3.4.17",
     "marked": "^18.1.1"
   },
-  "desktopName": "le-chat-noir.desktop",
+  "desktopName": "cat-ai.desktop",
   "build": {
-    "appId": "fr.lechatnoir.app",
-    "productName": "Le chat noir",
+    "appId": "fr.catai.app",
+    "productName": "Cat Ai",
     "directories": {
       "output": "dist"
     },
@@ -53,14 +53,14 @@
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
-      "shortcutName": "Le chat noir",
-      "artifactName": "Le-chat-noir-${version}-installateur.${ext}"
+      "shortcutName": "Cat Ai",
+      "artifactName": "Cat-Ai-${version}-installateur.${ext}"
     },
     "linux": {
       "target": "AppImage",
       "icon": "icone.png",
       "category": "Development",
-      "artifactName": "Le-chat-noir-${version}.${ext}",
+      "artifactName": "Cat-Ai-${version}.${ext}",
       "syncDesktopName": true
     }
   }

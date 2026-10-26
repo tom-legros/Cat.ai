@@ -1,5 +1,5 @@
 /* ==========================================================
-   Le chat noir — interface
+   Cat Ai — interface
    3. Blocs de code   4. Messages et discussions   5. Envoi   6. Grand chat de l'accueil
    7. Projet   8. Mémoire   9. Démarrage
    Chargés avant ce fichier (dossier interface/) : 1. personnalité et consignes,

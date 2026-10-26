@@ -73,7 +73,7 @@ function createWindow() {
     minWidth: 760,
     minHeight: 520,
     backgroundColor: '#050505',
-    title: 'Le chat noir',
+    title: 'Cat Ai',
     icon: path.join(__dirname, 'icone.png'),
     autoHideMenuBar: true,
     webPreferences: {

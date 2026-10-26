@@ -1,4 +1,4 @@
-# Le chat noir
+# Cat Ai
 
 Un assistant de code de bureau : le chat noir de mon portfolio, en pixel art, qui m'aide sur mes projets.
 Il lit mon code, répond à mes questions et peut modifier des fichiers (toujours avec mon accord).
@@ -44,8 +44,8 @@ et s'il arrivait quand même jusqu'à l'envoi, rien ne partirait.
 
 Pas besoin de Node ni de terminal : il suffit de l'installateur.
 
-- **Windows** : lancer `Le-chat-noir-1.0.0-installateur.exe`. L'app n'est pas signée (un certificat coûte cher), donc Windows affiche « Windows a protégé votre ordinateur » : cliquer sur « Informations complémentaires », puis « Exécuter quand même ». L'installation se fait pour l'utilisateur, sans droits administrateur.
-- **Linux** : rendre le fichier exécutable puis le lancer : `chmod +x Le-chat-noir-1.0.0.AppImage && ./Le-chat-noir-1.0.0.AppImage`. Sur certaines distributions, il faut `fuse2` (Arch : `sudo pacman -S fuse2`).
+- **Windows** : lancer `Cat-Ai-1.0.0-installateur.exe`. L'app n'est pas signée (un certificat coûte cher), donc Windows affiche « Windows a protégé votre ordinateur » : cliquer sur « Informations complémentaires », puis « Exécuter quand même ». L'installation se fait pour l'utilisateur, sans droits administrateur.
+- **Linux** : rendre le fichier exécutable puis le lancer : `chmod +x Cat-Ai-1.0.0.AppImage && ./Cat-Ai-1.0.0.AppImage`. Sur certaines distributions, il faut `fuse2` (Arch : `sudo pacman -S fuse2`).
 
 Au premier lancement, le chat demande ton prénom, puis explique comment avoir un modèle gratuit :
 [Ollama](https://ollama.com) sur ton PC (il faut une carte graphique avec 8 Go de mémoire pour être à l'aise),
@@ -187,7 +187,8 @@ Ce projet s'appuie sur le travail d'autres personnes, merci à elles.
 
 ### Le reste
 
-- Le chat noir, son sprite et sa DA viennent de mon portfolio.- Application développée avec l'aide de Claude (Anthropic) via Claude Code.
+- Le chat noir, son sprite et sa DA viennent de mon portfolio.
+- Application développée avec l'aide de Claude (Anthropic) via Claude Code.
 
 ## Licence
 

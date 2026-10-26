@@ -1,5 +1,5 @@
 /* ==========================================================
-   Le chat noir — calcul de la fenêtre avant / après (l'affichage reste dans renderer.js)
+   Cat Ai — calcul de la fenêtre avant / après (l'affichage reste dans renderer.js)
    ========================================================== */
 
 // Différence ligne par ligne, calculée par jsdiff (algorithme de Myers, le même que git)

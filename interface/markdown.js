@@ -1,5 +1,5 @@
 /* ==========================================================
-   Le chat noir — rendu des réponses : Markdown, couleurs du code, étiquettes d'action
+   Cat Ai — rendu des réponses : Markdown, couleurs du code, étiquettes d'action
    ========================================================== */
 
 // marked transforme le Markdown en HTML, highlight.js colore le code,

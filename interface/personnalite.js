@@ -1,11 +1,11 @@
 /* ==========================================================
-   Le chat noir — personnalité : nom, répliques, rôles et consignes données au modèle
+   Cat Ai — personnalité : nom, répliques, rôles et consignes données au modèle
    Les variables d'état (prenom, project, prof, role, memory…) sont déclarées dans renderer.js :
    ces fonctions ne les lisent qu'au moment où elles sont appelées.
    ========================================================== */
 
 // Le nom du chat : change-le ici, il est repris partout (fenêtre, logo, bulles, réponses, consignes du modèle)
-const NOM_DU_CHAT = "Le chat noir";
+const NOM_DU_CHAT = "Cat Ai";
 // Comment il se présente au modèle : "le chat noir" ou, avec un vrai nom, "Nyx, le chat noir"
 const PRESENTATION = NOM_DU_CHAT === "Le chat noir" ? "le chat noir" : `${NOM_DU_CHAT}, le chat noir`;
 // Répliques du grand chat de l'accueil : ajoute-en autant que tu veux. {prenom} est remplacé par le prénom de l'utilisateur.

@@ -1,5 +1,5 @@
 /* ==========================================================
-   Le chat noir — choix des modèles : le conseillé (★), les gourmands (▲), celui pris par défaut.
+   Cat Ai — choix des modèles : le conseillé (★), les gourmands (▲), celui pris par défaut.
    Que des fonctions pures : elles ne touchent ni à la page ni au processus principal.
    ========================================================== */
 
