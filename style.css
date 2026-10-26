@@ -561,7 +561,9 @@ select.pastille.is-on { color: var(--oeil); }
 optgroup { background: var(--surface); color: var(--texte-3); font-style: normal; }
 
 /* Raccourci du modèle, à droite sous la saisie, avec le quota du jour en petit rond */
-.raccourci { position: relative; margin-left: auto; }
+.raccourci { position: relative; }
+.raccourci--premier { margin-left: auto; }
+.pastille__terme { color: var(--texte-3); opacity: .8; }
 .quota { width: 16px; height: 16px; transform: rotate(-90deg); flex-shrink: 0; }
 .quota circle { fill: none; stroke-width: 2.5; }
 .quota__fond { stroke: var(--ligne-2); }
@@ -578,4 +580,4 @@ optgroup { background: var(--surface); color: var(--texte-3); font-style: normal
 .menu-modeles__choix.is-on { color: var(--oeil); }
 .menu-modeles__autre { margin-top: 4px; border-top: 1px solid var(--ligne); border-radius: 0 0 var(--rayon-petit) var(--rayon-petit); color: var(--texte-3); }
 .menu-modeles__titre { margin: 6px 10px 2px; font-family: var(--police-titre); font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--texte-3); }
-#modele-raccourci { max-width: 320px; }
+#modele-raccourci { max-width: 280px; }

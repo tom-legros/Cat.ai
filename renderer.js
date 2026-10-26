@@ -1000,7 +1000,8 @@ const nomCourt = (m) => m.split("/").pop().replace(/:free$/, "");
 function renderRaccourci() {
     const f = fournisseurActif();
     const modele = modelSel.value;
-    $("#modele-nom").textContent = modele ? `${f.nom.replace(/ (local)$/, "")} · ${nomCourt(modele)}` : f.nom;
+    $("#fournisseur-nom").textContent = f.nom.replace(/ \(local\)$/, "");
+    $("#modele-nom").textContent = modele ? nomCourt(modele) : "aucun";
     const limite = quotaDuJour(f.id, modele);
     const faits = messagesDuJour();
     // Le rond est plein quand il reste tout le quota, et se vide au fil des messages
@@ -1010,46 +1011,56 @@ function renderRaccourci() {
     arc.style.strokeDasharray = `${tour * reste} ${tour}`;
     arc.classList.toggle("is-bas", reste < 0.15);
     $("#modele-raccourci").title = limite === Infinity
-        ? `${f.nom} sur ton PC : sans limite`
+        ? `Modèle ${modele} : sur ton PC, sans limite`
         : limite
-            ? `${f.nom} : ${faits} message${faits > 1 ? "s" : ""} aujourd'hui, sur environ ${limite} gratuits par jour`
-            : `${f.nom} : ${faits} message${faits > 1 ? "s" : ""} aujourd'hui`;
+            ? `Modèle ${modele} : ${faits} message${faits > 1 ? "s" : ""} aujourd'hui, sur environ ${limite} gratuits par jour`
+            : `Modèle ${modele} : ${faits} message${faits > 1 ? "s" : ""} aujourd'hui`;
 }
 
-// Le menu : changer de cerveau (fournisseur) et de version (modèle) sans ouvrir les réglages
+// Un choix dans un menu de raccourci
+function choixMenu(menu, texte, actif, action, classe = "") {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = `menu-modeles__choix ${classe}${actif ? " is-on" : ""}`;
+    b.textContent = texte;
+    b.onclick = () => { menu.hidden = true; action(); };
+    menu.append(b);
+}
+
+// Menu Fournisseur : Ollama et les fournisseurs en ligne qui ont une clé, puis « ajouter une clé »
+function ouvrirMenuFournisseurs() {
+    const menu = $("#menu-fournisseurs");
+    menu.replaceChildren();
+    reglages.fournisseurs.filter((f) => f.type === "ollama" || f.aCle).forEach((f) => {
+        choixMenu(menu, f.nom, f.id === reglages.actif, () => {
+            if (f.id === reglages.actif) return;
+            fournisseurSel.value = f.id;
+            fournisseurSel.dispatchEvent(new Event("change"));
+        });
+    });
+    choixMenu(menu, "Ajouter un fournisseur (clé gratuite)…", false, ouvrirFournisseurs, "menu-modeles__autre");
+    menu.hidden = false;
+}
+
+// Menu Modèle : les modèles du fournisseur choisi
 function ouvrirMenuModeles() {
     const menu = $("#menu-modeles");
     menu.replaceChildren();
-    const titre = (texte) => { const t = document.createElement("p"); t.className = "menu-modeles__titre"; t.textContent = texte; menu.append(t); };
-    titre("Cerveau");
-    // Seulement ceux qui peuvent répondre : Ollama, et les cerveaux en ligne qui ont une clé
-    reglages.fournisseurs.filter((f) => f.type === "ollama" || f.aCle).forEach((f) => {
-        const b = document.createElement("button");
-        b.type = "button";
-        b.className = "menu-modeles__choix" + (f.id === reglages.actif ? " is-on" : "");
-        b.textContent = f.nom;
-        b.onclick = () => { menu.hidden = true; if (f.id === reglages.actif) return; fournisseurSel.value = f.id; fournisseurSel.dispatchEvent(new Event("change")); };
-        menu.append(b);
-    });
-    titre("Version");
     [...modelSel.options].forEach((o) => {
-        const b = document.createElement("button");
-        b.type = "button";
-        b.className = "menu-modeles__choix" + (o.value === modelSel.value ? " is-on" : "");
-        b.textContent = o.textContent;
-        b.onclick = () => { modelSel.value = o.value; modelSel.dispatchEvent(new Event("change")); menu.hidden = true; };
-        menu.append(b);
+        choixMenu(menu, o.textContent, o.value === modelSel.value, () => { modelSel.value = o.value; modelSel.dispatchEvent(new Event("change")); });
     });
-    const autre = document.createElement("button");
-    autre.type = "button";
-    autre.className = "menu-modeles__choix menu-modeles__autre";
-    autre.textContent = "Ajouter un cerveau (clé gratuite)…";
-    autre.onclick = () => { menu.hidden = true; ouvrirFournisseurs(); };
-    menu.append(autre);
+    if (!modelSel.options.length) choixMenu(menu, "Aucun modèle : ouvre les réglages", false, ouvrirFournisseurs, "menu-modeles__autre");
     menu.hidden = false;
 }
-$("#modele-raccourci").onclick = (e) => { e.stopPropagation(); $("#menu-modeles").hidden ? ouvrirMenuModeles() : ($("#menu-modeles").hidden = true); };
-document.addEventListener("click", (e) => { if (!e.target.closest(".raccourci")) $("#menu-modeles").hidden = true; });
+
+const basculer = (id, ouvrir) => (e) => {
+    e.stopPropagation();
+    document.querySelectorAll(".menu-modeles").forEach((m) => { if (m.id !== id) m.hidden = true; });
+    if ($(`#${id}`).hidden) ouvrir(); else $(`#${id}`).hidden = true;
+};
+$("#fournisseur-raccourci").onclick = basculer("menu-fournisseurs", ouvrirMenuFournisseurs);
+$("#modele-raccourci").onclick = basculer("menu-modeles", ouvrirMenuModeles);
+document.addEventListener("click", (e) => { if (!e.target.closest(".raccourci")) document.querySelectorAll(".menu-modeles").forEach((m) => (m.hidden = true)); });
 
 // Le modèle choisi est retenu pour chaque fournisseur
 modelSel.addEventListener("change", async () => {

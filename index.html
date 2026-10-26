@@ -96,10 +96,17 @@
           <button id="open-roles" class="pastille pastille--x" type="button" title="Créer un rôle">+</button>
         </span>
         <!-- Raccourci du modèle, avec le quota du jour dans le petit rond (comme sur Claude) -->
+        <!-- Raccourcis : fournisseur et modèle, chacun avec son menu ; le petit rond = quota du jour -->
+        <span class="raccourci raccourci--premier">
+          <button id="fournisseur-raccourci" class="pastille" type="button" aria-haspopup="true" title="Fournisseur : le service qui fait réfléchir le chat">
+            <span class="pastille__terme">Fournisseur</span> <span id="fournisseur-nom">…</span>
+          </button>
+          <div id="menu-fournisseurs" class="menu-modeles" hidden></div>
+        </span>
         <span class="raccourci">
           <button id="modele-raccourci" class="pastille" type="button" aria-haspopup="true">
             <svg class="quota" viewBox="0 0 20 20" aria-hidden="true"><circle class="quota__fond" cx="10" cy="10" r="7"/><circle id="quota-arc" class="quota__plein" cx="10" cy="10" r="7"/></svg>
-            <span id="modele-nom">…</span>
+            <span class="pastille__terme">Modèle</span> <span id="modele-nom">…</span>
           </button>
           <div id="menu-modeles" class="menu-modeles" hidden></div>
         </span>
@@ -118,9 +125,9 @@
       <h2 class="fenetre__titre">Le cerveau du chat</h2>
       <p class="discret">C'est lui qui fait réfléchir le chat. Tous sont gratuits.</p>
       <div class="bloc bloc--espace">
-        <label class="etiquette" for="fournisseur">Qui fait réfléchir le chat ?</label>
+        <label class="etiquette" for="fournisseur">Fournisseur : qui fait réfléchir le chat</label>
         <select id="fournisseur"></select>
-        <label class="etiquette etiquette--suite" for="model">Version</label>
+        <label class="etiquette etiquette--suite" for="model">Modèle : la version du cerveau</label>
         <select id="model"></select>
         <p id="conseil-modele" class="conseil"></p>
       </div>
