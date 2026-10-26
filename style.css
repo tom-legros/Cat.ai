@@ -230,6 +230,7 @@ select {
 @keyframes zzz { 0% { opacity: 0; transform: translateY(4px); } 30%, 70% { opacity: 1; } 100% { opacity: 0; transform: translateY(-8px); } }
 
 .suggestions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 30px; }
+.suggestions[hidden] { display: none; }
 .suggestions button {
     padding: 14px 16px;
     border: 1px solid var(--ligne);
@@ -240,6 +241,17 @@ select {
     transition: color .2s ease, border-color .2s ease, box-shadow .2s ease;
 }
 .suggestions button:hover { color: var(--lumiere); border-color: var(--ligne-2); box-shadow: 0 0 28px rgba(255, 255, 255, .08); }
+
+/* Premier lancement, sans modèle : les deux façons d'en avoir un, dans le style des suggestions */
+.demarrage { margin-top: 30px; text-align: left; }
+.demarrage[hidden] { display: none; }
+.demarrage__intro { margin: 0 0 12px; color: var(--texte-2); text-align: center; }
+.demarrage__choix { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.demarrage__carte { display: flex; flex-direction: column; gap: 8px; padding: 16px; border: 1px solid var(--ligne); border-radius: 2px; background: var(--surface); }
+.demarrage__carte .etiquette, .demarrage__carte .conseil { margin: 0; }
+.demarrage__titre { margin: 0; font: 400 22px/1.2 var(--police-titre); }
+.demarrage__carte .rangee { margin-top: auto; padding-top: 6px; flex-wrap: wrap; }
+.demarrage a { text-decoration: none; }
 
 /* ---------- 5. Messages ---------- */
 .msg { max-width: 820px; margin: 0 auto 26px; padding: 0 32px; }

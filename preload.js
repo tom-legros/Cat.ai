@@ -35,6 +35,10 @@ contextBridge.exposeInMainWorld('api', {
   // Prénom de l'utilisateur, vide tant qu'il ne l'a pas donné
   getPrenom: () => ipcRenderer.invoke('get-prenom'),
   setPrenom: (prenom) => ipcRenderer.invoke('set-prenom', prenom),
+  // Accueil du premier lancement : où en est Ollama, et téléchargement d'un modèle avec sa progression
+  etatOllama: () => ipcRenderer.invoke('etat-ollama'),
+  telechargerModele: (modele) => ipcRenderer.invoke('ollama-telecharger', modele),
+  onProgressionOllama: (cb) => ipcRenderer.on('ollama-progression', (_e, p) => cb(p)),
   loadMemory: () => ipcRenderer.invoke('load-memory'),
   saveMemory: (m) => ipcRenderer.invoke('save-memory', m),
   onMemoryChanged: (cb) => ipcRenderer.on('memory-changed', (_e, m) => cb(m)),

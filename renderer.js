@@ -271,7 +271,9 @@ async function send(text) {
     if ((!text && !pieces.length) || streaming || envoiEnCours) return;
     if (!modelSel.value) {
         const f = fournisseurActif();
-        addMessage("error", f.type === "ollama" ? REPLIQUES.ollamaOff : `Pas de modèle disponible chez ${f.nom}. ${statusEl.title || "Vérifie la clé dans « Clés API »."}`);
+        // Ollama installé mais arrêté : il suffit de relancer. Sinon, l'accueil explique comment avoir un modèle.
+        const sansModele = f.type === "ollama" && (!etatOllama.installe || etatOllama.repond);
+        addMessage("error", sansModele ? "Il me faut d'abord un modèle. Ouvre une nouvelle discussion : l'accueil t'explique comment en avoir un gratuit." : f.type === "ollama" ? REPLIQUES.ollamaOff : `Pas de modèle disponible chez ${f.nom}. ${statusEl.title || "Vérifie la clé dans « Clés API »."}`);
         return;
     }
     envoiEnCours = true;
@@ -823,7 +825,88 @@ async function loadModels() {
     statusEl.title = erreur || "";
     if (f.type === "ollama") statusEl.textContent = !ok ? "Ollama ne répond pas" : models.length ? "Ollama connecté" : "Aucun modèle installé";
     else statusEl.textContent = ok ? `${f.nom} connecté · en ligne` : (erreur || "").split("\n")[0] || `${f.nom} ne répond pas`;
+    await renderDemarrage(f, ok ? models : []);
 }
+
+
+/* ---------- Premier lancement : avoir un modèle ---------- */
+
+const LIEN_OLLAMA = "https://ollama.com/download";
+let etatOllama = { installe: true, repond: true };
+let telechargement = false; // pendant un téléchargement, la carte Ollama n'est pas redessinée
+
+function lienExterne(texte, url, classe) {
+    const a = document.createElement("a");
+    a.className = classe;
+    a.href = url;
+    a.target = "_blank"; // ouvert dans le navigateur par main.js
+    a.textContent = texte;
+    return a;
+}
+
+function boutonAction(texte, classe, action) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = classe;
+    b.textContent = texte;
+    b.onclick = action;
+    return b;
+}
+
+// Sans aucun modèle pour le fournisseur choisi, les suggestions laissent la place aux deux façons d'en avoir un
+async function renderDemarrage(f, models) {
+    const bloc = $("#demarrage");
+    bloc.hidden = models.length > 0;
+    $(".suggestions").hidden = !bloc.hidden;
+    if (bloc.hidden) return;
+    etatOllama = await window.api.etatOllama();
+
+    if (!telechargement) {
+        const modele = MODELE_PREFERE.ollama[0];
+        const actions = $("#demarrage-ollama-actions");
+        actions.replaceChildren();
+        if (etatOllama.repond) {
+            $("#demarrage-ollama-texte").textContent = `Ollama est là, il lui manque un modèle. Je conseille ${modele} : environ 5 Go à télécharger, une seule fois.`;
+            actions.append(boutonAction(`Télécharger ${modele}`, "bouton", () => telechargerModele(modele)));
+        } else if (etatOllama.installe) {
+            $("#demarrage-ollama-texte").textContent = "Ollama est installé mais ne répond pas. Relance l'app, ou lance Ollama toi-même.";
+        } else {
+            $("#demarrage-ollama-texte").textContent = "Gratuit, sans limite, et rien ne sort de ton PC. Il faut une carte graphique avec 8 Go de mémoire pour être à l'aise.";
+            actions.append(lienExterne("Télécharger Ollama", LIEN_OLLAMA, "bouton"));
+        }
+    }
+
+    const gemini = reglages.fournisseurs.find((x) => x.id === "gemini");
+    const actions = $("#demarrage-gemini-actions");
+    actions.replaceChildren();
+    if (f.id === "gemini" && gemini?.aCle) {
+        $("#demarrage-gemini-texte").textContent = `Gemini ne répond pas : ${statusEl.title.split("\n")[0] || "vérifie ta connexion"}.`;
+        actions.append(boutonAction("Changer la clé", "lien", ouvrirFournisseurs));
+    } else if (gemini?.aCle) {
+        $("#demarrage-gemini-texte").textContent = "Ta clé Gemini est enregistrée.";
+        actions.append(boutonAction("Utiliser Gemini", "bouton", () => { fournisseurSel.value = "gemini"; fournisseurSel.dispatchEvent(new Event("change")); }));
+    } else {
+        $("#demarrage-gemini-texte").textContent = "Une clé gratuite en deux minutes, avec un compte Google. Tes messages et les fichiers que je lis partent chez Google.";
+        actions.append(lienExterne("Obtenir une clé", LIENS_CLES.gemini, "bouton"), boutonAction("Coller la clé", "lien", ouvrirFournisseurs));
+    }
+}
+
+async function telechargerModele(modele) {
+    telechargement = true;
+    $("#demarrage-ollama-actions").replaceChildren();
+    $("#demarrage-progression").textContent = "Ça démarre…";
+    const r = await window.api.telechargerModele(modele);
+    telechargement = false;
+    $("#demarrage-progression").textContent = r.ok ? "" : `Le téléchargement a échoué : ${r.erreur}`;
+    loadModels();
+}
+
+// Ollama envoie des étapes en anglais : on ne garde que la progression
+window.api.onProgressionOllama(({ statut = "", fait = 0, total }) => {
+    $("#demarrage-progression").textContent = total
+        ? `Téléchargement : ${Math.floor((fait / total) * 100)} % de ${(total / 1e9).toFixed(1)} Go`
+        : statut === "success" ? "Terminé." : /verif/i.test(statut) ? "Vérification…" : "Préparation…";
+});
 
 fournisseurSel.addEventListener("change", async () => {
     if (streaming) { fournisseurSel.value = reglages.actif; return; }

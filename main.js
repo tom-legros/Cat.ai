@@ -440,6 +440,36 @@ ipcMain.handle('fournisseurs-choisir', async (_e, { id, modele }) => {
   return { ok: true, reglages: await versInterface() };
 });
 
+// Pour l'accueil du premier lancement. Hors Windows, on ne sait pas s'il est installé tant qu'il ne répond pas.
+ipcMain.handle('etat-ollama', async () => {
+  const repond = await ollamaRepond();
+  return { repond, installe: repond || (process.platform === 'win32' && !!commandeOllama()) };
+});
+
+// Télécharge un modèle dans Ollama depuis l'accueil (clic de l'utilisateur), en envoyant la progression
+ipcMain.handle('ollama-telecharger', async (event, modele) => {
+  if (!/^[\w.-]+(:[\w.-]+)?$/.test(String(modele))) return { ok: false, erreur: 'Nom de modèle invalide.' };
+  try {
+    const res = await fetch(`${OLLAMA}/api/pull`, { method: 'POST', body: JSON.stringify({ model: modele, stream: true }) });
+    if (!res.ok || !res.body) return { ok: false, erreur: `Ollama a répondu ${res.status}.` };
+    const decoder = new TextDecoder();
+    let buffer = '';
+    for await (const chunk of res.body) {
+      buffer += decoder.decode(chunk, { stream: true });
+      const lignes = buffer.split('\n');
+      buffer = lignes.pop();
+      for (const ligne of lignes.filter((l) => l.trim())) {
+        const d = JSON.parse(ligne);
+        if (d.error) return { ok: false, erreur: d.error };
+        event.sender.send('ollama-progression', { statut: d.status, fait: d.completed, total: d.total });
+      }
+    }
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, erreur: err.message };
+  }
+});
+
 ipcMain.handle('models', async (_e, fournisseurId = 'ollama') => {
   const config = await configFournisseur(fournisseurId);
   if (!config) return { ok: false, models: [], erreur: 'Fournisseur inconnu.' };
