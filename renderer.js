@@ -571,17 +571,17 @@ function renderProf() {
     ChatNoir.lunettes = prof;
     ChatNoir.rafraichirCouleurs();
     input.placeholder = prof
-        ? "Mode prof : pose ta question, il te guide sans coder à ta place"
+        ? "Mode prof : pose ta question, il t'aide à trouver par toi-même"
         : role
             ? ROLES[role].placeholder
-            : "Écris au chat… (glisse un fichier ici pour le lui montrer)";
+            : "Écris au chat… (tu peux aussi glisser un fichier)";
 }
 
 boutonProf.onclick = () => {
     prof = !prof;
     try { localStorage.setItem("modeProf", prof ? "1" : "0"); } catch {}
     renderProf();
-    if (!welcomeEl.hidden) dire(prof ? REPLIQUES.prof : "Mode normal. Je peux de nouveau mettre les pattes dans ton code.");
+    if (!welcomeEl.hidden) dire(prof ? REPLIQUES.prof : "Mode normal. Je peux de nouveau te mâcher le travail.");
 };
 
 const roleSel = $("#role");
@@ -872,12 +872,12 @@ async function renderDemarrage(f, models) {
         const actions = $("#demarrage-ollama-actions");
         actions.replaceChildren();
         if (etatOllama.repond) {
-            $("#demarrage-ollama-texte").textContent = `Ollama est là, il lui manque un modèle. Je conseille ${modele} : environ 5 Go à télécharger, une seule fois.`;
+            $("#demarrage-ollama-texte").textContent = `Ollama est là, il lui manque un modèle : ${modele}, environ 5 Go à télécharger une seule fois. Il faut un PC puissant (type PC gamer) : sinon, prends Gemini.`;
             actions.append(boutonAction(`Télécharger ${modele}`, "bouton", () => telechargerModele(modele)));
         } else if (etatOllama.installe) {
             $("#demarrage-ollama-texte").textContent = "Ollama est installé mais ne répond pas. Relance l'app, ou lance Ollama toi-même.";
         } else {
-            $("#demarrage-ollama-texte").textContent = "Gratuit, sans limite, et rien ne sort de ton PC. Il faut une carte graphique avec 8 Go de mémoire pour être à l'aise.";
+            $("#demarrage-ollama-texte").textContent = "Gratuit, sans limite, et rien ne sort de ton PC. Mais il demande un PC puissant, type PC gamer récent : sur un PC portable classique, il sera très lent. Dans le doute, prends Gemini.";
             actions.append(lienExterne("Télécharger Ollama", LIEN_OLLAMA, "bouton"));
         }
     }

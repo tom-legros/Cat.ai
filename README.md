@@ -32,7 +32,7 @@ Puis il te propose deux façons gratuites de le faire parler :
 
 | | Ollama | Gemini |
 | --- | --- | --- |
-| Pour qui | Un PC avec une bonne carte graphique (8 Go) | Tout le monde |
+| Pour qui | Les PC puissants (type PC gamer récent). Sur un PC portable classique, il sera très lent | Tout le monde, même sur un petit PC |
 | Comment | Clique sur « Télécharger » (5 Go, une seule fois) | Crée une [clé gratuite](https://aistudio.google.com/apikey), colle-la, « C'est prêt » |
 | Tes données | Ne sortent pas de ton PC | Partent chez Google |
 

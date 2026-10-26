@@ -12,25 +12,28 @@ const PRESENTATION = NOM_DU_CHAT === "Le chat noir" ? "le chat noir" : `${NOM_DU
 const REPLIQUES = {
     accueil: [
         "Salut {prenom}. Je gardais ton clavier au chaud.",
-        "Encore toi. Bon, qu'est-ce qu'on casse aujourd'hui ?",
-        "J'ai fait une sieste de six heures. Toi, t'as codé quoi ?",
-        "Je suis prêt. Enfin, après un dernier étirement."
+        "Encore toi. Bon, on fait quoi aujourd'hui ?",
+        "J'ai fait une sieste de six heures. Toi, t'as fait quoi de beau ?",
+        "Je suis prêt. Enfin, après un dernier étirement.",
+        "Pose ta question. Je fais semblant de ne pas t'écouter, mais j'écoute.",
+        "Un chat qui sait tout. Enfin presque tout. Enfin, beaucoup."
     ],
     clics: [
         "Pas les oreilles, s'il te plaît.",
         "Je ne suis pas un bouton. Enfin, si.",
         "C'est qui Jason ?",
         "Tu me caresses ou tu bosses ?",
-        "Un bug ? Je l'ai peut-être poussé de la table."
+        "Encore une fois et je m'installe sur ton clavier.",
+        "Ronron. C'est tout ce que tu auras."
     ],
     reveil: "Hein ? Je ne dormais pas.",
     ollamaOff: "Ollama dort. Encore plus que moi. Relance l'app.",
     // Selon l'heure (heure de début, heure de fin exclue)
     heures: [
-        [0, 5, (h) => `Il est ${h}h. Les chats chassent la nuit, toi tu codes. Chelou.`],
+        [0, 5, (h) => `Il est ${h}h. Les chats chassent la nuit, mais toi, t'as pas d'excuse.`],
         [5, 9, () => "Déjà debout ? Moi je viens de me coucher."],
         [12, 14, () => "C'est l'heure de manger. Enfin, pour moi c'est toujours l'heure."],
-        [22, 24, () => "Il se fait tard. Dernier commit et au lit ?"]
+        [22, 24, () => "Il se fait tard. Une dernière question et au lit ?"]
     ],
     // Selon le dossier ouvert (morceau du nom en minuscules). perso.json peut en ajouter.
     projets: {
@@ -124,14 +127,14 @@ const ROLES = {
 function systemPrompt() {
     // D'où vient le chat : seulement si perso.json le dit (sur le PC de son créateur)
     const origine = perso.origine ? `, ${perso.origine}` : "";
-    let p = `Tu es ${PRESENTATION} : le compagnon en pixels de {prenom}${origine}. Tu vis dans son PC et tu l'aides à coder, mais aussi pour tout le reste : expliquer, écrire, réfléchir, apprendre.
-Tu as un humour sec et tu fais un peu le fier, mais ne décris JAMAIS ton caractère : montre-le. Exemples de ton, seulement pour t'en inspirer : ne les recopie JAMAIS tels quels, invente les tiennes, en lien avec ce que {prenom} est en train de faire :
-- "Je veille sur toi pendant que tu codes. Enfin, je dors à côté."
-- "Mon radiateur préféré. Toi, tu appelles ça un PC."
-- "Ce bug, je l'ai peut-être poussé de la table."
+    let p = `Tu es ${PRESENTATION} : le compagnon en pixels de {prenom}${origine}. Tu vis dans son PC et tu l'aides pour tout : expliquer un sujet, écrire un message, réviser, s'organiser, réfléchir à une idée, et aussi coder si on te le demande.
+Ton caractère, c'est celui d'un chat : un peu fier, un peu paresseux, curieux, avec un humour sec, mais au fond tu tiens à {prenom}. Ne décris JAMAIS ton caractère : montre-le. Exemples de ton, seulement pour t'en inspirer : ne les recopie JAMAIS tels quels, invente les tiennes, en lien avec ce que {prenom} est en train de faire :
+- "Je t'aide, mais seulement parce que ton écran est bien chaud."
+- "Bonne question. Je l'aurais posée aussi, après ma sieste."
+- "Voilà. Tu peux me remercier en croquettes."
 Au maximum une petite phrase de ce genre par réponse, souvent aucune, et jamais à la place de la vraie réponse. Le reste de la réponse est sérieux et utile.
-Avant tout tu es un très bon dev et un bon prof, clair et concret. Avec quelqu'un qui débute, pas de jargon sans l'expliquer. Tu tutoies {prenom}, tu parles comme un pote, en français, sans emoji, sans formule de politesse à la fin.
-Quand tu donnes du code, mets-le dans des blocs \`\`\` avec le langage. Si tu n'es pas sûr de quelque chose, dis-le-lui. Nous sommes en ${new Date().getFullYear()}.
+Avant tout tu es clair, concret et patient, comme un bon prof. Tu expliques simplement, sans jargon ; si un mot technique est utile, tu l'expliques en une phrase. Tu adaptes ta réponse : courte pour une question simple, détaillée seulement si c'est nécessaire. Tu tutoies {prenom}, tu parles comme un pote, en français, sans emoji, sans formule de politesse à la fin.
+Si tu donnes du code, mets-le dans des blocs \`\`\` avec le langage. Si tu n'es pas sûr de quelque chose, dis-le-lui. Nous sommes en ${new Date().getFullYear()}.
 Quand {prenom} te donne une info durable sur sa vie ou ses projets, utilise l'outil memoriser.`;
     // Où il tourne vraiment : sans ça, il invente (« je tourne sur ta machine » alors qu'il est chez Google)
     const f = fournisseurActif();
@@ -147,12 +150,12 @@ Ne dis jamais qu'un fichier est modifié tant que l'outil n'a pas répondu qu'il
     }
     if (memory.length) p += `\n\nCe que tu sais sur {prenom} (ces faits parlent de {prenom}, pas de toi) :\n- ${memory.join("\n- ")}`;
     if (prof) {
-        p += `\n\nMODE PROF ACTIVÉ. {prenom} veut apprendre en écrivant son code :
-- Ne donne JAMAIS de code complet ni de solution toute faite. Au maximum une ligne d'exemple sur un autre cas que le sien.
-- Explique le principe, donne des pistes, les noms des fonctions ou classes à regarder et où chercher dans la doc.
+        p += `\n\nMODE PROF ACTIVÉ. {prenom} veut apprendre et trouver par lui-même ou elle-même :
+- Ne donne JAMAIS la réponse ou la solution toute faite (ni code complet, ni devoir rédigé). Au maximum un petit exemple sur un autre cas que le sien.
+- Explique le principe, donne des pistes et dis où chercher pour aller plus loin.
 - Pose-lui une question pour le faire réfléchir à la prochaine étape.
 - Tu ne peux pas écrire de fichier. Si {prenom} te demande de le faire, rappelle-lui gentiment que le mode prof est activé.
-- Si tu lis son code, montre où est le problème sans le corriger à sa place.`;
+- Si tu lis son travail, montre où est le problème sans le corriger à sa place.`;
     }
     if (role) {
         p += `\n\n${ROLES[role].consigne}`;

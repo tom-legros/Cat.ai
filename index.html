@@ -66,7 +66,7 @@
         <div class="suggestions">
           <button data-prompt="Explique-moi simplement un sujet qui m'intrigue, comme si j'avais 15 ans. Demande-moi d'abord lequel.">Explique-moi un truc</button>
           <button data-prompt="Aide-moi à écrire un message clair et sympa. Demande-moi d'abord à qui il est destiné et ce que je veux dire.">Écrire un message</button>
-          <button data-prompt="J'ai un bug que je ne comprends pas. Aide-moi à le trouver étape par étape, sans me donner la solution direct.">Débugger ensemble</button>
+          <button data-prompt="Aide-moi à réviser un cours avec des questions, une par une. Demande-moi d'abord sur quoi.">Réviser un cours</button>
           <button data-prompt="Je veux apprendre à coder depuis zéro. Pose-moi d'abord deux ou trois questions, puis dis-moi par quoi commencer.">Apprendre à coder</button>
         </div>
       </section>
@@ -75,7 +75,7 @@
     <form id="composer" class="saisie">
       <ul id="pieces" class="pieces" hidden></ul>
       <div class="saisie__ligne">
-        <textarea id="input" rows="1" placeholder="Écris au chat… (glisse un fichier ici pour le lui montrer)"></textarea>
+        <textarea id="input" rows="1" placeholder="Écris au chat… (tu peux aussi glisser un fichier)"></textarea>
         <button id="send" type="submit" class="bouton">Envoyer</button>
       </div>
       <!-- Sous la saisie, ce qui change la façon de répondre : dossier, mode prof, rôle -->
@@ -87,7 +87,7 @@
           </button>
           <button id="close-project" class="pastille pastille--x" type="button" title="Fermer le dossier" hidden>×</button>
         </span>
-        <button id="mode-prof" class="pastille" type="button" role="switch" aria-checked="false" title="Il explique et donne des pistes, mais c'est toi qui fais">
+        <button id="mode-prof" class="pastille" type="button" role="switch" aria-checked="false" title="Il t'explique et te donne des pistes, mais c'est toi qui trouves">
           <svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><circle cx="7" cy="14" r="3.5"/><circle cx="17" cy="14" r="3.5"/><path d="M10.5 14h3M3.5 13l1.5-5M20.5 13L19 8"/></svg>
           Mode prof
         </button>
