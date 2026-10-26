@@ -577,3 +577,5 @@ optgroup { background: var(--surface); color: var(--texte-3); font-style: normal
 .menu-modeles__choix:hover { background: var(--surface-2); color: var(--texte); }
 .menu-modeles__choix.is-on { color: var(--oeil); }
 .menu-modeles__autre { margin-top: 4px; border-top: 1px solid var(--ligne); border-radius: 0 0 var(--rayon-petit) var(--rayon-petit); color: var(--texte-3); }
+.menu-modeles__titre { margin: 6px 10px 2px; font-family: var(--police-titre); font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--texte-3); }
+#modele-raccourci { max-width: 320px; }

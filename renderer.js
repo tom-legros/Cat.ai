@@ -947,7 +947,7 @@ fournisseurSel.addEventListener("change", async () => {
     statusEl.textContent = "Connexion…";
     statusEl.className = "statut";
     await loadModels();
-    if (!fournisseurActif().aCle) ouvrirFournisseurs();
+    if (fournisseurActif().type !== "ollama" && !fournisseurActif().aCle) ouvrirFournisseurs();
 });
 
 // Sous la liste : pourquoi le modèle choisi est conseillé, ou pourquoi il est gourmand
@@ -1000,7 +1000,7 @@ const nomCourt = (m) => m.split("/").pop().replace(/:free$/, "");
 function renderRaccourci() {
     const f = fournisseurActif();
     const modele = modelSel.value;
-    $("#modele-nom").textContent = modele ? nomCourt(modele) : "Aucun modèle";
+    $("#modele-nom").textContent = modele ? `${f.nom.replace(/ (local)$/, "")} · ${nomCourt(modele)}` : f.nom;
     const limite = quotaDuJour(f.id, modele);
     const faits = messagesDuJour();
     // Le rond est plein quand il reste tout le quota, et se vide au fil des messages
@@ -1016,10 +1016,22 @@ function renderRaccourci() {
             : `${f.nom} : ${faits} message${faits > 1 ? "s" : ""} aujourd'hui`;
 }
 
-// Le menu : les versions du cerveau choisi, et de quoi en changer
+// Le menu : changer de cerveau (fournisseur) et de version (modèle) sans ouvrir les réglages
 function ouvrirMenuModeles() {
     const menu = $("#menu-modeles");
     menu.replaceChildren();
+    const titre = (texte) => { const t = document.createElement("p"); t.className = "menu-modeles__titre"; t.textContent = texte; menu.append(t); };
+    titre("Cerveau");
+    // Seulement ceux qui peuvent répondre : Ollama, et les cerveaux en ligne qui ont une clé
+    reglages.fournisseurs.filter((f) => f.type === "ollama" || f.aCle).forEach((f) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "menu-modeles__choix" + (f.id === reglages.actif ? " is-on" : "");
+        b.textContent = f.nom;
+        b.onclick = () => { menu.hidden = true; if (f.id === reglages.actif) return; fournisseurSel.value = f.id; fournisseurSel.dispatchEvent(new Event("change")); };
+        menu.append(b);
+    });
+    titre("Version");
     [...modelSel.options].forEach((o) => {
         const b = document.createElement("button");
         b.type = "button";
@@ -1031,7 +1043,7 @@ function ouvrirMenuModeles() {
     const autre = document.createElement("button");
     autre.type = "button";
     autre.className = "menu-modeles__choix menu-modeles__autre";
-    autre.textContent = "Changer de cerveau…";
+    autre.textContent = "Ajouter un cerveau (clé gratuite)…";
     autre.onclick = () => { menu.hidden = true; ouvrirFournisseurs(); };
     menu.append(autre);
     menu.hidden = false;
