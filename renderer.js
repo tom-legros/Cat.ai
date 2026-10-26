@@ -603,8 +603,9 @@ function renderListeRoles() {
 function renderRole() {
     if (!ROLES[role]) role = "";
     roleSel.value = role;
-    roleSel.title = role ? ROLES[role].detail : "Rôle du chat";
-    roleSel.classList.toggle("is-on", !!role);
+    $("#role-libelle").textContent = role ? ROLES[role].nom : "Assistant";
+    $("#role-raccourci").title = role ? `Rôle : ${ROLES[role].detail}` : "Rôle : la mission du chat";
+    $("#role-raccourci").classList.toggle("is-on", !!role);
     renderProf(); // pour le texte d'aide de la zone de saisie
 }
 
@@ -1064,6 +1065,7 @@ const basculer = (id, ouvrir) => (e) => {
 };
 $("#fournisseur-raccourci").onclick = basculer("menu-fournisseurs", ouvrirMenuFournisseurs);
 $("#modele-raccourci").onclick = basculer("menu-modeles", ouvrirMenuModeles);
+$("#role-raccourci").onclick = basculer("menu-roles", ouvrirMenuRoles);
 document.addEventListener("click", (e) => { if (!e.target.closest(".raccourci")) document.querySelectorAll(".menu-modeles").forEach((m) => (m.hidden = true)); });
 
 // Le modèle choisi est retenu pour chaque fournisseur
@@ -1244,7 +1246,25 @@ function appliquerPerso() {
 
 // Fenêtre Réglages : fournisseur, modèle, clés et rôles perso
 $("#open-reglages").onclick = ouvrirFournisseurs;
-$("#open-roles").onclick = () => { renderRolesPerso(); $("#roles-modal").hidden = false; $("#role-nom").focus(); };
+function ouvrirRoles() { renderRolesPerso(); $("#roles-modal").hidden = false; $("#role-nom").focus(); }
+
+// Menu Rôle : ceux de tous les jours, ceux pour coder, puis « créer un rôle »
+function ouvrirMenuRoles() {
+    const menu = $("#menu-roles");
+    menu.replaceChildren();
+    const choisir = (cle) => () => { roleSel.value = cle; roleSel.onchange(); };
+    for (const enfant of roleSel.children) {
+        if (enfant.tagName === "OPTGROUP") {
+            const t = document.createElement("p");
+            t.className = "menu-modeles__titre";
+            t.textContent = enfant.label;
+            menu.append(t);
+            for (const o of enfant.children) choixMenu(menu, o.textContent, o.value === role, choisir(o.value));
+        } else choixMenu(menu, enfant.textContent, enfant.value === role, choisir(enfant.value));
+    }
+    choixMenu(menu, "+ Créer un rôle", false, ouvrirRoles, "menu-modeles__autre");
+    menu.hidden = false;
+}
 $("#close-roles").onclick = () => ($("#roles-modal").hidden = true);
 $("#roles-modal").onclick = (e) => { if (e.target.id === "roles-modal") e.target.hidden = true; };
 $("#close-reglages").onclick = () => ($("#reglages-modal").hidden = true);

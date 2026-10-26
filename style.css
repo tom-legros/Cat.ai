@@ -644,3 +644,17 @@ optgroup { background: var(--surface); color: var(--texte-3); font-style: normal
     .mascotte__bouton, .suggestions .suggestion, .bouton-envoi.is-pret, .bouton-envoi.is-stop .icone--stop { animation: none; }
 }
 .bouton--nouveau { justify-content: flex-start; padding: 11px 14px; font-family: var(--police-texte); font-size: 14px; letter-spacing: 0; text-transform: none; }
+
+/* Rangée sous la saisie : deux groupes, des pastilles de même taille */
+.saisie__outils { justify-content: space-between; gap: 10px; padding: 0 2px; }
+.outils__groupe { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.raccourci--premier { margin-left: 0; }
+.pastille { height: 32px; padding: 0 12px; gap: 7px; font-size: 13px; }
+.pastille .icone { width: 15px; height: 15px; }
+.icone--chevron { width: 13px !important; height: 13px !important; opacity: .6; margin-left: -2px; transition: transform .2s ease; }
+.pastille[aria-expanded="true"] .icone--chevron, .raccourci:has(.menu-modeles:not([hidden])) .icone--chevron { transform: rotate(180deg); }
+.pastille-groupe .pastille--x { padding: 0 10px 0 6px; }
+.pastille--discrete { border-color: transparent; }
+.pastille--discrete:hover { border-color: var(--ligne-2); background: var(--surface); }
+.pastille__terme { font-size: 11px; letter-spacing: .04em; text-transform: uppercase; margin-right: 2px; }
+.menu-modeles--gauche { left: 0; right: auto; }

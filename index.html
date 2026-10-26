@@ -81,36 +81,44 @@
       </div>
       <!-- Sous la saisie, ce qui change la façon de répondre : dossier, mode prof, rôle -->
       <div class="saisie__outils">
-        <span class="pastille-groupe">
-          <button id="open-project" class="pastille" type="button" title="Ouvrir un dossier pour que le chat lise son contenu">
-            <svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h6l2 2h10v11H3z"/></svg>
-            <span id="project-name">Dossier</span>
+        <!-- À gauche : ce qui change la façon de répondre -->
+        <div class="outils__groupe">
+          <span class="pastille-groupe">
+            <button id="open-project" class="pastille" type="button" title="Ouvrir un dossier pour que le chat lise son contenu">
+              <svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h6l2 2h10v11H3z"/></svg>
+              <span id="project-name">Dossier</span>
+            </button>
+            <button id="close-project" class="pastille pastille--x" type="button" title="Fermer le dossier" hidden>×</button>
+          </span>
+          <button id="mode-prof" class="pastille" type="button" role="switch" aria-checked="false" title="Mode prof : il t'explique et te donne des pistes, mais c'est toi qui trouves">
+            <svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><circle cx="7" cy="14" r="3.5"/><circle cx="17" cy="14" r="3.5"/><path d="M10.5 14h3M3.5 13l1.5-5M20.5 13L19 8"/></svg>
+            <span>Mode prof</span>
           </button>
-          <button id="close-project" class="pastille pastille--x" type="button" title="Fermer le dossier" hidden>×</button>
-        </span>
-        <button id="mode-prof" class="pastille" type="button" role="switch" aria-checked="false" title="Il t'explique et te donne des pistes, mais c'est toi qui trouves">
-          <svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><circle cx="7" cy="14" r="3.5"/><circle cx="17" cy="14" r="3.5"/><path d="M10.5 14h3M3.5 13l1.5-5M20.5 13L19 8"/></svg>
-          Mode prof
-        </button>
-        <span class="pastille-groupe">
-          <select id="role" class="pastille" title="Rôle du chat"></select>
-          <button id="open-roles" class="pastille pastille--x" type="button" title="Créer un rôle">+</button>
-        </span>
-        <!-- Raccourci du modèle, avec le quota du jour dans le petit rond (comme sur Claude) -->
-        <!-- Raccourcis : fournisseur et modèle, chacun avec son menu ; le petit rond = quota du jour -->
-        <span class="raccourci raccourci--premier">
-          <button id="fournisseur-raccourci" class="pastille" type="button" aria-haspopup="true" title="Fournisseur : le service qui fait réfléchir le chat">
-            <span class="pastille__terme">Fournisseur</span> <span id="fournisseur-nom">…</span>
-          </button>
-          <div id="menu-fournisseurs" class="menu-modeles" hidden></div>
-        </span>
-        <span class="raccourci">
-          <button id="modele-raccourci" class="pastille" type="button" aria-haspopup="true">
-            <svg class="quota" viewBox="0 0 20 20" aria-hidden="true"><circle class="quota__fond" cx="10" cy="10" r="7"/><circle id="quota-arc" class="quota__plein" cx="10" cy="10" r="7"/></svg>
-            <span class="pastille__terme">Modèle</span> <span id="modele-nom">…</span>
-          </button>
-          <div id="menu-modeles" class="menu-modeles" hidden></div>
-        </span>
+          <span class="raccourci">
+            <button id="role-raccourci" class="pastille" type="button" aria-haspopup="true" title="Rôle : la mission du chat">
+              <svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.9z"/></svg>
+              <span id="role-libelle">Assistant</span><svg class="icone icone--chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg>
+            </button>
+            <div id="menu-roles" class="menu-modeles menu-modeles--gauche" hidden></div>
+            <select id="role" hidden></select>
+          </span>
+        </div>
+        <!-- À droite : qui répond (fournisseur et modèle) ; le petit rond = quota du jour -->
+        <div class="outils__groupe">
+          <span class="raccourci">
+            <button id="fournisseur-raccourci" class="pastille pastille--discrete" type="button" aria-haspopup="true" title="Fournisseur : le service qui fait réfléchir le chat">
+              <span class="pastille__terme">Fournisseur</span><span id="fournisseur-nom">…</span><svg class="icone icone--chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg>
+            </button>
+            <div id="menu-fournisseurs" class="menu-modeles" hidden></div>
+          </span>
+          <span class="raccourci">
+            <button id="modele-raccourci" class="pastille pastille--discrete" type="button" aria-haspopup="true">
+              <svg class="quota" viewBox="0 0 20 20" aria-hidden="true"><circle class="quota__fond" cx="10" cy="10" r="7"/><circle id="quota-arc" class="quota__plein" cx="10" cy="10" r="7"/></svg>
+              <span class="pastille__terme">Modèle</span><span id="modele-nom">…</span><svg class="icone icone--chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg>
+            </button>
+            <div id="menu-modeles" class="menu-modeles" hidden></div>
+          </span>
+        </div>
       </div>
     </form>
 
