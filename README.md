@@ -53,11 +53,31 @@ Sur Windows, `Lancer.bat` démarre l'app sans fenêtre de console.
 
 ## Organisation
 
+**Processus principal** (accès au disque, aux clés et au modèle) :
+
 | Fichier | Rôle |
 | --- | --- |
-| `main.js` | Processus principal : fenêtre, Ollama et fournisseurs en ligne, clés chiffrées, outils du modèle (lire, écrire, mémoriser) et ce que chaque mode ou rôle peut écrire, confirmations |
+| `main.js` | Le chef d'orchestre : fenêtre, lancement d'Ollama, boucle d'outils du modèle, confirmations (avant / après, fichiers sensibles), échanges avec l'interface |
+| `principal/outils.js` | Les outils proposés au modèle, ce que chaque mode ou rôle peut écrire, `remplacer_texte` |
+| `principal/fichiers.js` | Fichiers du projet : chemins sûrs, fichiers sensibles, liste, recherche, fichiers cités |
+| `principal/envoi.js` | Envoi au modèle : Ollama, ou un fournisseur compatible OpenAI (streaming, limites, erreurs) |
+| `principal/fournisseurs.js` | Fournisseurs et clés API chiffrées, liste des modèles |
+| `principal/gratuit.js` | La règle « 100 % gratuit » : adresses et modèles autorisés |
+| `principal/taille.js` | Garder chaque envoi sous la limite du fournisseur |
+| `principal/stockage.js` | Écriture atomique, sauvegarde et réparation des données |
+
+Les modules de `principal/` ne dépendent pas d'Electron (sauf les clés, dans `fournisseurs.js`) : ils se testent avec Node seul.
+
+**Interface** (une page web enfermée, sans accès au disque) :
+
+| Fichier | Rôle |
+| --- | --- |
 | `preload.js` | Pont sécurisé entre l'interface et le processus principal |
-| `renderer.js` | Interface : discussion, personnalité du chat, mode prof, rôles (consignes), avant / après, résumé |
+| `interface/personnalite.js` | Nom, répliques, rôles et consignes données au modèle |
+| `interface/markdown.js` | Rendu des réponses (Markdown, code coloré, étiquettes d'action) |
+| `interface/modeles.js` | Choix des modèles : le conseillé ★, les gourmands ▲ |
+| `interface/difference.js` | Calcul de la fenêtre avant / après |
+| `renderer.js` | Le reste de l'interface : discussion, envoi, accueil, projet, mémoire, fournisseurs, démarrage |
 | `chat.js` | Le chat noir en pixel art (sprite, animations, expressions) |
 | `style.css` | La DA, reprise de mon portfolio |
 | `outils/generer-icone.js` | Génère l'icône en pixel art à partir du sprite : `icone.png` et `icone-pixel.ico` (`node outils/generer-icone.js`) |
