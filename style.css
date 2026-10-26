@@ -749,3 +749,5 @@ optgroup { background: var(--surface); color: var(--texte-3); font-style: normal
 /* Icônes à 2× la grille (16 px) pour des pixels nets, le chevron à 1× */
 .pastille .icone-px, .lien__icone .icone-px, .bouton .icone-px { width: 16px; height: 16px; }
 .icone--chevron.icone-px { width: 8px !important; height: 8px !important; }
+/* Les fenêtres (réglages, mémoire, prénom, avant / après) passent toujours devant la discussion */
+.fenetre { z-index: 50; }
