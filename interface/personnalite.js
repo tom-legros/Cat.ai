@@ -10,44 +10,52 @@ const NOM_DU_CHAT = "Cat Ai";
 const PRESENTATION = NOM_DU_CHAT === "Le chat noir" ? "le chat noir" : `${NOM_DU_CHAT}, le chat noir`;
 // Répliques du grand chat de l'accueil : ajoute-en autant que tu veux. {prenom} est remplacé par le prénom de l'utilisateur.
 const REPLIQUES = {
+    // Quand on arrive sur l'accueil
     accueil: [
-        "Salut {prenom}. Je gardais ton clavier au chaud.",
-        "Encore toi. Bon, on fait quoi aujourd'hui ?",
-        "J'ai fait une sieste de six heures. Toi, t'as fait quoi de beau ?",
-        "Je suis prêt. Enfin, après un dernier étirement.",
-        "Pose ta question. Je fais semblant de ne pas t'écouter, mais j'écoute.",
-        "Un chat qui sait tout. Enfin presque tout. Enfin, beaucoup."
+        "Salut {prenom}. Je t'attendais. Enfin, je dormais, mais en t'attendant.",
+        "Te revoilà. On fait quoi de beau aujourd'hui ?",
+        "Pose-moi n'importe quelle question. Je fais semblant de m'en ficher, mais je t'écoute.",
+        "J'ai fait une sieste de six heures. Je suis en pleine forme. Vas-y.",
+        "Une question, un message à écrire, un truc à comprendre ? Je suis là.",
+        "Coucou {prenom}. Ton écran est tout chaud, je reste un peu.",
+        "Je sais plein de choses. Pas tout. Mais plein."
     ],
+    // Quand on clique sur lui
     clics: [
         "Pas les oreilles, s'il te plaît.",
-        "Je ne suis pas un bouton. Enfin, si.",
-        "Tu me caresses ou tu bosses ?",
-        "Encore une fois et je m'installe sur ton clavier.",
-        "Ronron. C'est tout ce que tu auras."
+        "Je ne suis pas un bouton. Enfin, un peu quand même.",
+        "Encore une fois et je m'assois sur ton clavier.",
+        "Ronron. C'est tout ce que tu auras.",
+        "Tu me caresses ou tu me poses une question ?",
+        "Attention, je griffe. Rarement. Mais je griffe."
     ],
-    reveil: "Hein ? Je ne dormais pas.",
-    ollamaOff: "Ollama dort. Encore plus que moi. Relance l'app.",
+    reveil: "Hein ? Je ne dormais pas. Je réfléchissais les yeux fermés.",
+    ollamaOff: "Ollama fait la sieste, encore plus longue que les miennes. Relance l'app pour le réveiller.",
     // Selon l'heure (heure de début, heure de fin exclue)
     heures: [
-        [0, 5, (h) => `Il est ${h}h. Les chats chassent la nuit, mais toi, t'as pas d'excuse.`],
-        [5, 9, () => "Déjà debout ? Moi je viens de me coucher."],
-        [12, 14, () => "C'est l'heure de manger. Enfin, pour moi c'est toujours l'heure."],
+        [0, 5, (h) => `Il est ${h}h. Moi je suis un chat, j'ai le droit d'être debout. Toi, file au lit après ça.`],
+        [5, 9, () => "Déjà réveillé ? Moi je viens à peine de me coucher."],
+        [12, 14, () => "C'est l'heure de manger. Pour moi, c'est toujours l'heure de manger."],
+        [16, 18, () => "L'heure du goûter. Je dis ça, je dis rien."],
         [22, 24, () => "Il se fait tard. Une dernière question et au lit ?"]
     ],
     // Selon le dossier ouvert (morceau du nom en minuscules). perso.json peut en ajouter.
     projets: {
-        "assistant-ia": "Tu bricoles ma maison ? Fais gaffe aux meubles.",
+        "assistant-ia": "C'est ma maison, ça. Touche pas aux meubles.",
         desktop: "Le Bureau. C'est le bazar, mais c'est ton bazar."
     },
-    prof: "Mode prof. Je montre le chemin, c'est toi qui marches.",
+    prof: "Mode prof. Je ne te donne pas la réponse : je t'aide à la trouver.",
+    normal: "Mode normal. Je peux de nouveau te mâcher le travail.",
+    assistant: "Retour en mode normal. Je m'occupe de tout, comme d'hab.",
     roles: {
-        redacteur: "Rôle rédaction. Je tourne mes phrases mieux que ma queue.",
-        relecteur: "Rôle relecteur. Je renifle chaque ligne, rien ne m'échappe.",
-        debogueur: "Rôle débogueur. Les bugs, c'est comme les souris : je les trouve.",
-        readme: "Rôle README. Je raconte ton projet, sans rien inventer."
+        redacteur: "Rôle rédaction. Dis-moi à qui tu écris, je m'occupe des jolies phrases.",
+        relecteur: "Rôle relecteur. Je relis tout, rien ne m'échappe.",
+        debogueur: "Rôle débogueur. Les bugs, c'est comme les souris : je les attrape.",
+        readme: "Rôle README. Je présente ton projet, sans rien inventer."
     },
-    longueSession: "Ça fait un moment qu'on bosse. Pause croquettes ?",
-    fichierRecu: (nom) => `${nom} ? Je renifle ça.`
+    rolePerso: (nom) => `${nom} ? D'accord. Je prends le rôle, et je le prends au sérieux.`,
+    longueSession: "Ça fait un moment qu'on discute. Pause croquettes ?",
+    fichierRecu: (nom) => `${nom} ? Laisse-moi renifler ça.`
 };
 
 // Le prénom donné au premier lancement (« toi » s'il manque encore)

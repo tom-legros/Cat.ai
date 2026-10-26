@@ -274,7 +274,7 @@ async function send(text) {
         const f = fournisseurActif();
         // Ollama installé mais arrêté : il suffit de relancer. Sinon, l'accueil explique comment avoir un modèle.
         const sansModele = f.type === "ollama" && (!etatOllama.installe || etatOllama.repond);
-        addMessage("error", sansModele ? "Il me faut d'abord un modèle. Ouvre une nouvelle discussion : l'accueil t'explique comment en avoir un gratuit." : f.type === "ollama" ? REPLIQUES.ollamaOff : `Pas de modèle disponible chez ${f.nom}. ${statusEl.title || "Vérifie ta clé dans « Réglages »."}`);
+        addMessage("error", sansModele ? "Il me faut un cerveau pour parler. Clique sur « Nouvelle discussion » : je t'explique comment en avoir un gratuit." : f.type === "ollama" ? REPLIQUES.ollamaOff : `Pas de modèle disponible chez ${f.nom}. ${statusEl.title || "Vérifie ta clé dans « Réglages »."}`);
         return;
     }
     envoiEnCours = true;
@@ -582,7 +582,7 @@ boutonProf.onclick = () => {
     prof = !prof;
     try { localStorage.setItem("modeProf", prof ? "1" : "0"); } catch {}
     renderProf();
-    if (!welcomeEl.hidden) dire(prof ? REPLIQUES.prof : "Mode normal. Je peux de nouveau te mâcher le travail.");
+    if (!welcomeEl.hidden) dire(prof ? REPLIQUES.prof : REPLIQUES.normal);
 };
 
 const roleSel = $("#role");
@@ -608,7 +608,7 @@ roleSel.onchange = () => {
     role = ROLES[roleSel.value] ? roleSel.value : "";
     try { localStorage.setItem("role", role); } catch {}
     renderRole();
-    if (!welcomeEl.hidden) dire(role ? REPLIQUES.roles[role] || `Rôle ${ROLES[role].nom.toLowerCase()}. Compris, chef.` : "Retour au généraliste. Je touche à tout, comme d'hab.");
+    if (!welcomeEl.hidden) dire(role ? REPLIQUES.roles[role] || REPLIQUES.rolePerso(ROLES[role].nom) : REPLIQUES.assistant);
 };
 
 
@@ -1159,8 +1159,8 @@ const fournisseurLocal = (f) => f.type === "ollama" || /^https?:\/\/(localhost|1
 
 function renderAccueil(f) {
     $("#accueil-texte").textContent = fournisseurLocal(f)
-        ? "Tout tourne sur ton PC. Gratuit, sans limite, et je ne dis rien à personne."
-        : `Je passe par ${f.nom}, en ligne : gratuit, mais tes messages et les fichiers que je lis partent sur ses serveurs.`;
+        ? "Je vis sur ton PC : gratuit, sans limite, et je ne répète rien à personne."
+        : `Je réfléchis en ligne, chez ${f.nom} : c'est gratuit, mais tes messages passent par ses serveurs.`;
 }
 
 
