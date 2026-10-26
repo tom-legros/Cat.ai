@@ -233,6 +233,18 @@ function messagesPourLeModele(conv) {
     return liste;
 }
 
+// Ollama n'a que 8 192 tokens. main.js garde les consignes sous ~8 000 caractères (la moitié de LIMITES_OLLAMA.total,
+// dans principal/taille.js) : au-delà, leur fin est coupée. On prévient l’utilisateur, avec ce qui prend la place.
+const CONTEXTE_OLLAMA = 8192;
+const MAX_CONSIGNES = 8000;
+const enTokens = (texte) => Math.ceil(texte.length / 3); // ~3 caractères par token, comme principal/taille.js
+
+function budgetConsignes(consignes) {
+    if (consignes.length <= MAX_CONSIGNES) return "";
+    return `Consignes lourdes : ~${enTokens(consignes)} tokens sur les ${CONTEXTE_OLLAMA} d'Ollama, dont ~${enTokens(memory.join("\n"))} pour la mémoire. `
+        + "Leur fin sera coupée : fais du tri dans la mémoire, ou cite moins de fichiers.";
+}
+
 let envoiEnCours = false;
 
 async function send(text) {
@@ -271,9 +283,13 @@ async function send(text) {
         const { bulle, chat } = addMessage("assistant", "");
         chat.reflechit = true;
         await resumerSiBesoin(current, bulle);
+        const consignes = systemPrompt() + (await projectInfo(text));
         bulle.innerHTML = "";
         bulle.classList.add("is-typing");
-        streaming = { id, el: bulle, chat, text: "" };
+        // Avec Ollama, des consignes trop lourdes sont coupées : L’utilisateur le voit en haut de la réponse
+        const alerteBudget = fournisseurActif().type === "ollama" ? budgetConsignes(consignes) : "";
+        streaming = { id, el: bulle, chat, text: alerteBudget ? etiquetteAction(alerteBudget) : "" };
+        if (alerteBudget) afficherFlux();
         setStreaming(true);
 
         window.api.chat({
@@ -282,7 +298,7 @@ async function send(text) {
             fournisseurId: reglages.actif,
             prof,
             role,
-            messages: [{ role: "system", content: systemPrompt() + (await projectInfo(text)) }, ...messagesPourLeModele(current)]
+            messages: [{ role: "system", content: consignes }, ...messagesPourLeModele(current)]
         });
     } finally {
         envoiEnCours = false;
@@ -697,6 +713,28 @@ $("#open-memory").onclick = () => { $("#memory-modal").hidden = false; $("#memor
 $("#close-memory").onclick = () => ($("#memory-modal").hidden = true);
 $("#memory-modal").onclick = (e) => { if (e.target.id === "memory-modal") e.target.hidden = true; };
 window.api.onMemoryChanged((m) => { memory = m; renderMemory(); });
+
+// Ce que le chat vient de retenir tout seul : affiché un moment sous « Mémoire », avec un bouton pour l'annuler
+const memoireAjoutEl = $("#memoire-ajout");
+let minuterieMemoireAjout = null;
+
+window.api.onMemoireAjout(({ fait, remplace }) => {
+    memoireAjoutEl.textContent = `Retenu : « ${fait} » `;
+    const annuler = document.createElement("button");
+    annuler.type = "button";
+    annuler.className = "lien lien--petit";
+    annuler.textContent = "Annuler";
+    annuler.onclick = () => {
+        // Si le fait en remplaçait un autre, l'ancien revient à sa place
+        memory = memory.flatMap((f) => (f === fait ? (remplace ? [remplace] : []) : [f]));
+        window.api.saveMemory(memory);
+        renderMemory();
+        memoireAjoutEl.textContent = "";
+    };
+    memoireAjoutEl.append(annuler);
+    clearTimeout(minuterieMemoireAjout);
+    minuterieMemoireAjout = setTimeout(() => (memoireAjoutEl.textContent = ""), 20000);
+});
 
 
 /* ---------- 8b. Fournisseurs et modèles ---------- */

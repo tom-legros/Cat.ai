@@ -1,12 +1,35 @@
 // Taille des messages : rester sous la limite d'un fournisseur sans casser la discussion
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { raccourcir, compacter, limitesTaille, taille } = require('../principal/taille');
+const { raccourcir, compacter, limitesTaille, taille, estimerTokens, LIMITES_OLLAMA } = require('../principal/taille');
 
 test('raccourcir : texte court intact, texte long coupé avec une note pour le modèle', () => {
   assert.equal(raccourcir('court', 10), 'court');
   const long = raccourcir('x'.repeat(50), 10);
-  assert.ok(long.startsWith('x'.repeat(10)) && long.includes('raccourci') && long.includes('lire_fichier'));
+  assert.ok(long.startsWith('x'.repeat(10)) && long.includes('coupé') && long.includes('lire_fichier'));
+});
+
+test('raccourcir : la note donne la ligne où reprendre la lecture du fichier', () => {
+  const fichier = Array.from({ length: 100 }, (_, i) => `ligne ${i + 1}`).join('\n');
+  const coupe = raccourcir(fichier, 30); // « ligne 1 » à « ligne 4 » entières, puis le début de « ligne 5 »
+  assert.match(coupe, /la suite commence à la ligne 4 : relis-le avec lire_fichier et ligne = 4/);
+});
+
+test('limites d Ollama : assez petites pour tenir dans 8 192 tokens avec la réponse', () => {
+  assert.ok(estimerTokens('x'.repeat(LIMITES_OLLAMA.total)) <= 8192 - 2500);
+  assert.ok(LIMITES_OLLAMA.resultatOutil < LIMITES_OLLAMA.total);
+});
+
+test('compacter avec les limites d Ollama : un gros fichier lu ne fait jamais disparaître la question', () => {
+  const liste = [
+    { role: 'system', content: 'consignes' },
+    { role: 'user', content: 'pourquoi ça plante ?' },
+    { role: 'assistant', content: '', tool_calls: [{ id: '1', function: { name: 'lire_fichier', arguments: { chemin: 'gros.js' } } }] },
+    { role: 'tool', content: raccourcir('x'.repeat(100000), LIMITES_OLLAMA.resultatOutil), tool_call_id: '1' },
+  ];
+  const resultat = compacter(liste, LIMITES_OLLAMA.total);
+  assert.ok(total(resultat) <= LIMITES_OLLAMA.total);
+  assert.equal(resultat.find((m) => m.role === 'user').content, 'pourquoi ça plante ?');
 });
 
 test('limitesTaille : seulement pour Groq', () => {

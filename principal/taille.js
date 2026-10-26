@@ -12,11 +12,27 @@ const LIMITES_TAILLE = {
 };
 const limitesTaille = (config) => (config?.baseUrl ? LIMITES_TAILLE[hote(config.baseUrl)] : null) || null;
 
-const taille = (m) => (m.content || '').length + (m.tool_calls ? JSON.stringify(m.tool_calls).length : 0);
-const NOTE_RACCOURCI = '\n[… raccourci pour rester sous la limite du fournisseur. Relis le fichier avec lire_fichier si tu as besoin de la suite.]';
+// Ollama tourne avec 8 192 tokens de contexte (num_ctx, dans envoi.js). Quand ça déborde, il retire les messages
+// les plus anciens SANS PRÉVENIR, et la question de l’utilisateur peut disparaître derrière un gros fichier lu.
+// On compacte donc nous-mêmes : 8 192 tokens, moins ~1 500 pour la réponse et ~1 200 pour la description des outils,
+// laissent ~5 500 tokens, soit ~16 000 caractères.
+const LIMITES_OLLAMA = { total: 16000, resultatOutil: 8000 };
 
+// Contenu des fichiers cités joint automatiquement au message : au plus ~3 000 tokens en tout.
+// Au-delà, le modèle lit la suite lui-même avec lire_fichier.
+const MAX_JOINT = 9000;
+
+// Estimation grossière : ~3 caractères par token pour du code et du français
+const estimerTokens = (texte) => Math.ceil(texte.length / 3);
+
+const taille = (m) => (m.content || '').length + (m.tool_calls ? JSON.stringify(m.tool_calls).length : 0);
+
+// Coupe un texte trop long, avec une note qui dit au modèle où reprendre s'il s'agit d'un fichier
 function raccourcir(texte, max) {
-  return texte.length > max ? texte.slice(0, max) + NOTE_RACCOURCI : texte;
+  if (texte.length <= max) return texte;
+  const garde = texte.slice(0, max);
+  const suite = garde.split('\n').length;
+  return `${garde}\n[… coupé ici pour tenir dans la limite du modèle. Si c'est un fichier, la suite commence à la ligne ${suite} : relis-le avec lire_fichier et ligne = ${suite}.]`;
 }
 
 // Ramène l'historique sous `total` caractères, sans casser le lien entre un appel d'outil et son résultat :
@@ -53,4 +69,4 @@ function compacter(messages, total) {
   return liste;
 }
 
-module.exports = { LIMITES_TAILLE, limitesTaille, taille, raccourcir, compacter };
+module.exports = { LIMITES_TAILLE, LIMITES_OLLAMA, MAX_JOINT, limitesTaille, estimerTokens, taille, raccourcir, compacter };

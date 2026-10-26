@@ -7,7 +7,8 @@ const { configurerStockage, readJson, writeJson, prendreAlertes } = require('./p
 const { IGNORED, MAX_FILE, cheminSur, estSensible, listFiles, chercherDansProjet, fichiersCites, contenuJoint } = require('./principal/fichiers');
 const { OUTILS_ECRITURE, RIEN_N_A_CHANGE, ecritureRefusee, remplacerTexte, parseTextToolCalls } = require('./principal/outils');
 const { hote, HOTES_LOCAUX, fournisseurGratuit, modeleGratuit, conseilGratuit, adresseValide } = require('./principal/gratuit');
-const { limitesTaille, raccourcir, compacter } = require('./principal/taille');
+const { LIMITES_OLLAMA, MAX_JOINT, limitesTaille, raccourcir, compacter } = require('./principal/taille');
+const { ajouterFait } = require('./principal/memoire');
 const { OLLAMA, REFLEXION, envoyerOllama, envoyerOpenAI } = require('./principal/envoi');
 const {
   FOURNISSEURS_DE_BASE, lireReglagesFournisseurs, configFournisseur, versInterface,
@@ -132,7 +133,13 @@ async function runTool(name, args, mode) {
       if (estSensible(full) && !(await accordLectureSensible(args.chemin, mode.fournisseurId))) {
         return `L’utilisateur a refusé la lecture de ${args.chemin} : ce fichier peut contenir des secrets. Fais sans, ou demande-lui l'information dont tu as besoin.`;
       }
-      return fs.readFileSync(full, 'utf8');
+      const contenu = fs.readFileSync(full, 'utf8');
+      // Lire la suite d'un long fichier coupé pour tenir dans la limite du modèle
+      const ligne = Math.floor(Number(args.ligne));
+      if (!(ligne > 1)) return contenu;
+      const lignes = contenu.split('\n');
+      if (ligne > lignes.length) return `${args.chemin} n'a que ${lignes.length} lignes.`;
+      return `(${args.chemin}, à partir de la ligne ${ligne} sur ${lignes.length})\n${lignes.slice(ligne - 1).join('\n')}`;
     }
     case 'chercher': {
       return chercherDansProjet(projectDir, args.texte, { regex: args.regex === true || args.regex === 'true', dossier: args.dossier });
@@ -154,11 +161,13 @@ async function runTool(name, args, mode) {
       return `${reponse} (${resultat.fois} remplacement${resultat.fois > 1 ? 's' : ''})`;
     }
     case 'memoriser': {
-      const memory = readJson('memory.json', []);
-      memory.push(String(args.fait));
-      writeJson('memory.json', memory);
-      win.webContents.send('memory-changed', memory);
-      return 'Mémorisé.';
+      const resultat = ajouterFait(readJson('memory.json', []), args.fait);
+      if (resultat.erreur) return resultat.erreur;
+      writeJson('memory.json', resultat.memoire);
+      win.webContents.send('memory-changed', resultat.memoire);
+      // L'interface montre discrètement ce qui vient d'être retenu, avec un bouton pour l'annuler
+      win.webContents.send('memoire-ajout', { fait: resultat.fait, remplace: resultat.remplace || null });
+      return resultat.remplace ? `Mémorisé (remplace « ${resultat.remplace} »).` : 'Mémorisé.';
     }
     default:
       return `Outil inconnu : ${name}`;
@@ -243,8 +252,10 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, role, fournisseurI
   try {
     verifierGratuit(fournisseurId, model);
     const envoyer = envoyeurPour(fournisseurId);
-    // Fournisseur avec une petite limite de taille (Groq gratuit) : chaque envoi est allégé
-    const limites = limitesTaille(configFournisseur(fournisseurId));
+    // Petite limite de taille (Ollama et ses 8 192 tokens, Groq gratuit) : chaque envoi est allégé,
+    // pour que ce soit nous qui choisissions quoi raccourcir, et pas le modèle qui oublie la question
+    const config = configFournisseur(fournisseurId);
+    const limites = config.type === 'ollama' ? LIMITES_OLLAMA : limitesTaille(config);
     for (let step = 0; step < MAX_STEPS; step++) {
       const aEnvoyer = limites ? compacter(history, limites.total) : history;
       // onPause : affiche une étiquette pendant que l'app attend la fin de la limite par minute
@@ -438,7 +449,13 @@ ipcMain.handle('open-project-path', async (_e, dir) => {
 ipcMain.handle('project-context', (_e, message) => {
   if (!projectDir) return null;
   const files = listFiles(projectDir);
-  const mentioned = fichiersCites(message, files).slice(0, 3).map((f) => ({ path: f, content: contenuJoint(projectDir, f) }));
+  // Au plus MAX_JOINT caractères joints en tout : la suite, le modèle la lit lui-même avec lire_fichier
+  let place = MAX_JOINT;
+  const mentioned = fichiersCites(message, files).slice(0, 3).map((f) => {
+    const content = raccourcir(contenuJoint(projectDir, f), Math.max(place, 500));
+    place -= content.length;
+    return { path: f, content };
+  });
   return { files: files.slice(0, 150), mentioned };
 });
 

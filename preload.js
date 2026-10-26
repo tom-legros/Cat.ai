@@ -33,6 +33,8 @@ contextBridge.exposeInMainWorld('api', {
   loadMemory: () => ipcRenderer.invoke('load-memory'),
   saveMemory: (m) => ipcRenderer.invoke('save-memory', m),
   onMemoryChanged: (cb) => ipcRenderer.on('memory-changed', (_e, m) => cb(m)),
+  // Le chat vient de retenir un fait tout seul : { fait, remplace }
+  onMemoireAjout: (cb) => ipcRenderer.on('memoire-ajout', (_e, ajout) => cb(ajout)),
   loadConvs: () => ipcRenderer.invoke('load-convs'),
   saveConvs: (convs) => ipcRenderer.invoke('save-convs', convs),
   // Fichiers de données abîmés et réparés au démarrage (voir readJson dans main.js)

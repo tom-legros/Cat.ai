@@ -23,8 +23,15 @@ const TOOLS = [
     type: 'function',
     function: {
       name: 'lire_fichier',
-      description: 'Lit le contenu d\'un fichier du projet.',
-      parameters: { type: 'object', properties: { chemin: { type: 'string', description: 'Chemin relatif au projet' } }, required: ['chemin'] },
+      description: "Lit le contenu d'un fichier du projet. Pour un long fichier coupé, donne ligne pour lire la suite à partir de cette ligne.",
+      parameters: {
+        type: 'object',
+        properties: {
+          chemin: { type: 'string', description: 'Chemin relatif au projet' },
+          ligne: { type: 'number', description: 'Facultatif : numéro de la première ligne à lire (1 = début du fichier)' },
+        },
+        required: ['chemin'],
+      },
     },
   },
   {
@@ -79,7 +86,7 @@ const TOOLS = [
     type: 'function',
     function: {
       name: 'memoriser',
-      description: "Enregistre un fait durable sur l'utilisateur ou ses projets (préférences, technos, objectifs) pour s'en souvenir dans les prochaines discussions.",
+      description: "Enregistre un fait durable et important sur l'utilisateur ou ses projets (préférences, technos, objectifs) pour s'en souvenir dans les prochaines discussions. Un fait court, une seule fois : pas les détails d'une seule discussion.",
       parameters: { type: 'object', properties: { fait: { type: 'string', description: 'Le fait à retenir, en une phrase' } }, required: ['fait'] },
     },
   },
