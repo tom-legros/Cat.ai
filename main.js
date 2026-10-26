@@ -94,7 +94,7 @@ function createWindow() {
 // Le dossier projet ouvert est ici : les fonctions de principal/fichiers.js le reçoivent en paramètre
 const safePath = (rel) => cheminSur(projectDir, rel);
 
-// Lecture d'un fichier sensible : L’utilisateur décide, en sachant si le contenu reste sur son PC ou part en ligne
+// Lecture d'un fichier sensible : l'utilisateur décide, en sachant si le contenu reste sur son PC ou part en ligne
 async function accordLectureSensible(chemin, fournisseurId) {
   const config = infosFournisseur(fournisseurId);
   const local = !config || config.type === 'ollama' || HOTES_LOCAUX.includes(hote(config.baseUrl));
@@ -168,7 +168,7 @@ async function runTool(name, args, mode) {
       if (resultat.erreur) return resultat.erreur;
       const reponse = await ecrireAvecAccord(args.chemin, resultat.contenu);
       // Le nombre de passages changés aide à repérer un renommage incomplet. Pas de consigne ici :
-      // qwen3 recopie parfois la réponse de l'outil telle quelle à l’utilisateur.
+      // qwen3 recopie parfois la réponse de l'outil telle quelle à l'utilisateur.
       if (!reponse.startsWith('Fichier modifié') || !partout) return reponse;
       return `${reponse} (${resultat.fois} remplacement${resultat.fois > 1 ? 's' : ''})`;
     }
@@ -190,7 +190,7 @@ async function runTool(name, args, mode) {
 // qui répond par 'confirm-write-reply'
 const REFUS_ECRITURE = "L'utilisateur a refusé la modification.";
 
-// Pour le modèle seulement : le bouton Enregistrer des blocs de code affiche le message de writeWithConfirm à l’utilisateur
+// Pour le modèle seulement : le bouton Enregistrer des blocs de code affiche le message de writeWithConfirm à l'utilisateur
 async function ecrireAvecAccord(chemin, contenu) {
   const resultat = await writeWithConfirm(chemin, contenu);
   return resultat === REFUS_ECRITURE ? resultat + RIEN_N_A_CHANGE : resultat;
@@ -298,7 +298,7 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, role, fournisseurI
         const { name, arguments: args } = call.function;
         // Les étiquettes montrent seulement le chemin, pas les gros textes
         event.sender.send('chat-tool', { id, name, args: { ...args, contenu: undefined, ancien_texte: undefined, nouveau_texte: undefined } });
-        // Écriture refusée par le mode prof ou le rôle : L’utilisateur le voit, même si le modèle prétend le contraire
+        // Écriture refusée par le mode prof ou le rôle : l'utilisateur le voit, même si le modèle prétend le contraire
         if (OUTILS_ECRITURE.has(name) && ecritureRefusee({ prof, role }, args?.chemin)) {
           event.sender.send('chat-tool', { id, name: 'refus', args: { chemin: args.chemin } });
         }
@@ -309,7 +309,7 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, role, fournisseurI
           result = `Erreur : ${err.message}`;
         }
         // Une ligne qui résume l'action, gardée par l'interface dans l'historique de la discussion
-        // Lecture d'un fichier sensible refusée par l’utilisateur : l'étiquette « Lit .env » ne doit pas laisser croire le contraire
+        // Lecture d'un fichier sensible refusée par l'utilisateur : l'étiquette « Lit .env » ne doit pas laisser croire le contraire
         if (name === 'lire_fichier' && String(result).startsWith(REFUS_LECTURE)) {
           event.sender.send('chat-tool', { id, name: 'refus-lecture', args: { chemin: args.chemin } });
         }
@@ -320,7 +320,7 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, role, fournisseurI
         history.push({ role: 'tool', content: texte, tool_name: name, tool_call_id: call.id });
       }
     }
-    // Toutes les étapes utilisées sans réponse finale : L’utilisateur le voit, au lieu d'une réponse qui s'arrête sans rien dire
+    // Toutes les étapes utilisées sans réponse finale : l'utilisateur le voit, au lieu d'une réponse qui s'arrête sans rien dire
     if (!fini) event.sender.send('chat-tool', { id, name: 'limite', args: { etapes: MAX_STEPS } });
     event.sender.send('chat-done', { id });
   } catch (err) {
@@ -576,6 +576,11 @@ ipcMain.handle('get-project', () => {
 
 // ---------- Mémoire et conversations ----------
 ipcMain.handle('load-memory', () => readJson('memory.json', []));
+// Touches personnelles (suggestions, répliques, origine du chat) : seulement sur le PC de celui qui écrit perso.json
+ipcMain.handle('perso', () => {
+  const perso = readJson('perso.json', {});
+  return perso && typeof perso === 'object' && !Array.isArray(perso) ? perso : {};
+});
 ipcMain.handle('save-memory', (_e, memory) => writeJson('memory.json', memory));
 ipcMain.handle('load-convs', () => readJson('conversations.json', []));
 ipcMain.handle('save-convs', (_e, convs) => writeJson('conversations.json', convs));

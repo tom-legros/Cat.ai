@@ -145,7 +145,7 @@ async function attenteDemandee(res) {
   return (Number(m[1]) || 0) * 60 + (m[3] === 'ms' ? Number(m[2]) / 1000 : Number(m[2]));
 }
 
-// Attente qui s'arrête tout de suite si l’utilisateur clique sur Stop
+// Attente qui s'arrête tout de suite si l'utilisateur clique sur Stop
 function attendre(ms, signal) {
   return new Promise((resolve, reject) => {
     const minuterie = setTimeout(resolve, ms);

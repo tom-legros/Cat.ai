@@ -1,4 +1,4 @@
-// Mémoire du chat : les faits qu'il retient sur l’utilisateur et ses projets.
+// Mémoire du chat : les faits qu'il retient sur l'utilisateur et ses projets.
 // Toute la mémoire est remise dans les consignes à CHAQUE message : elle doit rester petite,
 // sans doublons, sinon elle mange la place du petit modèle (8 192 tokens avec Ollama).
 const MAX_FAITS = 40;

@@ -9,3 +9,6 @@ Thumbs.db
 
 # Installateurs construits par electron-builder
 dist/
+
+# Notes de travail personnelles (gardées sur le disque, pas dans Git)
+PROMPT-claude-code.md

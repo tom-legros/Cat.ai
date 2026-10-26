@@ -59,7 +59,7 @@ test('compacter : à taille égale, raccourcit d abord le résultat d outil le p
   assert.equal(resultat.length, liste.length, 'aucun message retiré');
 });
 
-test('compacter : retire les vieux échanges mais garde les consignes et le dernier message de l’utilisateur', () => {
+test('compacter : retire les vieux échanges mais garde les consignes et le dernier message de l utilisateur', () => {
   const vieux = Array.from({ length: 10 }, (_, i) => [
     { role: 'user', content: `vieille question ${i} ` + 'q'.repeat(500) },
     { role: 'assistant', content: `vieille réponse ${i} ` + 'r'.repeat(500) },

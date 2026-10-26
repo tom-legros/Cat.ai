@@ -80,7 +80,7 @@ function lireReglagesFournisseurs() {
   return { ...r, actif: r.actif || 'ollama', modeles: r.modeles || {}, fournisseurs: r.fournisseurs || {} };
 }
 
-// Fusionne la liste de base avec ce que l’utilisateur a enregistré (clé chiffrée, URL et nom du personnalisé)
+// Fusionne la liste de base avec ce que l'utilisateur a enregistré (clé chiffrée, URL et nom du personnalisé)
 function tousLesFournisseurs() {
   const { fournisseurs } = lireReglagesFournisseurs();
   return FOURNISSEURS_DE_BASE.map((base) => {

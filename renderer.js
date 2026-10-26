@@ -15,6 +15,7 @@ const modelSel = $("#model");
 const statusEl = $("#status");
 const convList = $("#conv-list");
 
+let perso = {};           // touches personnelles de perso.json (voir appliquerPerso)
 let prenom = "";         // demandé au premier lancement, enregistré dans settings.json
 let convs = [];
 let current = null;
@@ -221,7 +222,7 @@ async function resumerSiBesoin(conv, bulle) {
     save();
 }
 
-// Les étiquettes d'action sont pour l’utilisateur, pas pour le modèle : s'il les voyait dans l'historique,
+// Les étiquettes d'action sont pour l'utilisateur, pas pour le modèle : s'il les voyait dans l'historique,
 // il apprendrait à les recopier et ferait croire qu'il a lu un fichier sans l'avoir fait
 // (on retire aussi l'ancien format [[action:…]] des discussions enregistrées avant ce changement)
 const sansEtiquettes = (texte) => texte.replace(LIGNE_ACTION, "").replace(/\[\[action:[^\]\n]*\]\]/g, "").replace(/\n{3,}/g, "\n\n").trim();
@@ -253,7 +254,7 @@ function messagesPourLeModele(conv) {
 }
 
 // Ollama n'a que 8 192 tokens. main.js garde les consignes sous ~8 000 caractères (la moitié de LIMITES_OLLAMA.total,
-// dans principal/taille.js) : au-delà, leur fin est coupée. On prévient l’utilisateur, avec ce qui prend la place.
+// dans principal/taille.js) : au-delà, leur fin est coupée. On prévient l'utilisateur, avec ce qui prend la place.
 const CONTEXTE_OLLAMA = 8192;
 const MAX_CONSIGNES = 8000;
 const enTokens = (texte) => Math.ceil(texte.length / 3); // ~3 caractères par token, comme principal/taille.js
@@ -307,7 +308,7 @@ async function send(text) {
         const consignes = systemPrompt() + (await projectInfo(text));
         bulle.innerHTML = "";
         bulle.classList.add("is-typing");
-        // Avec Ollama, des consignes trop lourdes sont coupées : L’utilisateur le voit en haut de la réponse
+        // Avec Ollama, des consignes trop lourdes sont coupées : l'utilisateur le voit en haut de la réponse
         const alerteBudget = fournisseurActif().type === "ollama" ? budgetConsignes(consignes) : "";
         streaming = { id, el: bulle, chat, text: alerteBudget ? etiquetteAction(alerteBudget) : "", actions: [] };
         if (alerteBudget) afficherFlux();
@@ -429,7 +430,7 @@ async function remplacerModeleCasse(modele, bulle) {
         current.messages.pop();
         const messages = [...messagesEl.querySelectorAll(".msg")];
         messages.at(-1)?.remove(); // l'erreur
-        messages.at(-2)?.remove(); // le message de l’utilisateur, renvoyé juste après
+        messages.at(-2)?.remove(); // le message de l'utilisateur, renvoyé juste après
         send(dernier.content);
     };
     bulle.append(bouton);
@@ -980,7 +981,7 @@ function renderPanneauFournisseurs() {
         let champNom = null;
         let champUrl = null;
         if (f.modifiable) {
-            // Personnalisé : nom et adresse saisis par l’utilisateur
+            // Personnalisé : nom et adresse saisis par l'utilisateur
             champNom = document.createElement("input");
             champNom.placeholder = "Nom (ex : LM Studio)";
             champNom.value = f.nom === "Personnalisé" ? "" : f.nom;
@@ -1074,7 +1075,7 @@ $("#fournisseurs-modal").onclick = (e) => { if (e.target.id === "fournisseurs-mo
 
 
 // Le texte de l'accueil dit la vérité : tout reste sur le PC seulement avec Ollama ou un serveur local
-// Ollama, ou un serveur sur le PC (LM Studio…) : rien ne sort de chez l’utilisateur
+// Ollama, ou un serveur sur le PC (LM Studio…) : rien ne sort du PC
 const fournisseurLocal = (f) => f.type === "ollama" || /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/i.test(f.baseUrl || "");
 
 function renderAccueil(f) {
@@ -1086,7 +1087,7 @@ function renderAccueil(f) {
 
 /* ---------- 9. Démarrage ---------- */
 
-// Un fichier de données abîmé a été réparé (readJson dans main.js) : L’utilisateur doit le savoir.
+// Un fichier de données abîmé a été réparé (readJson dans main.js) : l'utilisateur doit le savoir.
 // Pendant le démarrage, les alertes attendent : renderConv() effacerait celles déjà affichées.
 const alertesEnAttente = [];
 let interfacePrete = false;
@@ -1106,8 +1107,30 @@ function appliquerNom() {
     $("#mascotte-bouton").setAttribute("aria-label", `${NOM_DU_CHAT} : cliquer pour qu'il parle`);
 }
 
+// Touches personnelles, dans perso.json à côté des données : jamais dans le code partagé, donc le chat
+// des autres n'en sait rien. Tout est facultatif :
+// { "origine": "la mascotte de son portfolio", "suggestions": [{ "titre": "…", "message": "…" }],
+//   "repliquesProjets": { "morceau du nom du dossier": "réplique" } }
+function appliquerPerso() {
+    const texte = (v) => (typeof v === "string" ? v.trim().slice(0, 300) : "");
+    perso.origine = texte(perso.origine);
+    const suggestions = (Array.isArray(perso.suggestions) ? perso.suggestions : []).filter((s) => texte(s?.titre) && texte(s?.message)).slice(0, 4);
+    if (suggestions.length) {
+        $(".suggestions").replaceChildren(...suggestions.map((s) => {
+            const b = document.createElement("button");
+            b.textContent = texte(s.titre);
+            b.onclick = () => send(texte(s.message));
+            return b;
+        }));
+    }
+    const repliques = perso.repliquesProjets && typeof perso.repliquesProjets === "object" ? perso.repliquesProjets : {};
+    for (const [cle, replique] of Object.entries(repliques)) if (texte(replique)) REPLIQUES.projets[cle.toLowerCase()] = texte(replique);
+}
+
 (async () => {
     appliquerNom();
+    perso = await window.api.perso();
+    appliquerPerso();
     prenom = await window.api.getPrenom();
     if (!prenom) await demanderPrenom();
     memory = await window.api.loadMemory();

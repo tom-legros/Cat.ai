@@ -39,6 +39,8 @@ contextBridge.exposeInMainWorld('api', {
   etatOllama: () => ipcRenderer.invoke('etat-ollama'),
   telechargerModele: (modele) => ipcRenderer.invoke('ollama-telecharger', modele),
   onProgressionOllama: (cb) => ipcRenderer.on('ollama-progression', (_e, p) => cb(p)),
+  // Touches personnelles facultatives (perso.json dans le dossier des données)
+  perso: () => ipcRenderer.invoke('perso'),
   loadMemory: () => ipcRenderer.invoke('load-memory'),
   saveMemory: (m) => ipcRenderer.invoke('save-memory', m),
   onMemoryChanged: (cb) => ipcRenderer.on('memory-changed', (_e, m) => cb(m)),

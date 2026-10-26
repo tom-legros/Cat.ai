@@ -13,7 +13,7 @@ const LIMITES_TAILLE = {
 const limitesTaille = (config) => (config?.baseUrl ? LIMITES_TAILLE[hote(config.baseUrl)] : null) || null;
 
 // Ollama tourne avec 8 192 tokens de contexte (num_ctx, dans envoi.js). Quand ça déborde, il retire les messages
-// les plus anciens SANS PRÉVENIR, et la question de l’utilisateur peut disparaître derrière un gros fichier lu.
+// les plus anciens SANS PRÉVENIR, et la question de l'utilisateur peut disparaître derrière un gros fichier lu.
 // On compacte donc nous-mêmes : 8 192 tokens, moins ~1 500 pour la réponse et ~1 200 pour la description des outils,
 // laissent ~5 500 tokens, soit ~16 000 caractères.
 const LIMITES_OLLAMA = { total: 16000, resultatOutil: 8000 };
@@ -38,8 +38,8 @@ function raccourcir(texte, max) {
 // Ramène l'historique sous `total` caractères, sans casser le lien entre un appel d'outil et son résultat :
 // 1. on raccourcit les résultats d'outils, du plus gros au plus petit : un fichier lu en entier passe avant
 //    un résultat de recherche, court et précieux (coupé, le modèle relançait sans fin la même recherche) ;
-// 2. puis on retire les plus vieux échanges (un message de l’utilisateur, ou une réponse avec ses résultats d'outils),
-//    en gardant toujours les consignes du début et le dernier message de l’utilisateur avec ce qui le suit.
+// 2. puis on retire les plus vieux échanges (un message de l'utilisateur, ou une réponse avec ses résultats d'outils),
+//    en gardant toujours les consignes du début et le dernier message de l'utilisateur avec ce qui le suit.
 function compacter(messages, total) {
   const liste = messages.map((m) => ({ ...m }));
   const somme = () => liste.reduce((n, m) => n + taille(m), 0);

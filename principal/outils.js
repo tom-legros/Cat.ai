@@ -92,7 +92,7 @@ const TOOLS = [
   },
 ];
 
-// En mode prof, le chat n'a pas le droit d'écrire : il explique, l’utilisateur code.
+// En mode prof, le chat n'a pas le droit d'écrire : il explique, l'utilisateur code.
 // Les rôles (consignes dans renderer.js) : le relecteur n'écrit rien, le rédacteur README n'écrit que des .md.
 // mode = { prof, role, fournisseurId }
 const OUTILS_ECRITURE = new Set(['ecrire_fichier', 'remplacer_texte']);
@@ -113,7 +113,7 @@ function ecritureRefusee({ prof, role } = {}, chemin) {
 
 // Remplace le passage `ancien` de `contenu` par `nouveau`. Renvoie { contenu, fois } ou { erreur } pour le modèle.
 // Par défaut, l'ancien texte doit apparaître exactement une fois : s'il apparaît plusieurs fois, on ne devine pas
-// lequel modifier. Avec partout (renommage), toutes les occurrences sont remplacées : L’utilisateur les voit toutes dans l'avant / après.
+// lequel modifier. Avec partout (renommage), toutes les occurrences sont remplacées : l'utilisateur les voit toutes dans l'avant / après.
 // Pas de String.replace : il interprète $& ou $1 dans le nouveau texte, fréquents dans du code (PHP, regex…).
 function remplacerTexte(contenu, ancien, nouveau, partout = false) {
   if (!ancien) return { erreur: 'ancien_texte est vide : copie le passage à modifier depuis le fichier.' };

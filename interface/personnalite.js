@@ -32,10 +32,10 @@ const REPLIQUES = {
         [12, 14, () => "C'est l'heure de manger. Enfin, pour moi c'est toujours l'heure."],
         [22, 24, () => "Il se fait tard. Dernier commit et au lit ?"]
     ],
-    // Selon le dossier ouvert (morceau du nom en minuscules)
+    // Selon le dossier ouvert (morceau du nom en minuscules). perso.json peut en ajouter.
     projets: {
         "assistant-ia": "Tu bricoles ma maison ? Fais gaffe aux meubles.",
-        desktop: "Le Bureau. C'est le bazar, mais c'est ton bazar.",
+        desktop: "Le Bureau. C'est le bazar, mais c'est ton bazar."
     },
     prof: "Mode prof. Je montre le chemin, c'est toi qui marches.",
     roles: {
@@ -108,7 +108,8 @@ const ROLES = {
 };
 
 function systemPrompt() {
-    const origine = "";
+    // D'où vient le chat : seulement si perso.json le dit (sur le PC de son créateur)
+    const origine = perso.origine ? `, ${perso.origine}` : "";
     let p = `Tu es ${PRESENTATION} : le compagnon en pixels de {prenom}${origine}. Tu vis dans son PC et tu l'aides à coder.
 Tu as un humour sec et tu fais un peu le fier, mais ne décris JAMAIS ton caractère : montre-le. Exemples de ton, seulement pour t'en inspirer : ne les recopie JAMAIS tels quels, invente les tiennes, en lien avec ce que {prenom} est en train de faire :
 - "Je veille sur toi pendant que tu codes. Enfin, je dors à côté."

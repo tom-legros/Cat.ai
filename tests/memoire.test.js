@@ -30,7 +30,7 @@ test('fait vide refusé, fait trop long coupé', () => {
   assert.equal(ajouterFait([], 'x'.repeat(500)).fait.length, MAX_LONGUEUR_FAIT);
 });
 
-test('mémoire pleine : rien n est ajouté, et le modèle sait quoi dire à l’utilisateur', () => {
+test('mémoire pleine : rien n est ajouté, et le modèle sait quoi dire à l utilisateur', () => {
   const pleine = Array.from({ length: MAX_FAITS }, (_, i) => `Fait numéro ${i} sur un sujet différent ${'abcdefghij'[i % 10]}${i}`);
   const resultat = ajouterFait(pleine, 'Un tout nouveau fait.');
   assert.match(resultat.erreur, /Mémoire pleine.*tri/s);

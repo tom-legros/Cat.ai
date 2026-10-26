@@ -34,7 +34,7 @@ function cheminReel(chemin) {
 }
 
 // Fichiers qui contiennent souvent des secrets (mots de passe, clés API, clés privées).
-// Leur contenu n'est jamais joint tout seul au message : le modèle doit le lire avec lire_fichier, et l’utilisateur confirme.
+// Leur contenu n'est jamais joint tout seul au message : le modèle doit le lire avec lire_fichier, et l'utilisateur confirme.
 // Les modèles d'exemple (.env.example…) sont faits pour être partagés : ils restent lisibles.
 const SENSIBLES = [
   /^\.env(\..+)?$/i,                                // .env, .env.local, .env.production…
@@ -123,7 +123,7 @@ function chercherDansProjet(projet, texte, { regex = false, dossier = '' } = {})
   return lignes + (trop ? `\n… et d'autres résultats : précise ta recherche (un texte plus long, ou un sous-dossier).` : '') + noteSensibles;
 }
 
-// Fichiers cités dans le message de l’utilisateur : leur chemin relatif, ou leur nom comme mot entier.
+// Fichiers cités dans le message de l'utilisateur : leur chemin relatif, ou leur nom comme mot entier.
 // Un nom sans extension (a, test, api) n'est retenu qu'à partir de 6 lettres (Makefile, LICENSE…) :
 // sinon il serait « cité » dans presque tous les messages. Les chemins complets passent en premier.
 function fichiersCites(message, fichiers) {

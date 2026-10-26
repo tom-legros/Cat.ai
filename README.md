@@ -121,6 +121,16 @@ Les modules de `principal/` ne dépendent pas d'Electron (sauf les clés, dans `
 
 Les données (discussions, mémoire, réglages, clés chiffrées dans `fournisseurs.json`) sont dans `%APPDATA%\assistant-ia` sur Windows et `~/.config/assistant-ia` sur Linux, jamais dans le projet.
 
+Le code ne contient rien de personnel : chez quelqu'un d'autre, le chat ne sait que ce qu'on lui dit. Mes touches à moi (d'où vient le chat, mes suggestions, mes répliques selon le projet) sont dans un `perso.json` facultatif, au même endroit que les données :
+
+```json
+{
+  "origine": "la mascotte de son portfolio",
+  "suggestions": [{ "titre": "Boucle de jeu", "message": "Explique-moi une boucle de jeu." }],
+  "repliquesProjets": { "portfolio": "Le portfolio. Ma tête est sur la page d'accueil." }
+}
+```
+
 Elles ne peuvent pas être perdues par un plantage :
 - **Écriture atomique** : chaque fichier est d'abord écrit à côté, puis remplace l'ancien d'un seul coup. Un plantage ou une coupure de courant laisse l'ancienne version ou la nouvelle, jamais un fichier à moitié écrit.
 - **Sauvegarde** : avant chaque enregistrement, la version précédente est gardée dans `nom.json.sauvegarde`.
