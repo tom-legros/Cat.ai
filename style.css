@@ -52,6 +52,7 @@
 
 /* Mode prof : la seule couleur de l'app passe du jaune au bleu (yeux, logo, mots-clés du code…) */
 body.mode-prof {
+    --oeil-rvb: 108, 180, 238;
     --oeil: #6cb4ee;
     --oeil-lueur: rgba(108, 180, 238, .45);
     --oeil-halo: rgba(108, 180, 238, .9);
@@ -162,13 +163,6 @@ input, select, textarea { font: inherit; color: var(--texte); }
 
 .bloc { display: flex; flex-direction: column; gap: 6px; }
 
-/* Réglages avancés, repliés par défaut */
-.avance summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; margin: 0; }
-.avance summary::-webkit-details-marker { display: none; }
-.avance summary::after { content: "+"; font-size: 14px; }
-.avance[open] summary::after { content: "−"; }
-.avance summary:hover { color: var(--lumiere); }
-.avance__contenu { display: flex; flex-direction: column; gap: 14px; margin-top: 12px; }
 .demarrage input { padding: 9px 12px; background: var(--bg); border: 1px solid var(--ligne-2); border-radius: 2px; }
 .demarrage ol { margin: 0; padding-left: 18px; color: var(--texte-3); font-size: 14px; }
 .projet-nom { margin: 0; font-family: var(--police-mono); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--texte-3); }
@@ -479,15 +473,15 @@ select {
    Glow up (v1.0) : même DA noir, blanc et yeux jaunes, en plus doux et plus vivant.
    Ces règles passent après les autres et les ajustent.
    ========================================================== */
-:root { --rayon: 12px; --rayon-petit: 8px; }
+:root { --rayon: 12px; --rayon-petit: 8px; --oeil-rvb: 232, 197, 71; }
 
 /* Une lueur derrière le chat, couleur de ses yeux */
-.principal { background: radial-gradient(ellipse 60% 45% at 50% 22%, rgba(232, 197, 71, .07), transparent 70%), var(--bg); }
+.principal { background: radial-gradient(ellipse 60% 45% at 50% 22%, rgba(var(--oeil-rvb), .07), transparent 70%), var(--bg); }
 .cote { background: linear-gradient(180deg, #0b0b0b, var(--bg)); }
 .mascotte { position: relative; }
 .mascotte::before {
     content: ""; position: absolute; left: 50%; bottom: 10px; width: 180px; height: 60px; transform: translateX(-50%);
-    background: radial-gradient(ellipse, rgba(232, 197, 71, .16), transparent 70%); filter: blur(8px); pointer-events: none;
+    background: radial-gradient(ellipse, rgba(var(--oeil-rvb), .16), transparent 70%); filter: blur(8px); pointer-events: none;
 }
 
 /* Accueil : apparition douce, titre en dégradé */
@@ -499,12 +493,12 @@ select {
 .suggestions button, .demarrage__carte { border-radius: var(--rayon); }
 .suggestions button { position: relative; transition: color .2s ease, border-color .2s ease, box-shadow .2s ease, transform .2s ease; }
 .suggestions button::after { content: "→"; position: absolute; right: 16px; opacity: 0; transform: translateX(-4px); transition: opacity .2s ease, transform .2s ease; }
-.suggestions button:hover { transform: translateY(-2px); border-color: rgba(232, 197, 71, .35); box-shadow: 0 8px 30px rgba(232, 197, 71, .08); }
+.suggestions button:hover { transform: translateY(-2px); border-color: rgba(var(--oeil-rvb), .35); box-shadow: 0 8px 30px rgba(var(--oeil-rvb), .08); }
 .suggestions button:hover::after { opacity: 1; transform: none; color: var(--oeil); }
 
 /* Zone de saisie : une seule barre arrondie, qui s'allume en jaune quand on écrit */
 .saisie__ligne { align-items: center; padding: 6px 6px 6px 4px; background: rgba(20, 20, 20, .85); border: 1px solid var(--ligne-2); border-radius: 16px; backdrop-filter: blur(10px); transition: border-color .2s ease, box-shadow .2s ease; }
-.saisie__ligne:focus-within { border-color: rgba(232, 197, 71, .45); box-shadow: 0 0 0 4px rgba(232, 197, 71, .06), 0 10px 40px rgba(0, 0, 0, .5); }
+.saisie__ligne:focus-within { border-color: rgba(var(--oeil-rvb), .45); box-shadow: 0 0 0 4px rgba(var(--oeil-rvb), .06), 0 10px 40px rgba(0, 0, 0, .5); }
 .saisie textarea, .saisie textarea:focus { background: transparent; border: 0; box-shadow: none; }
 .saisie__ligne .bouton { border-radius: 11px; }
 
@@ -527,3 +521,38 @@ select {
     .accueil, .msg, .fenetre__boite { animation: none; }
     .suggestions button:hover { transform: none; }
 }
+
+/* Disposition façon Claude : barre de gauche réduite aux discussions, réglages en bas */
+.cote { gap: 12px; }
+.discussions { flex: 1; min-height: 0; overflow-y: auto; margin: 0; }
+.cote__bas { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid var(--ligne); }
+.cote__bas .conseil { margin: 0; }
+.lien--bloc .icone { width: 16px; height: 16px; }
+.icone { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+
+/* Pastilles sous la saisie : dossier, mode prof, rôle */
+.saisie__outils { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 0 4px; }
+.pastille-groupe { display: inline-flex; }
+.pastille {
+    display: inline-flex; align-items: center; gap: 7px; max-width: 240px; padding: 6px 12px;
+    background: transparent; border: 1px solid var(--ligne-2); border-radius: 999px;
+    color: var(--texte-3); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    transition: color .15s ease, border-color .15s ease, background .15s ease;
+}
+.pastille:hover { color: var(--texte); border-color: var(--texte-3); }
+.pastille.is-on, .pastille[aria-checked="true"] { color: var(--oeil); border-color: rgba(var(--oeil-rvb), .5); background: rgba(var(--oeil-rvb), .08); }
+.pastille-groupe .pastille:not([hidden]) + .pastille--x { border-left: 0; border-radius: 0 999px 999px 0; padding: 6px 10px 6px 6px; }
+.pastille-groupe .pastille:has(+ .pastille--x:not([hidden])) { border-radius: 999px 0 0 999px; border-right: 0; }
+select.pastille { appearance: none; padding-right: 26px; cursor: pointer;
+    background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+    background-position: right 13px center, right 9px center; background-size: 4px 4px; background-repeat: no-repeat; }
+select.pastille option { background: var(--surface); color: var(--texte); }
+
+/* Fenêtre Réglages */
+.fenetre__titre--suite { margin-top: 26px; font-size: 20px; }
+.role-form { display: flex; flex-direction: column; gap: 8px; }
+.role-form input, .role-form textarea { padding: 9px 12px; background: var(--surface); border: 1px solid var(--ligne-2); border-radius: var(--rayon-petit); resize: vertical; }
+.role-form .bouton { align-self: flex-start; }
+.pastille[hidden] { display: none; }
+select.pastille { width: auto; font-family: inherit; font-size: 13px; background-color: transparent; color: var(--texte-3); }
+select.pastille.is-on { color: var(--oeil); }

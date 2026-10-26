@@ -559,6 +559,24 @@ const lirePrenom = () => String(readJson('settings.json', {}).prenom || '');
 
 ipcMain.handle('get-prenom', () => lirePrenom());
 
+// Rôles créés par l'utilisateur : ils finissent dans les consignes du modèle, donc textes courts et sans contrôle.
+// Ils n'ouvrent aucun droit : écrire un fichier passe toujours par la fenêtre avant / après.
+const MAX_ROLES = 12;
+const nettoyerTexte = (v, max) => String(v ?? '').replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, ' ').trim().slice(0, max);
+const lireRoles = () => {
+  const roles = readJson('settings.json', {}).roles;
+  return Array.isArray(roles) ? roles : [];
+};
+ipcMain.handle('roles-perso', () => lireRoles());
+ipcMain.handle('roles-perso-enregistrer', (_e, roles) => {
+  const propres = (Array.isArray(roles) ? roles : [])
+    .map((r) => ({ nom: nettoyerTexte(r?.nom, 40).replace(/\n/g, ' '), consigne: nettoyerTexte(r?.consigne, 1000) }))
+    .filter((r) => r.nom && r.consigne)
+    .slice(0, MAX_ROLES);
+  writeJson('settings.json', { ...readJson('settings.json', {}), roles: propres });
+  return propres;
+});
+
 ipcMain.handle('set-prenom', (_e, prenom) => {
   const propre = nettoyerPrenom(prenom);
   if (!propre) return lirePrenom();

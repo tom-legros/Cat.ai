@@ -541,12 +541,10 @@ setInterval(() => logo.classList.toggle("is-closed", grandChat.etatDessine.start
 
 /* ---------- 7. Projet ---------- */
 function renderProject() {
-    const el = $("#project-name");
-    el.textContent = project ? project.split(/[\\/]/).pop() : "Aucun dossier ouvert";
-    el.title = project || "";
-    el.classList.toggle("is-on", !!project);
+    $("#project-name").textContent = project ? project.split(/[\\/]/).pop() : "Dossier";
+    $("#open-project").title = project || "Ouvrir un dossier pour que le chat lise son contenu";
+    $("#open-project").classList.toggle("is-on", !!project);
     $("#close-project").hidden = !project;
-    $("#open-project").textContent = project ? "Changer" : "Ouvrir un dossier";
 }
 
 $("#open-project").onclick = async () => { project = await window.api.openProject(); renderProject(); };
@@ -588,9 +586,16 @@ boutonProf.onclick = () => {
 
 const roleSel = $("#role");
 
+// Les rôles du menu : « Assistant » (aucun rôle), ceux de l'app, puis ceux créés dans Réglages
+function renderListeRoles() {
+    roleSel.replaceChildren(new Option("Assistant", ""), ...Object.entries(ROLES).map(([cle, r]) => new Option(r.nom, cle)));
+}
+
 function renderRole() {
+    if (!ROLES[role]) role = "";
     roleSel.value = role;
-    $("#role-detail").textContent = role ? ROLES[role].detail : "";
+    roleSel.title = role ? ROLES[role].detail : "Rôle du chat";
+    roleSel.classList.toggle("is-on", !!role);
     renderProf(); // pour le texte d'aide de la zone de saisie
 }
 
@@ -598,7 +603,7 @@ roleSel.onchange = () => {
     role = ROLES[roleSel.value] ? roleSel.value : "";
     try { localStorage.setItem("role", role); } catch {}
     renderRole();
-    if (!welcomeEl.hidden) dire(role ? REPLIQUES.roles[role] : "Retour au généraliste. Je touche à tout, comme d'hab.");
+    if (!welcomeEl.hidden) dire(role ? REPLIQUES.roles[role] || `Rôle ${ROLES[role].nom.toLowerCase()}. Compris, chef.` : "Retour au généraliste. Je touche à tout, comme d'hab.");
 };
 
 
@@ -1147,9 +1152,57 @@ function appliquerPerso() {
     for (const [cle, replique] of Object.entries(repliques)) if (texte(replique)) REPLIQUES.projets[cle.toLowerCase()] = texte(replique);
 }
 
-// Les réglages avancés restent ouverts ou fermés d'une fois sur l'autre
-try { $("#avance").open = localStorage.getItem("avance") === "1"; } catch {}
-$("#avance").addEventListener("toggle", () => { try { localStorage.setItem("avance", $("#avance").open ? "1" : "0"); } catch {} });
+// Fenêtre Réglages : fournisseur, modèle, clés et rôles perso
+$("#open-reglages").onclick = () => { renderRolesPerso(); $("#reglages-modal").hidden = false; };
+$("#close-reglages").onclick = () => ($("#reglages-modal").hidden = true);
+$("#reglages-modal").onclick = (e) => { if (e.target.id === "reglages-modal") e.target.hidden = true; };
+
+// Rôles créés par l'utilisateur (settings.json) : ajoutés à ROLES avec une clé « perso-… »
+let rolesPerso = [];
+
+function appliquerRolesPerso() {
+    Object.keys(ROLES).filter((k) => k.startsWith("perso-")).forEach((k) => delete ROLES[k]);
+    rolesPerso.forEach(({ nom, consigne }, i) => {
+        ROLES[`perso-${i}`] = {
+            nom,
+            detail: consigne,
+            placeholder: `${nom} : dis-lui ce qu'il te faut`,
+            consigne: `RÔLE : ${nom.toUpperCase()}. Ta mission, donnée par {prenom} :\n${consigne}`,
+            rappel: `Rappel : RÔLE ${nom.toUpperCase()}. ${consigne}`
+        };
+    });
+    renderListeRoles();
+    renderRole();
+}
+
+function renderRolesPerso() {
+    const liste = $("#roles-liste");
+    liste.replaceChildren();
+    if (!rolesPerso.length) liste.innerHTML = '<li class="discret">Aucun rôle perso pour l\'instant.</li>';
+    rolesPerso.forEach((r, i) => {
+        const li = document.createElement("li");
+        const texte = document.createElement("span");
+        texte.textContent = r.nom;
+        texte.title = r.consigne;
+        const suppr = document.createElement("button");
+        suppr.textContent = "Supprimer";
+        suppr.onclick = async () => { rolesPerso = await window.api.setRolesPerso(rolesPerso.filter((_, j) => j !== i)); appliquerRolesPerso(); renderRolesPerso(); };
+        li.append(texte, suppr);
+        liste.append(li);
+    });
+}
+
+$("#role-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const nom = $("#role-nom").value.trim();
+    const consigne = $("#role-consigne").value.trim();
+    if (!nom || !consigne) return;
+    rolesPerso = await window.api.setRolesPerso([...rolesPerso, { nom, consigne }]);
+    $("#role-nom").value = "";
+    $("#role-consigne").value = "";
+    appliquerRolesPerso();
+    renderRolesPerso();
+});
 
 (async () => {
     appliquerNom();
@@ -1162,6 +1215,8 @@ $("#avance").addEventListener("toggle", () => { try { localStorage.setItem("avan
     knownProjects = await window.api.knownProjects();
     specialDirs = await window.api.specialDirs();
     try { prof = localStorage.getItem("modeProf") === "1"; } catch {}
+    rolesPerso = await window.api.getRolesPerso();
+    appliquerRolesPerso();
     try { const r = localStorage.getItem("role"); if (ROLES[r]) role = r; } catch {}
     renderMemory();
     renderProject();

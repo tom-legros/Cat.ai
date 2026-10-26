@@ -18,52 +18,15 @@
     <p class="etiquette">Discussions</p>
     <ul id="conv-list" class="discussions"></ul>
 
-    <div class="bloc">
-      <p class="etiquette">Projet</p>
-      <p id="project-name" class="projet-nom">Aucun dossier ouvert</p>
-      <div class="rangee">
-        <button id="open-project" class="lien">Ouvrir un dossier</button>
-        <button id="close-project" class="lien" hidden>Fermer</button>
-      </div>
+    <!-- En bas, comme sur Claude : la mémoire, les réglages et l'état de la connexion -->
+    <div class="cote__bas">
+      <p id="memoire-ajout" class="conseil" aria-live="polite"></p>
+      <button id="open-memory" class="lien lien--bloc">Mémoire <span id="memory-count" class="compteur">0</span></button>
+      <button id="open-reglages" class="lien lien--bloc" type="button">Réglages
+        <svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>
+      </button>
+      <p id="status" class="statut">Connexion…</p>
     </div>
-
-    <button id="open-memory" class="lien lien--bloc">Mémoire <span id="memory-count" class="compteur">0</span></button>
-    <p id="memoire-ajout" class="conseil" aria-live="polite"></p>
-
-    <!-- Réglages pour ceux qui veulent : repliés par défaut, pour qu'un débutant ne voie que le chat -->
-    <details id="avance" class="avance">
-      <summary class="etiquette">Réglages avancés</summary>
-      <div class="avance__contenu">
-    <button id="mode-prof" class="interrupteur" role="switch" aria-checked="false" title="Le chat explique et donne des pistes, mais n'écrit ni code complet ni fichier">
-      <span class="interrupteur__texte">Mode prof<span class="interrupteur__detail">Il explique, tu codes</span></span>
-      <span class="interrupteur__piste"><span class="interrupteur__point"></span></span>
-    </button>
-
-    <div class="bloc">
-      <label class="etiquette" for="role">Rôle</label>
-      <select id="role">
-        <option value="">Généraliste</option>
-        <option value="relecteur">Relecteur de code</option>
-        <option value="debogueur">Débogueur</option>
-        <option value="readme">Rédacteur README</option>
-      </select>
-      <p id="role-detail" class="conseil"></p>
-    </div>
-
-    <div class="bloc">
-      <div class="rangee rangee--entre">
-        <label class="etiquette" for="fournisseur">Fournisseur</label>
-        <button id="open-fournisseurs" class="lien lien--petit" type="button">Clés API</button>
-      </div>
-      <select id="fournisseur"></select>
-      <label class="etiquette etiquette--suite" for="model">Modèle</label>
-      <select id="model"></select>
-      <p id="conseil-modele" class="conseil"></p>
-    </div>
-      </div>
-    </details>
-
-    <p id="status" class="statut">Connexion…</p>
   </aside>
 
   <main class="principal">
@@ -115,12 +78,53 @@
         <textarea id="input" rows="1" placeholder="Écris au chat… (glisse un fichier ici pour le lui montrer)"></textarea>
         <button id="send" type="submit" class="bouton">Envoyer</button>
       </div>
+      <!-- Sous la saisie, ce qui change la façon de répondre : dossier, mode prof, rôle -->
+      <div class="saisie__outils">
+        <span class="pastille-groupe">
+          <button id="open-project" class="pastille" type="button" title="Ouvrir un dossier pour que le chat lise son contenu">
+            <svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h6l2 2h10v11H3z"/></svg>
+            <span id="project-name">Dossier</span>
+          </button>
+          <button id="close-project" class="pastille pastille--x" type="button" title="Fermer le dossier" hidden>×</button>
+        </span>
+        <button id="mode-prof" class="pastille" type="button" role="switch" aria-checked="false" title="Il explique et donne des pistes, mais c'est toi qui fais">
+          <svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><circle cx="7" cy="14" r="3.5"/><circle cx="17" cy="14" r="3.5"/><path d="M10.5 14h3M3.5 13l1.5-5M20.5 13L19 8"/></svg>
+          Mode prof
+        </button>
+        <select id="role" class="pastille" title="Rôle du chat"></select>
+      </div>
     </form>
 
     <div id="depot" class="depot" hidden>
       <p class="depot__texte">Lâche le fichier, je le lis.</p>
     </div>
   </main>
+
+  <div id="reglages-modal" class="fenetre" hidden>
+    <div class="fenetre__boite">
+      <p class="etiquette">Réglages</p>
+      <h2 class="fenetre__titre">Le cerveau du chat</h2>
+      <div class="bloc">
+        <div class="rangee rangee--entre">
+          <label class="etiquette" for="fournisseur">Fournisseur</label>
+          <button id="open-fournisseurs" class="lien lien--petit" type="button">Clés API</button>
+        </div>
+        <select id="fournisseur"></select>
+        <label class="etiquette etiquette--suite" for="model">Modèle</label>
+        <select id="model"></select>
+        <p id="conseil-modele" class="conseil"></p>
+      </div>
+      <h2 class="fenetre__titre fenetre__titre--suite">Mes rôles</h2>
+      <p class="discret">Un rôle, c'est une mission que le chat garde en tête : « Rédacteur de mails », « Coach de révisions »…</p>
+      <ul id="roles-liste" class="souvenirs"></ul>
+      <form id="role-form" class="role-form">
+        <input id="role-nom" maxlength="40" placeholder="Nom du rôle (ex : Rédacteur de mails)">
+        <textarea id="role-consigne" rows="3" maxlength="1000" placeholder="Ce qu'il doit faire (ex : écrire des mails clairs et polis, me demander d'abord à qui et pourquoi)"></textarea>
+        <button class="bouton">Ajouter le rôle</button>
+      </form>
+      <div class="rangee rangee--fin"><button id="close-reglages" class="lien" type="button">Fermer</button></div>
+    </div>
+  </div>
 
   <div id="fournisseurs-modal" class="fenetre" hidden>
     <div class="fenetre__boite">

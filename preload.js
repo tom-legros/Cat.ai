@@ -41,6 +41,9 @@ contextBridge.exposeInMainWorld('api', {
   onProgressionOllama: (cb) => ipcRenderer.on('ollama-progression', (_e, p) => cb(p)),
   // Touches personnelles facultatives (perso.json dans le dossier des données)
   perso: () => ipcRenderer.invoke('perso'),
+  // Rôles créés dans Réglages : [{ nom, consigne }]
+  getRolesPerso: () => ipcRenderer.invoke('roles-perso'),
+  setRolesPerso: (roles) => ipcRenderer.invoke('roles-perso-enregistrer', roles),
   loadMemory: () => ipcRenderer.invoke('load-memory'),
   saveMemory: (m) => ipcRenderer.invoke('save-memory', m),
   onMemoryChanged: (cb) => ipcRenderer.on('memory-changed', (_e, m) => cb(m)),

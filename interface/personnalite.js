@@ -39,6 +39,7 @@ const REPLIQUES = {
     },
     prof: "Mode prof. Je montre le chemin, c'est toi qui marches.",
     roles: {
+        redacteur: "Rôle rédaction. Je tourne mes phrases mieux que ma queue.",
         relecteur: "Rôle relecteur. Je renifle chaque ligne, rien ne m'échappe.",
         debogueur: "Rôle débogueur. Les bugs, c'est comme les souris : je les trouve.",
         readme: "Rôle README. Je raconte ton projet, sans rien inventer."
@@ -74,7 +75,18 @@ const SOMMEIL_APRES = 60000; // le chat s'endort après 1 min sans activité
 // Rôles : une seule mission, pour que même un petit modèle reste concentré. {prenom} est remplacé dans systemPrompt.
 // Les outils permis à chaque rôle sont décidés dans main.js (le relecteur n'écrit rien, le rédacteur que des .md)
 const ROLES = {
+    redacteur: {
+        nom: "Rédaction",
+        detail: "Écrit avec toi des mails, messages et textes clairs",
+        placeholder: "Rédaction : dis-lui à qui tu écris et ce que tu veux dire",
+        consigne: `RÔLE : RÉDACTION. Ta seule mission : aider {prenom} à écrire des mails, messages et textes.
+- Avant d'écrire, demande ce qui manque : à qui, pourquoi, sur quel ton (pro, poli, détendu).
+- Propose un texte prêt à copier, court et clair, puis demande s'il faut l'ajuster.
+- Garde le style de {prenom} s'il t'a montré un exemple.`,
+        rappel: "Rappel : RÔLE RÉDACTION. Demande ce qui manque, puis propose un texte prêt à copier."
+    },
     relecteur: {
+        nom: "Relecteur de code",
         detail: "Relit ton code et liste les problèmes, sans rien modifier",
         placeholder: "Relecteur : dis-lui quel fichier ou quelle partie relire",
         consigne: `RÔLE : RELECTEUR DE CODE. Ta seule mission : relire le code de {prenom} et trouver ce qui ne va pas.
@@ -85,6 +97,7 @@ const ROLES = {
         rappel: "Rappel : RÔLE RELECTEUR. Lis le code avant de juger, classe les problèmes, ne modifie rien."
     },
     debogueur: {
+        nom: "Débogueur",
         detail: "Trouve la cause d'un bug et propose la plus petite correction",
         placeholder: "Débogueur : colle l'erreur et dis ce qui devait se passer",
         consigne: `RÔLE : DÉBOGUEUR. Ta seule mission : trouver la cause d'un bug et la corriger.
@@ -95,6 +108,7 @@ const ROLES = {
         rappel: "Rappel : RÔLE DÉBOGUEUR. Trouve la cause, puis corrige-la toi-même avec remplacer_texte, le moins possible."
     },
     readme: {
+        nom: "Rédacteur README",
         detail: "Écrit ou met à jour la doc du projet (fichiers .md seulement)",
         placeholder: "Rédacteur README : dis-lui quoi documenter",
         consigne: `RÔLE : RÉDACTEUR DE README. Ta seule mission : écrire ou mettre à jour la documentation du projet.
