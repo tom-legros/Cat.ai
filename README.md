@@ -59,6 +59,12 @@ Sur Windows, `Lancer.bat` démarre l'app sans fenêtre de console.
 
 Les données (discussions, mémoire, réglages, clés chiffrées dans `fournisseurs.json`) sont dans `%APPDATA%\assistant-ia`, jamais dans le projet.
 
+Elles ne peuvent pas être perdues par un plantage :
+- **Écriture atomique** : chaque fichier est d'abord écrit à côté, puis remplace l'ancien d'un seul coup. Un plantage ou une coupure de courant laisse l'ancienne version ou la nouvelle, jamais un fichier à moitié écrit.
+- **Sauvegarde** : avant chaque enregistrement, la version précédente est gardée dans `nom.json.sauvegarde`.
+- **Réparation** : un fichier abîmé n'est jamais écrasé. Il est mis de côté (`nom.json.illisible-date`), l'app repart de la sauvegarde et le chat prévient dans la discussion.
+- **Une seule app à la fois** : la relancer ramène la fenêtre déjà ouverte, pour que deux fenêtres n'enregistrent pas chacune leur version par-dessus l'autre.
+
 ## Crédits
 
 Ce projet s'appuie sur le travail d'autres personnes, merci à elles.

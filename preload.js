@@ -35,4 +35,7 @@ contextBridge.exposeInMainWorld('api', {
   onMemoryChanged: (cb) => ipcRenderer.on('memory-changed', (_e, m) => cb(m)),
   loadConvs: () => ipcRenderer.invoke('load-convs'),
   saveConvs: (convs) => ipcRenderer.invoke('save-convs', convs),
+  // Fichiers de données abîmés et réparés au démarrage (voir readJson dans main.js)
+  alertesStockage: () => ipcRenderer.invoke('alertes-stockage'),
+  onAlertesStockage: (cb) => ipcRenderer.on('alertes-stockage', (_e, alertes) => cb(alertes)),
 });

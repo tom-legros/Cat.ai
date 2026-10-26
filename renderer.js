@@ -1146,6 +1146,18 @@ $("#fournisseurs-modal").onclick = (e) => { if (e.target.id === "fournisseurs-mo
 
 /* ---------- 9. Démarrage ---------- */
 
+// Un fichier de données abîmé a été réparé (readJson dans main.js) : L’utilisateur doit le savoir.
+// Pendant le démarrage, les alertes attendent : renderConv() effacerait celles déjà affichées.
+const alertesEnAttente = [];
+let interfacePrete = false;
+
+function afficherAlertes(alertes) {
+    alertesEnAttente.push(...alertes);
+    if (!interfacePrete) return;
+    alertesEnAttente.splice(0).forEach((alerte) => addMessage("error", alerte));
+}
+window.api.onAlertesStockage(afficherAlertes);
+
 // Le nom affiché dans la fenêtre vient de NOM_DU_CHAT
 function appliquerNom() {
     document.title = NOM_DU_CHAT;
@@ -1170,6 +1182,8 @@ function appliquerNom() {
     renderConv();
     reglages = await window.api.lireFournisseurs();
     renderFournisseurs();
+    interfacePrete = true;
+    afficherAlertes(await window.api.alertesStockage());
     await loadModels();
     // Ollama est revérifié toutes les 10 s ; un fournisseur en ligne seulement toutes les 2 min (ses limites de requêtes)
     let tours = 0;
