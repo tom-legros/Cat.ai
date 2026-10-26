@@ -474,3 +474,56 @@ select {
     * { animation: none !important; transition: none !important; }
 }
 #demarrage-gemini-actions { flex-direction: column; align-items: stretch; gap: 8px; }
+
+/* ==========================================================
+   Glow up (v1.0) : même DA noir, blanc et yeux jaunes, en plus doux et plus vivant.
+   Ces règles passent après les autres et les ajustent.
+   ========================================================== */
+:root { --rayon: 12px; --rayon-petit: 8px; }
+
+/* Une lueur derrière le chat, couleur de ses yeux */
+.principal { background: radial-gradient(ellipse 60% 45% at 50% 22%, rgba(232, 197, 71, .07), transparent 70%), var(--bg); }
+.cote { background: linear-gradient(180deg, #0b0b0b, var(--bg)); }
+.mascotte { position: relative; }
+.mascotte::before {
+    content: ""; position: absolute; left: 50%; bottom: 10px; width: 180px; height: 60px; transform: translateX(-50%);
+    background: radial-gradient(ellipse, rgba(232, 197, 71, .16), transparent 70%); filter: blur(8px); pointer-events: none;
+}
+
+/* Accueil : apparition douce, titre en dégradé */
+.accueil { animation: arrivee .6s ease-out both; }
+@keyframes arrivee { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.accueil__titre { background: linear-gradient(180deg, #fff 30%, #9a9a9a); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+/* Suggestions et cartes : arrondies, qui se soulèvent au survol */
+.suggestions button, .demarrage__carte { border-radius: var(--rayon); }
+.suggestions button { position: relative; transition: color .2s ease, border-color .2s ease, box-shadow .2s ease, transform .2s ease; }
+.suggestions button::after { content: "→"; position: absolute; right: 16px; opacity: 0; transform: translateX(-4px); transition: opacity .2s ease, transform .2s ease; }
+.suggestions button:hover { transform: translateY(-2px); border-color: rgba(232, 197, 71, .35); box-shadow: 0 8px 30px rgba(232, 197, 71, .08); }
+.suggestions button:hover::after { opacity: 1; transform: none; color: var(--oeil); }
+
+/* Zone de saisie : une seule barre arrondie, qui s'allume en jaune quand on écrit */
+.saisie__ligne { align-items: center; padding: 6px 6px 6px 4px; background: rgba(20, 20, 20, .85); border: 1px solid var(--ligne-2); border-radius: 16px; backdrop-filter: blur(10px); transition: border-color .2s ease, box-shadow .2s ease; }
+.saisie__ligne:focus-within { border-color: rgba(232, 197, 71, .45); box-shadow: 0 0 0 4px rgba(232, 197, 71, .06), 0 10px 40px rgba(0, 0, 0, .5); }
+.saisie textarea, .saisie textarea:focus { background: transparent; border: 0; box-shadow: none; }
+.saisie__ligne .bouton { border-radius: 11px; }
+
+/* Boutons, champs et fenêtres plus doux */
+.bouton, .lien--bloc, .interrupteur, select, .demarrage input, #memory-input, #prenom-input { border-radius: var(--rayon-petit); }
+.fenetre { backdrop-filter: blur(6px); }
+.fenetre__boite { border-radius: 16px; box-shadow: 0 30px 80px rgba(0, 0, 0, .6); animation: arrivee .25s ease-out both; }
+
+/* Discussions : la discussion ouverte a un petit fond */
+.discussions li { border-radius: var(--rayon-petit); transition: background .15s ease, color .15s ease; }
+.discussions li:hover { background: var(--surface); }
+.discussions li.is-active { background: var(--surface-2); }
+
+/* Messages : la bulle de l'utilisateur arrondie */
+.msg { animation: arrivee .3s ease-out both; }
+.msg.user .bulle-msg { border-radius: 16px 16px 4px 16px; }
+.bulle { border-radius: var(--rayon); }
+
+@media (prefers-reduced-motion: reduce) {
+    .accueil, .msg, .fenetre__boite { animation: none; }
+    .suggestions button:hover { transform: none; }
+}
