@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Configuration « application » à recopier dans SignPath : signe Cat Ai.exe,
+     envoyé en zip par actions/upload-artifact. -->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <pe-file path="Cat Ai.exe" product-name="Cat Ai">
+      <authenticode-sign/>
+    </pe-file>
+  </zip-file>
+</artifact-configuration>
