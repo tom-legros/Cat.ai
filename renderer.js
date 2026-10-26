@@ -350,7 +350,8 @@ const ACTIONS = {
     remplacer_texte: (a) => `Veut modifier ${a.chemin}`,
     refus: (a) => `Refusé : ${a.chemin} n'a pas changé (${prof ? "mode prof" : role === "readme" ? "le rédacteur README n'écrit que des .md" : "le relecteur ne modifie rien"})`,
     memoriser: (a) => `Retient : ${a.fait}`,
-    pause: (a) => `Pause de ${a.secondes} s : limite par minute du fournisseur, je réessaie tout seul`
+    pause: (a) => `Pause de ${a.secondes} s : limite par minute du fournisseur, je réessaie tout seul`,
+    limite: (a) => `Arrêt après ${a.etapes} étapes d'outils pour ce message : dis-moi « continue » pour que je reprenne`
 };
 
 window.api.onTool(({ id, name, args }) => {
@@ -779,6 +780,7 @@ function renderFournisseurs() {
 
 async function loadModels() {
     const f = fournisseurActif();
+    renderAccueil(f);
     const { ok, models, erreur } = await window.api.models(f.id);
     if (f.id !== reglages.actif) return; // on a changé de fournisseur pendant la requête
     const avant = modelSel.value;
@@ -965,6 +967,15 @@ function ouvrirFournisseurs() {
 $("#open-fournisseurs").onclick = ouvrirFournisseurs;
 $("#close-fournisseurs").onclick = () => ($("#fournisseurs-modal").hidden = true);
 $("#fournisseurs-modal").onclick = (e) => { if (e.target.id === "fournisseurs-modal") e.target.hidden = true; };
+
+
+// Le texte de l'accueil dit la vérité : tout reste sur le PC seulement avec Ollama ou un serveur local
+function renderAccueil(f) {
+    const local = f.type === "ollama" || /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/i.test(f.baseUrl || "");
+    $("#accueil-texte").textContent = local
+        ? "Tout tourne sur ton PC. Gratuit, sans limite, et je ne dis rien à personne."
+        : `Je passe par ${f.nom}, en ligne : gratuit, mais tes messages et les fichiers que je lis partent sur ses serveurs.`;
+}
 
 
 /* ---------- 9. Démarrage ---------- */

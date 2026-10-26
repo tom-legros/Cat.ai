@@ -1,7 +1,7 @@
 {
   "name": "assistant-ia",
   "version": "1.0.0",
-  "description": "Assistant IA local (Ollama) pour aider sur les projets de dev",
+  "description": "Le chat noir : assistant de code de bureau 100 % gratuit, avec Ollama en local ou un fournisseur en ligne gratuit (Gemini, Groq, OpenRouter)",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

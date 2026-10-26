@@ -267,6 +267,7 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, role, fournisseurI
     // pour que ce soit nous qui choisissions quoi raccourcir, et pas le modèle qui oublie la question
     const config = infosFournisseur(fournisseurId);
     const limites = config.type === 'ollama' ? LIMITES_OLLAMA : limitesTaille(config);
+    let fini = false;
     for (let step = 0; step < MAX_STEPS; step++) {
       const aEnvoyer = limites ? compacter(history, limites.total) : history;
       // onPause : affiche une étiquette pendant que l'app attend la fin de la limite par minute
@@ -288,7 +289,10 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, role, fournisseurI
         event.sender.send('chat-chunk', { id, text: '\n\n' });
         continue;
       }
-      if (!toolCalls.length) break;
+      if (!toolCalls.length) {
+        fini = true;
+        break;
+      }
       for (const call of toolCalls) {
         const { name, arguments: args } = call.function;
         // Les étiquettes montrent seulement le chemin, pas les gros textes
@@ -311,6 +315,8 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, role, fournisseurI
         history.push({ role: 'tool', content: texte, tool_name: name, tool_call_id: call.id });
       }
     }
+    // Toutes les étapes utilisées sans réponse finale : L’utilisateur le voit, au lieu d'une réponse qui s'arrête sans rien dire
+    if (!fini) event.sender.send('chat-tool', { id, name: 'limite', args: { etapes: MAX_STEPS } });
     event.sender.send('chat-done', { id });
   } catch (err) {
     if (err.name === 'AbortError') event.sender.send('chat-done', { id });
@@ -347,6 +353,7 @@ ${texte}`;
         method: 'POST',
         body: JSON.stringify({ model, messages: [{ role: 'user', content: consigne }], stream: false, think: model.startsWith('qwen3') ? false : undefined, options: { num_ctx: 8192 } }),
       });
+      if (!res.ok) return null; // le résumé est facultatif : on envoie quand même, sans lui
       const data = await res.json();
       return data.message?.content?.trim() || null;
     }
