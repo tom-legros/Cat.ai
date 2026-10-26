@@ -58,9 +58,13 @@ Sur Windows, `Lancer.bat` démarre l'app sans fenêtre de console.
 Mêmes commandes, avec quelques différences :
 - `npm install` télécharge l'Electron pour Linux : refaire `npm install` sur chaque système, ne pas copier `node_modules` depuis Windows.
 - Ollama est souvent déjà lancé en service par le système (`systemctl status ollama`). Sinon, l'app lance `ollama serve` toute seule s'il est dans le `PATH`.
-- Pour les clés API, il faut un trousseau déverrouillé (GNOME Keyring ou KWallet).
+- Pour les clés API, il faut un trousseau déverrouillé (GNOME Keyring ou KWallet). Sans trousseau, l'app marche avec Ollama mais refuse d'enregistrer une clé.
+- Si `npm start` dit qu'Electron n'est pas installé (`node_modules/electron/dist` absent), c'est que `npm` n'a pas lancé son script d'installation : `node node_modules/electron/install.js` le télécharge.
+- Sur une installation minimale (WSL…), Electron peut demander quelques bibliothèques : `sudo apt install libnss3 libasound2t64` (Ubuntu) ou `sudo pacman -S nss alsa-lib` (Arch).
 
 `./lancer.sh` démarre l'app sans garder de terminal ouvert.
+
+Testé sous Ubuntu 24.04 (WSL) : les tests, l'app, l'absence d'Ollama et de trousseau, les chemins `/home/…` et `~/…`.
 
 ## Organisation
 

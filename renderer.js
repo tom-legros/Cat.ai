@@ -960,8 +960,8 @@ function renderPanneauFournisseurs() {
 function ouvrirFournisseurs() {
     // Qui protège vraiment les clés, selon le système (main.js le sait : Windows, trousseau de Linux…)
     $("#protection-cles").textContent = reglages.chiffrementDispo
-        ? `Les clés sont chiffrées sur ton PC par ${reglages.protection}`
-        : "Le chiffrement n'est pas disponible ici : aucune clé ne peut être enregistrée. Les clés déjà enregistrées";
+        ? `Les clés sont chiffrées sur ton PC par ${reglages.protection} et ne sont jamais réaffichées.`
+        : `Le chiffrement par ${reglages.protection} n'est pas disponible ici : aucune nouvelle clé ne peut être enregistrée.`;
     renderPanneauFournisseurs();
     $("#fournisseurs-modal").hidden = false;
 }
