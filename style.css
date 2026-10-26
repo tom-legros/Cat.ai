@@ -5,6 +5,8 @@
 
 @font-face { font-family: "Jost"; font-weight: 300 600; font-display: swap; src: url("fonts/jost-latin.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
 @font-face { font-family: "Jost"; font-weight: 300 600; font-display: swap; src: url("fonts/jost-latin-ext.woff2") format("woff2"); unicode-range: U+0100-02AF, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: "Pixelify Sans"; font-weight: 400 700; font-display: swap; src: url("fonts/pixelify-sans-latin.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Pixelify Sans"; font-weight: 400 700; font-display: swap; src: url("fonts/pixelify-sans-latin-ext.woff2") format("woff2"); unicode-range: U+0100-02AF, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2C60-2C7F, U+A720-A7FF; }
 @font-face { font-family: "Marcellus"; font-weight: 400; font-display: swap; src: url("fonts/marcellus-latin.woff2") format("woff2"); }
 @font-face { font-family: "JetBrains Mono"; font-weight: 400; font-display: swap; src: url("fonts/jetbrainsmono-latin.woff2") format("woff2"); }
 
@@ -678,3 +680,72 @@ optgroup { background: var(--surface); color: var(--texte-3); font-style: normal
 .menu-modeles__choix.is-on { background: rgba(var(--oeil-rvb), .08); }
 .menu-modeles__choix.is-on .menu-textes span { color: var(--oeil); }
 .menu-modeles__autre .menu-textes span { color: var(--texte-2); }
+
+/* ==========================================================
+   DA « Pixel nocturne » : tout part du chat.
+   Deux règles : ce qui est dessiné est en pixels, et une seule couleur vive, celle des yeux.
+   ========================================================== */
+:root { --police-titre: "Pixelify Sans", "Jost", system-ui, sans-serif; --rayon: 4px; --rayon-petit: 3px; }
+
+/* Titres et libellés en police pixel, sans majuscules étirées */
+.accueil__titre { font-weight: 500; letter-spacing: .01em; }
+.fenetre__titre, .logo__nom { font-weight: 500; }
+.etiquette, .bulle__nom, .msg__nom, .menu-modeles__titre, .pastille__terme { letter-spacing: .08em; }
+.bouton { letter-spacing: .06em; font-weight: 500; }
+
+/* Icônes pixel : pleines, nettes */
+.icone-px { fill: currentColor; stroke: none; image-rendering: pixelated; }
+.pastille .icone-px, .lien__icone .icone-px, .bouton .icone-px { width: 14px; height: 14px; }
+.suggestion__icone .icone-px, .menu-icone .icone-px { width: 16px; height: 16px; }
+.bouton-envoi .icone-px { width: 16px; height: 16px; }
+.menu-icone--petite .icone-px { width: 10px; height: 10px; }
+.icone--chevron.icone-px { width: 10px !important; height: 10px !important; }
+
+/* Une seule couleur : les pastilles d'icône sont grises, et s'allument aux yeux du chat */
+.suggestion__icone, .menu-icone, .menu-icone--jaune, .menu-icone--rose, .menu-icone--bleu, .menu-icone--vert, .menu-icone--gris {
+    color: var(--texte-2); background: var(--surface-2); border-radius: var(--rayon-petit);
+}
+.suggestion:hover .suggestion__icone, .menu-modeles__choix:hover .menu-icone, .menu-modeles__choix.is-on .menu-icone {
+    color: var(--oeil); background: rgba(var(--oeil-rvb), .12); transform: translateY(-2px);
+}
+.suggestion:hover { border-color: rgba(var(--oeil-rvb), .4); box-shadow: 0 0 0 1px rgba(var(--oeil-rvb), .15); }
+#open-memory:hover .icone, #open-reglages:hover .icone { color: var(--oeil); transform: none; }
+.bouton--nouveau:hover .icone { transform: none; }
+
+/* Coins carrés partout, et coins « pixel » sur les cartes */
+.pastille, .pastille-groupe .pastille, .saisie__ligne, .bouton-envoi, .bouton-envoi.is-pret, .saisie__ligne .bouton,
+.fenetre__boite, .menu-modeles, .menu-modeles__choix, .bulle, .discussions li, .lien--bloc, select, .demarrage input,
+#memory-input, #prenom-input, .role-form input, .role-form textarea { border-radius: var(--rayon); }
+.pastille-groupe .pastille:has(+ .pastille--x:not([hidden])) { border-radius: var(--rayon) 0 0 var(--rayon); }
+.pastille-groupe .pastille:not([hidden]) + .pastille--x { border-radius: 0 var(--rayon) var(--rayon) 0; }
+.msg.user .bulle-msg { border-radius: var(--rayon) var(--rayon) 0 var(--rayon); }
+.suggestion, .demarrage__carte, .bouton, .bouton-envoi {
+    border-radius: 0;
+    clip-path: polygon(3px 0, calc(100% - 3px) 0, 100% 3px, 100% calc(100% - 3px), calc(100% - 3px) 100%, 3px 100%, 0 calc(100% - 3px), 0 3px);
+}
+
+/* Les animations du chat et des petits éléments avancent par à-coups, comme un sprite */
+.mascotte__bouton { animation: flotte 2.4s steps(4) infinite; }
+.suggestions .suggestion { animation-timing-function: steps(4); }
+.menu-modeles { animation: arrivee .18s steps(3) both; }
+.bouton-envoi.is-pret { animation: pret .24s steps(3); }
+.suggestion__icone, .menu-icone { transition: transform .12s steps(2), color .12s steps(2), background .12s steps(2); }
+
+/* Quelques pixels d'étoiles dans le fond, qui scintillent */
+.principal { position: relative; }
+.principal::before {
+    content: ""; position: absolute; top: 0; left: 0; width: 2px; height: 2px; pointer-events: none;
+    background: transparent; color: rgba(255, 255, 255, .5);
+    box-shadow: 8vw 12vh, 22vw 5vh, 41vw 18vh, 63vw 7vh, 78vw 15vh, 91vw 4vh, 14vw 33vh, 85vw 30vh, 55vw 28vh, 33vw 9vh, 70vw 24vh, 5vw 22vh;
+    animation: scintille 6s steps(2) infinite;
+}
+.principal > .messages, .principal > .saisie { position: relative; z-index: 1; }
+.depot { z-index: 5; }
+@keyframes scintille { 0%, 100% { opacity: .35; } 50% { opacity: .15; } }
+
+@media (prefers-reduced-motion: reduce) {
+    .principal::before, .menu-modeles { animation: none; }
+}
+/* Icônes à 2× la grille (16 px) pour des pixels nets, le chevron à 1× */
+.pastille .icone-px, .lien__icone .icone-px, .bouton .icone-px { width: 16px; height: 16px; }
+.icone--chevron.icone-px { width: 8px !important; height: 8px !important; }

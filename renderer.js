@@ -1246,15 +1246,15 @@ function appliquerPerso() {
         $(".suggestions").replaceChildren(...suggestions.map((s) => {
             const b = document.createElement("button");
             b.className = "suggestion";
-            const icone = document.createElement("span");
-            icone.className = "suggestion__icone suggestion__icone--jaune";
-            icone.textContent = "✦";
+            const badge = document.createElement("span");
+            badge.className = "suggestion__icone";
+            badge.innerHTML = icone("etincelle");
             const titre = document.createElement("strong");
             titre.textContent = texte(s.titre);
             const bloc = document.createElement("span");
             bloc.className = "suggestion__texte";
             bloc.append(titre);
-            b.append(icone, bloc);
+            b.append(badge, bloc);
             b.onclick = () => send(texte(s.message));
             return b;
         }));

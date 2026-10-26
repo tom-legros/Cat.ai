@@ -13,7 +13,7 @@
       <span class="logo__nom">Cat Ai</span>
     </div>
 
-    <button id="new-chat" class="bouton bouton--nouveau"><svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Nouvelle discussion</button>
+    <button id="new-chat" class="bouton bouton--nouveau"><svg class="icone icone-px" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="3" y="0" width="2" height="1"/><rect x="3" y="1" width="2" height="1"/><rect x="3" y="2" width="2" height="1"/><rect x="0" y="3" width="8" height="1"/><rect x="0" y="4" width="8" height="1"/><rect x="3" y="5" width="2" height="1"/><rect x="3" y="6" width="2" height="1"/><rect x="3" y="7" width="2" height="1"/></svg>Nouvelle discussion</button>
 
     <p class="etiquette">Discussions</p>
     <ul id="conv-list" class="discussions"></ul>
@@ -21,8 +21,8 @@
     <!-- En bas, comme sur Claude : la mémoire, les réglages et l'état de la connexion -->
     <div class="cote__bas">
       <p id="memoire-ajout" class="conseil" aria-live="polite"></p>
-      <button id="open-memory" class="lien lien--bloc"><span class="lien__icone"><svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.4-9.3-9A5.2 5.2 0 0 1 12 6.3 5.2 5.2 0 0 1 21.3 12C19 16.6 12 21 12 21z"/></svg>Mémoire</span> <span id="memory-count" class="compteur">0</span></button>
-      <button id="open-reglages" class="lien lien--bloc" type="button"><span class="lien__icone"><svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>Réglages</span></button>
+      <button id="open-memory" class="lien lien--bloc"><span class="lien__icone"><svg class="icone icone-px" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="1" y="1" width="2" height="1"/><rect x="5" y="1" width="2" height="1"/><rect x="0" y="2" width="8" height="1"/><rect x="0" y="3" width="8" height="1"/><rect x="1" y="4" width="6" height="1"/><rect x="2" y="5" width="4" height="1"/><rect x="3" y="6" width="2" height="1"/></svg>Mémoire</span> <span id="memory-count" class="compteur">0</span></button>
+      <button id="open-reglages" class="lien lien--bloc" type="button"><span class="lien__icone"><svg class="icone icone-px" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="3" y="0" width="2" height="1"/><rect x="1" y="1" width="6" height="1"/><rect x="1" y="2" width="2" height="1"/><rect x="5" y="2" width="2" height="1"/><rect x="0" y="3" width="3" height="1"/><rect x="5" y="3" width="3" height="1"/><rect x="0" y="4" width="3" height="1"/><rect x="5" y="4" width="3" height="1"/><rect x="1" y="5" width="2" height="1"/><rect x="5" y="5" width="2" height="1"/><rect x="1" y="6" width="6" height="1"/><rect x="3" y="7" width="2" height="1"/></svg>Réglages</span></button>
       <p id="status" class="statut">Connexion…</p>
     </div>
   </aside>
@@ -62,10 +62,10 @@
           </div>
         </div>
         <div class="suggestions">
-          <button class="suggestion" data-prompt="Explique-moi simplement un sujet qui m'intrigue, comme si j'avais 15 ans. Demande-moi d'abord lequel."><span class="suggestion__icone suggestion__icone--jaune"><svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg></span><span class="suggestion__texte"><strong>Explique-moi un truc</strong><small>Un sujet, simplement</small></span></button>
-          <button class="suggestion" data-prompt="Aide-moi à écrire un message clair et sympa. Demande-moi d'abord à qui il est destiné et ce que je veux dire."><span class="suggestion__icone suggestion__icone--rose"><svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></span><span class="suggestion__texte"><strong>Écrire un message</strong><small>Mail, texto, lettre</small></span></button>
-          <button class="suggestion" data-prompt="Aide-moi à réviser un cours avec des questions, une par une. Demande-moi d'abord sur quoi."><span class="suggestion__icone suggestion__icone--bleu"><svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v15H6a2 2 0 0 0-2 2z"/><path d="M4 20a2 2 0 0 0 2 2h13v-4"/></svg></span><span class="suggestion__texte"><strong>Réviser un cours</strong><small>Avec des questions</small></span></button>
-          <button class="suggestion" data-prompt="Je veux apprendre à coder depuis zéro. Pose-moi d'abord deux ou trois questions, puis dis-moi par quoi commencer."><span class="suggestion__icone suggestion__icone--vert"><svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/></svg></span><span class="suggestion__texte"><strong>Apprendre à coder</strong><small>Depuis zéro</small></span></button>
+          <button class="suggestion" data-prompt="Explique-moi simplement un sujet qui m'intrigue, comme si j'avais 15 ans. Demande-moi d'abord lequel."><span class="suggestion__icone suggestion__icone--jaune"><svg class="icone icone-px" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="2" y="0" width="4" height="1"/><rect x="1" y="1" width="1" height="1"/><rect x="6" y="1" width="1" height="1"/><rect x="1" y="2" width="1" height="1"/><rect x="6" y="2" width="1" height="1"/><rect x="1" y="3" width="1" height="1"/><rect x="6" y="3" width="1" height="1"/><rect x="2" y="4" width="1" height="1"/><rect x="5" y="4" width="1" height="1"/><rect x="3" y="5" width="2" height="1"/><rect x="2" y="6" width="4" height="1"/><rect x="3" y="7" width="2" height="1"/></svg></span><span class="suggestion__texte"><strong>Explique-moi un truc</strong><small>Un sujet, simplement</small></span></button>
+          <button class="suggestion" data-prompt="Aide-moi à écrire un message clair et sympa. Demande-moi d'abord à qui il est destiné et ce que je veux dire."><span class="suggestion__icone suggestion__icone--rose"><svg class="icone icone-px" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="6" y="0" width="2" height="1"/><rect x="5" y="1" width="3" height="1"/><rect x="4" y="2" width="3" height="1"/><rect x="3" y="3" width="3" height="1"/><rect x="2" y="4" width="3" height="1"/><rect x="1" y="5" width="3" height="1"/><rect x="0" y="6" width="2" height="1"/><rect x="0" y="7" width="1" height="1"/></svg></span><span class="suggestion__texte"><strong>Écrire un message</strong><small>Mail, texto, lettre</small></span></button>
+          <button class="suggestion" data-prompt="Aide-moi à réviser un cours avec des questions, une par une. Demande-moi d'abord sur quoi."><span class="suggestion__icone suggestion__icone--bleu"><svg class="icone icone-px" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="1" y="0" width="6" height="1"/><rect x="1" y="1" width="1" height="1"/><rect x="6" y="1" width="1" height="1"/><rect x="1" y="2" width="1" height="1"/><rect x="3" y="2" width="2" height="1"/><rect x="6" y="2" width="1" height="1"/><rect x="1" y="3" width="1" height="1"/><rect x="6" y="3" width="1" height="1"/><rect x="1" y="4" width="1" height="1"/><rect x="3" y="4" width="2" height="1"/><rect x="6" y="4" width="1" height="1"/><rect x="1" y="5" width="1" height="1"/><rect x="6" y="5" width="1" height="1"/><rect x="1" y="6" width="6" height="1"/></svg></span><span class="suggestion__texte"><strong>Réviser un cours</strong><small>Avec des questions</small></span></button>
+          <button class="suggestion" data-prompt="Je veux apprendre à coder depuis zéro. Pose-moi d'abord deux ou trois questions, puis dis-moi par quoi commencer."><span class="suggestion__icone suggestion__icone--vert"><svg class="icone icone-px" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="2" y="1" width="1" height="1"/><rect x="5" y="1" width="1" height="1"/><rect x="1" y="2" width="1" height="1"/><rect x="6" y="2" width="1" height="1"/><rect x="0" y="3" width="1" height="1"/><rect x="7" y="3" width="1" height="1"/><rect x="1" y="4" width="1" height="1"/><rect x="6" y="4" width="1" height="1"/><rect x="2" y="5" width="1" height="1"/><rect x="5" y="5" width="1" height="1"/></svg></span><span class="suggestion__texte"><strong>Apprendre à coder</strong><small>Depuis zéro</small></span></button>
         </div>
       </section>
     </div>
@@ -75,8 +75,8 @@
       <div class="saisie__ligne">
         <textarea id="input" rows="1" placeholder="Écris au chat…"></textarea>
         <button id="send" type="submit" class="bouton-envoi" title="Envoyer (Entrée)" aria-label="Envoyer">
-          <svg class="icone icone--envoi" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
-          <svg class="icone icone--stop" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="1.5"/></svg>
+          <svg class="icone icone-px icone--envoi" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="3" y="0" width="2" height="1"/><rect x="2" y="1" width="4" height="1"/><rect x="1" y="2" width="6" height="1"/><rect x="0" y="3" width="2" height="1"/><rect x="3" y="3" width="2" height="1"/><rect x="6" y="3" width="2" height="1"/><rect x="3" y="4" width="2" height="1"/><rect x="3" y="5" width="2" height="1"/><rect x="3" y="6" width="2" height="1"/><rect x="3" y="7" width="2" height="1"/></svg>
+          <svg class="icone icone-px icone--stop" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="1" y="1" width="6" height="1"/><rect x="1" y="2" width="6" height="1"/><rect x="1" y="3" width="6" height="1"/><rect x="1" y="4" width="6" height="1"/><rect x="1" y="5" width="6" height="1"/><rect x="1" y="6" width="6" height="1"/></svg>
         </button>
       </div>
       <!-- Sous la saisie, ce qui change la façon de répondre : dossier, mode prof, rôle -->
@@ -85,19 +85,19 @@
         <div class="outils__groupe">
           <span class="pastille-groupe">
             <button id="open-project" class="pastille" type="button" title="Ouvrir un dossier pour que le chat lise son contenu">
-              <svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h6l2 2h10v11H3z"/></svg>
+              <svg class="icone icone-px" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="0" y="1" width="3" height="1"/><rect x="0" y="2" width="7" height="1"/><rect x="0" y="3" width="1" height="1"/><rect x="7" y="3" width="1" height="1"/><rect x="0" y="4" width="1" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="0" y="5" width="1" height="1"/><rect x="7" y="5" width="1" height="1"/><rect x="0" y="6" width="8" height="1"/></svg>
               <span id="project-name">Dossier</span>
             </button>
             <button id="close-project" class="pastille pastille--x" type="button" title="Fermer le dossier" hidden>×</button>
           </span>
           <button id="mode-prof" class="pastille" type="button" role="switch" aria-checked="false" title="Mode prof : il t'explique et te donne des pistes, mais c'est toi qui trouves">
-            <svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><circle cx="7" cy="14" r="3.5"/><circle cx="17" cy="14" r="3.5"/><path d="M10.5 14h3M3.5 13l1.5-5M20.5 13L19 8"/></svg>
+            <svg class="icone icone-px" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="0" y="1" width="1" height="1"/><rect x="7" y="1" width="1" height="1"/><rect x="0" y="2" width="3" height="1"/><rect x="5" y="2" width="3" height="1"/><rect x="0" y="3" width="1" height="1"/><rect x="2" y="3" width="4" height="1"/><rect x="7" y="3" width="1" height="1"/><rect x="0" y="4" width="1" height="1"/><rect x="2" y="4" width="1" height="1"/><rect x="5" y="4" width="1" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="0" y="5" width="3" height="1"/><rect x="5" y="5" width="3" height="1"/></svg>
             <span>Mode prof</span>
           </button>
           <span class="raccourci">
             <button id="role-raccourci" class="pastille" type="button" aria-haspopup="true" title="Rôle : la mission du chat">
-              <svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.9z"/></svg>
-              <span id="role-libelle">Assistant</span><svg class="icone icone--chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg>
+              <svg class="icone icone-px" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="3" y="0" width="2" height="1"/><rect x="3" y="1" width="2" height="1"/><rect x="0" y="2" width="8" height="1"/><rect x="1" y="3" width="6" height="1"/><rect x="2" y="4" width="4" height="1"/><rect x="1" y="5" width="2" height="1"/><rect x="5" y="5" width="2" height="1"/><rect x="1" y="6" width="1" height="1"/><rect x="6" y="6" width="1" height="1"/></svg>
+              <span id="role-libelle">Assistant</span><svg class="icone icone-px icone--chevron" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="0" y="2" width="2" height="1"/><rect x="6" y="2" width="2" height="1"/><rect x="1" y="3" width="2" height="1"/><rect x="5" y="3" width="2" height="1"/><rect x="2" y="4" width="4" height="1"/><rect x="3" y="5" width="2" height="1"/></svg>
             </button>
             <div id="menu-roles" class="menu-modeles menu-modeles--gauche" hidden></div>
             <select id="role" hidden></select>
@@ -107,14 +107,14 @@
         <div class="outils__groupe">
           <span class="raccourci">
             <button id="fournisseur-raccourci" class="pastille pastille--discrete" type="button" aria-haspopup="true" title="Fournisseur : le service qui fait réfléchir le chat">
-              <span id="fournisseur-icone" class="menu-icone menu-icone--petite"></span><span class="pastille__terme">Fournisseur</span><span id="fournisseur-nom">…</span><svg class="icone icone--chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg>
+              <span id="fournisseur-icone" class="menu-icone menu-icone--petite"></span><span class="pastille__terme">Fournisseur</span><span id="fournisseur-nom">…</span><svg class="icone icone-px icone--chevron" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="0" y="2" width="2" height="1"/><rect x="6" y="2" width="2" height="1"/><rect x="1" y="3" width="2" height="1"/><rect x="5" y="3" width="2" height="1"/><rect x="2" y="4" width="4" height="1"/><rect x="3" y="5" width="2" height="1"/></svg>
             </button>
             <div id="menu-fournisseurs" class="menu-modeles" hidden></div>
           </span>
           <span class="raccourci">
             <button id="modele-raccourci" class="pastille pastille--discrete" type="button" aria-haspopup="true">
               <svg class="quota" viewBox="0 0 20 20" aria-hidden="true"><circle class="quota__fond" cx="10" cy="10" r="7"/><circle id="quota-arc" class="quota__plein" cx="10" cy="10" r="7"/></svg>
-              <span class="pastille__terme">Modèle</span><span id="modele-nom">…</span><svg class="icone icone--chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg>
+              <span class="pastille__terme">Modèle</span><span id="modele-nom">…</span><svg class="icone icone-px icone--chevron" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="0" y="2" width="2" height="1"/><rect x="6" y="2" width="2" height="1"/><rect x="1" y="3" width="2" height="1"/><rect x="5" y="3" width="2" height="1"/><rect x="2" y="4" width="4" height="1"/><rect x="3" y="5" width="2" height="1"/></svg>
             </button>
             <div id="menu-modeles" class="menu-modeles" hidden></div>
           </span>
@@ -211,6 +211,7 @@
   <script src="node_modules/diff/dist/diff.min.js"></script>
   <script src="chat.js"></script>
   <!-- L'interface, dans l'ordre : chaque fichier peut utiliser ce que les précédents déclarent -->
+  <script src="interface/icones.js"></script>
   <script src="interface/personnalite.js"></script>
   <script src="interface/markdown.js"></script>
   <script src="interface/modeles.js"></script>
