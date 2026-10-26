@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; font-src 'self'">
+  <title>Le chat noir</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <aside class="cote">
+    <div class="logo" id="logo">
+      <span class="logo__yeux" aria-hidden="true"><span class="logo__oeil"></span><span class="logo__oeil"></span></span>
+      <span class="logo__nom">Le chat noir</span>
+    </div>
+
+    <button id="new-chat" class="bouton">Nouvelle discussion</button>
+
+    <p class="etiquette">Discussions</p>
+    <ul id="conv-list" class="discussions"></ul>
+
+    <div class="bloc">
+      <p class="etiquette">Projet</p>
+      <p id="project-name" class="projet-nom">Aucun dossier ouvert</p>
+      <div class="rangee">
+        <button id="open-project" class="lien">Ouvrir un dossier</button>
+        <button id="close-project" class="lien" hidden>Fermer</button>
+      </div>
+    </div>
+
+    <button id="open-memory" class="lien lien--bloc">Mémoire <span id="memory-count" class="compteur">0</span></button>
+
+    <button id="mode-prof" class="interrupteur" role="switch" aria-checked="false" title="Le chat explique et donne des pistes, mais n'écrit ni code complet ni fichier">
+      <span class="interrupteur__texte">Mode prof<span class="interrupteur__detail">Il explique, tu codes</span></span>
+      <span class="interrupteur__piste"><span class="interrupteur__point"></span></span>
+    </button>
+
+    <div class="bloc">
+      <label class="etiquette" for="role">Rôle</label>
+      <select id="role">
+        <option value="">Généraliste</option>
+        <option value="relecteur">Relecteur de code</option>
+        <option value="debogueur">Débogueur</option>
+        <option value="readme">Rédacteur README</option>
+      </select>
+      <p id="role-detail" class="conseil"></p>
+    </div>
+
+    <div class="bloc">
+      <div class="rangee rangee--entre">
+        <label class="etiquette" for="fournisseur">Fournisseur</label>
+        <button id="open-fournisseurs" class="lien lien--petit" type="button">Clés API</button>
+      </div>
+      <select id="fournisseur"></select>
+      <label class="etiquette etiquette--suite" for="model">Modèle</label>
+      <select id="model"></select>
+      <p id="conseil-modele" class="conseil"></p>
+      <p id="status" class="statut">Connexion…</p>
+    </div>
+  </aside>
+
+  <main class="principal">
+    <div id="messages" class="messages">
+      <section id="welcome" class="accueil">
+        <div class="mascotte" id="mascotte">
+          <div class="bulle is-hidden" id="bulle">
+            <p class="bulle__nom">Le chat noir</p>
+            <p class="bulle__texte" id="bulle-texte"></p>
+          </div>
+          <button class="mascotte__bouton" id="mascotte-bouton" type="button" aria-label="Le chat noir : cliquer pour qu'il parle">
+            <span class="zzz" aria-hidden="true"><span>z</span><span>z</span><span>Z</span></span>
+            <canvas id="grand-chat" class="mascotte__chat"></canvas>
+          </button>
+        </div>
+        <h1 class="accueil__titre">Qu'est-ce qu'on construit&nbsp;?</h1>
+        <p class="accueil__texte">Tout tourne sur ton PC. Gratuit, sans limite, et je ne dis rien à personne.</p>
+        <div class="suggestions">
+          <button data-prompt="Regarde le projet que j'ai ouvert et dis-moi ce que je pourrais améliorer en premier.">Regarder mon projet</button>
+          <button data-prompt="Explique-moi une notion de programmation que je n'ai pas bien comprise, avec un petit exemple. Demande-moi d'abord laquelle.">Comprendre une notion</button>
+          <button data-prompt="J'ai un bug que je ne comprends pas. Aide-moi à le trouver étape par étape, sans me donner la solution direct.">Débugger ensemble</button>
+          <button data-prompt="Donne-moi une idée de petit projet pour progresser, avec les notions que je vais apprendre. Demande-moi d'abord quel langage j'utilise.">Idée de petit projet</button>
+        </div>
+      </section>
+    </div>
+
+    <form id="composer" class="saisie">
+      <ul id="pieces" class="pieces" hidden></ul>
+      <div class="saisie__ligne">
+        <textarea id="input" rows="1" placeholder="Écris au chat… (glisse un fichier ici pour le lui montrer)"></textarea>
+        <button id="send" type="submit" class="bouton">Envoyer</button>
+      </div>
+    </form>
+
+    <div id="depot" class="depot" hidden>
+      <p class="depot__texte">Lâche le fichier, je le lis.</p>
+    </div>
+  </main>
+
+  <div id="fournisseurs-modal" class="fenetre" hidden>
+    <div class="fenetre__boite">
+      <p class="etiquette">Fournisseurs</p>
+      <h2 class="fenetre__titre">Clés API</h2>
+      <p class="discret">Les clés sont chiffrées par Windows sur ton PC et ne sont jamais réaffichées. Avec un fournisseur en ligne, tes messages, ta mémoire et les fichiers que le chat lit partent sur ses serveurs : Ollama reste le seul 100 % local.</p>
+      <div id="fournisseurs-liste" class="fournisseurs"></div>
+      <div class="rangee rangee--fin"><button id="close-fournisseurs" class="lien" type="button">Fermer</button></div>
+    </div>
+  </div>
+
+  <div id="diff-modal" class="fenetre" hidden>
+    <div class="fenetre__boite fenetre__boite--large">
+      <p class="etiquette" id="diff-type">Modification</p>
+      <h2 class="fenetre__titre" id="diff-chemin"></h2>
+      <p class="discret" id="diff-stats"></p>
+      <div class="diff" id="diff-contenu"></div>
+      <div class="rangee rangee--fin">
+        <button id="diff-refuser" class="lien">Refuser</button>
+        <button id="diff-accepter" class="bouton">Autoriser</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="memory-modal" class="fenetre" hidden>
+    <div class="fenetre__boite">
+      <p class="etiquette">Mémoire</p>
+      <h2 class="fenetre__titre">Ce que le chat retient</h2>
+      <p class="discret">D'une discussion à l'autre. Il peut ajouter des choses tout seul, et tu peux tout modifier ici.</p>
+      <ul id="memory-list" class="souvenirs"></ul>
+      <form id="memory-form" class="rangee">
+        <input id="memory-input" placeholder="Ex : je code surtout en Python">
+        <button class="bouton">Ajouter</button>
+      </form>
+      <div class="rangee rangee--fin"><button id="close-memory" class="lien">Fermer</button></div>
+    </div>
+  </div>
+
+  <!-- Bibliothèques open source (voir les crédits dans README.md) -->
+  <script src="node_modules/marked/lib/marked.umd.js"></script>
+  <script src="node_modules/dompurify/dist/purify.min.js"></script>
+  <script src="node_modules/@highlightjs/cdn-assets/highlight.min.js"></script>
+  <script src="node_modules/diff/dist/diff.min.js"></script>
+  <script src="chat.js"></script>
+  <script src="renderer.js"></script>
+</body>
+</html>

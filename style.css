@@ -1,0 +1,453 @@
+/* ==========================================================
+   Le chat noir — DA reprise de mon portfolio
+   Noir et blanc, lueur blanche au survol, une seule couleur : les yeux du chat
+   ========================================================== */
+
+@font-face { font-family: "Jost"; font-weight: 300 600; font-display: swap; src: url("fonts/jost-latin.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Jost"; font-weight: 300 600; font-display: swap; src: url("fonts/jost-latin-ext.woff2") format("woff2"); unicode-range: U+0100-02AF, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: "Marcellus"; font-weight: 400; font-display: swap; src: url("fonts/marcellus-latin.woff2") format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-weight: 400; font-display: swap; src: url("fonts/jetbrainsmono-latin.woff2") format("woff2"); }
+
+/* ---------- 1. Couleurs et réglages ---------- */
+:root {
+    --bg: #050505;
+    --surface: #0e0e0e;
+    --surface-2: #161616;
+    --texte: #e8e8e8;
+    --texte-2: #a3a3a3;
+    --texte-3: #858585;
+    --ligne: rgba(232, 232, 232, .1);
+    --ligne-2: rgba(232, 232, 232, .2);
+
+    --lumiere: #ffffff;
+    --lueur: 0 0 14px rgba(255, 255, 255, .55);
+    --lueur-bouton: 0 0 28px rgba(255, 255, 255, .35);
+
+    /* La seule couleur : les yeux du chat */
+    --oeil: #e8c547;
+    --oeil-lueur: rgba(232, 197, 71, .45);
+    --pupille: #0a0a0a;
+
+    /* Le chat noir (lus par chat.js pour dessiner) */
+    --chat-pelage: #0a0a0a;
+    --chat-contour: #4a4a4a;
+    --chat-ombre: #262626;
+    --chat-oreille: #333333;
+    --chat-nez: #3d3d3d;
+    --chat-poitrail: #2a2a2a;
+    --chat-paupiere: #555555;
+    --oeil-halo: rgba(232, 197, 71, .9);
+    --chat-lunettes: #9a9a9a;
+    --chat-reflet: #ffffff;
+
+    --erreur: #e8e8e8;
+
+    --police-titre: "Marcellus", Georgia, serif;
+    --police-texte: "Jost", system-ui, sans-serif;
+    --police-mono: "JetBrains Mono", Consolas, monospace;
+    --ease: cubic-bezier(.16, 1, .3, 1);
+
+    color-scheme: dark;
+}
+
+/* Mode prof : la seule couleur de l'app passe du jaune au bleu (yeux, logo, mots-clés du code…) */
+body.mode-prof {
+    --oeil: #6cb4ee;
+    --oeil-lueur: rgba(108, 180, 238, .45);
+    --oeil-halo: rgba(108, 180, 238, .9);
+}
+
+/* ---------- 2. Base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    background: var(--bg);
+    color: var(--texte);
+    font: 300 16px/1.65 var(--police-texte);
+    -webkit-font-smoothing: antialiased;
+}
+
+button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; padding: 0; }
+input, select, textarea { font: inherit; color: var(--texte); }
+::selection { background: var(--lumiere); color: var(--bg); }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--surface-2); border: 3px solid var(--bg); border-radius: 10px; }
+
+.etiquette {
+    margin: 0 0 6px;
+    font-family: var(--police-titre);
+    font-size: 11px;
+    letter-spacing: .26em;
+    text-transform: uppercase;
+    color: var(--texte-3);
+}
+.discret { color: var(--texte-3); font-size: 14px; margin: 0; }
+
+/* Bouton plein blanc, comme sur le portfolio */
+.bouton {
+    padding: 10px 18px;
+    background: var(--lumiere);
+    color: var(--bg);
+    font-family: var(--police-titre);
+    font-size: 13px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    border-radius: 2px;
+    transition: box-shadow .25s ease;
+}
+.bouton:hover { box-shadow: var(--lueur-bouton); }
+.bouton:disabled, .lien:disabled { opacity: .4; cursor: default; box-shadow: none; }
+.bouton.is-stop { background: transparent; color: var(--texte); outline: 1px solid var(--ligne-2); }
+
+/* Lien discret qui s'allume au survol */
+.lien {
+    color: var(--texte-2);
+    font-size: 14px;
+    text-align: left;
+    transition: color .2s ease, text-shadow .2s ease;
+}
+.lien:hover { color: var(--lumiere); text-shadow: var(--lueur); }
+.lien--bloc { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border: 1px solid var(--ligne); border-radius: 2px; }
+.compteur { font-family: var(--police-mono); font-size: 12px; color: var(--texte-3); }
+
+.rangee { display: flex; gap: 14px; align-items: center; }
+.rangee--fin { justify-content: flex-end; margin-top: 18px; }
+
+/* ---------- 3. Barre latérale ---------- */
+.cote {
+    width: 270px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 22px 18px;
+    background: var(--bg);
+    border-right: 1px solid var(--ligne);
+}
+
+/* Logo : les yeux du chat en pixels, qui clignent avec lui */
+.logo { display: flex; align-items: center; gap: 12px; padding: 2px 2px 8px; }
+.logo__yeux { display: flex; gap: 6px; }
+.logo__oeil {
+    width: 9px;
+    height: 6px;
+    background: linear-gradient(90deg, var(--oeil) 0 33.3%, var(--pupille) 33.3% 66.6%, var(--oeil) 66.6%);
+    box-shadow: 0 0 6px var(--oeil-lueur);
+    transition: transform .12s ease;
+}
+.logo.is-closed .logo__oeil { transform: scaleY(.18); }
+.logo__nom { font-family: var(--police-titre); font-size: 19px; letter-spacing: .04em; }
+
+.discussions { list-style: none; margin: -8px 0 0; padding: 0; flex: 1; overflow-y: auto; }
+.discussions li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 10px;
+    border-left: 1px solid transparent;
+    color: var(--texte-3);
+    font-size: 14px;
+    cursor: pointer;
+    transition: color .2s ease, border-color .2s ease;
+}
+.discussions li:hover { color: var(--texte); }
+.discussions li.is-active { color: var(--lumiere); border-left-color: var(--lumiere); }
+.discussions li span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.discussions .suppr { color: var(--texte-3); visibility: hidden; font-size: 12px; }
+.discussions li:hover .suppr { visibility: visible; }
+.discussions .suppr:hover { color: var(--lumiere); }
+
+.bloc { display: flex; flex-direction: column; gap: 6px; }
+.projet-nom { margin: 0; font-family: var(--police-mono); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--texte-3); }
+.projet-nom.is-on { color: var(--lumiere); }
+
+select {
+    padding: 8px 10px;
+    background: var(--surface);
+    border: 1px solid var(--ligne-2);
+    border-radius: 2px;
+    font-family: var(--police-mono);
+    font-size: 13px;
+}
+.statut { margin: 0; font-size: 13px; color: var(--texte-3); }
+.statut::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 8px; vertical-align: middle; background: var(--texte-3); }
+.statut.is-ok::before { background: var(--oeil); box-shadow: 0 0 6px var(--oeil-lueur); }
+
+/* ---------- 4. Zone principale ---------- */
+.principal { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.messages { flex: 1; overflow-y: auto; padding: 32px 0 12px; }
+
+/* Accueil avec le grand chat */
+.accueil { max-width: 720px; margin: 7vh auto 0; padding: 0 32px; text-align: center; }
+.accueil__titre { margin: 18px 0 6px; font: 400 clamp(28px, 3.4vw, 40px)/1.15 var(--police-titre); }
+.accueil__texte { margin: 0; color: var(--texte-2); }
+
+.mascotte { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.mascotte__bouton { position: relative; width: 132px; height: 132px; }
+.mascotte__chat { width: 100%; height: 100%; image-rendering: pixelated; }
+
+.bulle {
+    position: relative;
+    width: min(340px, 90%);
+    min-height: 74px;
+    padding: 12px 16px 13px;
+    border: 1px solid var(--ligne-2);
+    border-radius: 4px;
+    background: var(--surface);
+    box-shadow: 0 14px 34px rgba(0, 0, 0, .5);
+    text-align: left;
+    transition: opacity .3s ease, transform .3s ease;
+}
+.bulle.is-hidden { opacity: 0; transform: translateY(6px); }
+.bulle::after {
+    content: "";
+    position: absolute;
+    left: calc(50% - 5px);
+    bottom: -6px;
+    width: 10px;
+    height: 10px;
+    background: var(--surface);
+    border-right: 1px solid var(--ligne-2);
+    border-bottom: 1px solid var(--ligne-2);
+    transform: rotate(45deg);
+}
+.bulle__nom { margin: 0 0 4px; font-family: var(--police-titre); font-size: 11px; letter-spacing: .26em; text-transform: uppercase; color: var(--texte-3); }
+.bulle__texte { margin: 0; font-size: 15px; line-height: 1.5; }
+
+/* Le chat dort : des « z » au-dessus de la tête */
+.zzz { position: absolute; right: 2px; top: -10px; width: 40px; height: 40px; font-family: var(--police-titre); color: var(--texte-2); opacity: 0; transition: opacity .4s ease; pointer-events: none; }
+.zzz span { position: absolute; line-height: 1; }
+.zzz span:nth-child(1) { left: 0; bottom: 0; font-size: 12px; }
+.zzz span:nth-child(2) { left: 11px; bottom: 11px; font-size: 16px; }
+.zzz span:nth-child(3) { left: 23px; bottom: 23px; font-size: 20px; }
+.mascotte.is-asleep .zzz { opacity: 1; }
+.mascotte.is-asleep .zzz span { animation: zzz 2.4s ease-in-out infinite backwards; }
+.mascotte.is-asleep .zzz span:nth-child(2) { animation-delay: .8s; }
+.mascotte.is-asleep .zzz span:nth-child(3) { animation-delay: 1.6s; }
+@keyframes zzz { 0% { opacity: 0; transform: translateY(4px); } 30%, 70% { opacity: 1; } 100% { opacity: 0; transform: translateY(-8px); } }
+
+.suggestions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 30px; }
+.suggestions button {
+    padding: 14px 16px;
+    border: 1px solid var(--ligne);
+    border-radius: 2px;
+    background: var(--surface);
+    text-align: left;
+    color: var(--texte-2);
+    transition: color .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+.suggestions button:hover { color: var(--lumiere); border-color: var(--ligne-2); box-shadow: 0 0 28px rgba(255, 255, 255, .08); }
+
+/* ---------- 5. Messages ---------- */
+.msg { max-width: 820px; margin: 0 auto 26px; padding: 0 32px; }
+.msg.user .bulle-msg {
+    width: fit-content;
+    max-width: 85%;
+    margin-left: auto;
+    padding: 10px 16px;
+    border: 1px solid var(--ligne-2);
+    border-radius: 4px;
+    background: var(--surface);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.msg.assistant { display: grid; grid-template-columns: 40px 1fr; gap: 14px; }
+.msg__chat { width: 40px; height: 40px; image-rendering: pixelated; }
+.msg__nom { margin: 8px 0 4px; font-family: var(--police-titre); font-size: 11px; letter-spacing: .26em; text-transform: uppercase; color: var(--texte-3); }
+.msg.assistant .bulle-msg { min-width: 0; overflow-wrap: anywhere; }
+.msg.error .bulle-msg { color: var(--texte-2); font-style: italic; }
+
+.bulle-msg p { margin: 0 0 12px; }
+.bulle-msg p:last-child { margin-bottom: 0; }
+.bulle-msg ul, .bulle-msg ol { margin: 0 0 12px; padding-left: 22px; }
+.bulle-msg li { margin-bottom: 4px; }
+.bulle-msg h3 { margin: 18px 0 8px; font: 400 18px/1.3 var(--police-titre); }
+.bulle-msg strong { font-weight: 500; color: var(--lumiere); }
+.bulle-msg :not(pre) > code { padding: 1px 6px; background: var(--surface-2); border-radius: 2px; font: 13px var(--police-mono); }
+
+.action {
+    display: inline-block;
+    margin: 2px 0;
+    padding: 2px 10px;
+    border: 1px solid var(--ligne);
+    border-radius: 2px;
+    font: 12px var(--police-mono);
+    color: var(--texte-3);
+}
+
+.code { margin: 12px 0; border: 1px solid var(--ligne-2); border-radius: 2px; overflow: hidden; }
+.code__tete {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 12px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--ligne);
+    font: 12px var(--police-mono);
+    color: var(--texte-3);
+}
+.code__actions { display: flex; gap: 14px; }
+.code__actions button { color: var(--texte-3); transition: color .2s ease, text-shadow .2s ease; }
+.code__actions button:hover { color: var(--lumiere); text-shadow: var(--lueur); }
+.code pre { margin: 0; padding: 14px; background: #000; overflow-x: auto; }
+.code pre code { font: 13px/1.55 var(--police-mono); }
+/* Coloration du code (highlight.js) dans la DA : des gris, et le jaune des yeux pour les mots-clés */
+.hljs-keyword, .hljs-selector-tag, .hljs-built_in, .hljs-type, .hljs-meta .hljs-keyword { color: var(--oeil); }
+.hljs-string, .hljs-regexp, .hljs-attr, .hljs-selector-attr { color: #c8c8c8; }
+.hljs-title, .hljs-title.function_, .hljs-section, .hljs-name, .hljs-selector-class, .hljs-selector-id { color: var(--lumiere); font-weight: 500; }
+.hljs-number, .hljs-literal, .hljs-symbol { color: #d9c27a; }
+.hljs-comment, .hljs-quote { color: #6f6f6f; font-style: italic; }
+.hljs-variable, .hljs-params, .hljs-property, .hljs-attribute { color: #b5b5b5; }
+.hljs-meta, .hljs-tag { color: #8a8a8a; }
+.hljs-addition { color: #a8d8a8; }
+.hljs-deletion { color: #e0a0a0; }
+
+/* Titres et tableaux produits par marked */
+.bulle-msg h1, .bulle-msg h2, .bulle-msg h4 { margin: 18px 0 8px; font: 400 18px/1.3 var(--police-titre); }
+.bulle-msg h1 { font-size: 22px; }
+.bulle-msg h2 { font-size: 20px; }
+.bulle-msg table { border-collapse: collapse; margin: 0 0 12px; font-size: 14px; }
+.bulle-msg th, .bulle-msg td { padding: 6px 12px; border: 1px solid var(--ligne-2); text-align: left; }
+.bulle-msg th { font-weight: 500; color: var(--lumiere); background: var(--surface); }
+.bulle-msg blockquote { margin: 0 0 12px; padding-left: 14px; border-left: 1px solid var(--ligne-2); color: var(--texte-2); }
+.bulle-msg a { color: var(--lumiere); }
+
+.enregistrer { display: flex; gap: 8px; }
+.enregistrer input { width: 220px; padding: 1px 8px; background: #000; border: 1px solid var(--ligne-2); border-radius: 2px; font: 12px var(--police-mono); }
+
+/* Curseur qui clignote pendant que le chat écrit */
+.is-typing > :last-child::after, .is-typing:empty::after { content: "▍"; color: var(--texte-3); animation: clignote 1s steps(1) infinite; }
+@keyframes clignote { 50% { opacity: 0; } }
+
+/* ---------- 6. Saisie ---------- */
+.saisie { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 820px; margin: 0 auto; padding: 12px 32px 24px; }
+.saisie__ligne { display: flex; gap: 12px; align-items: flex-end; }
+
+/* Fichiers joints, au-dessus de la saisie et dans les messages */
+.pieces { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.pieces[hidden] { display: none; }
+.piece {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 10px;
+    border: 1px solid var(--ligne-2);
+    border-radius: 2px;
+    background: var(--surface);
+    font: 12px var(--police-mono);
+    color: var(--texte-2);
+}
+.piece button { color: var(--texte-3); }
+.piece button:hover { color: var(--lumiere); }
+.msg.user .pieces { justify-content: flex-end; margin-bottom: 6px; }
+
+/* Zone de dépôt quand on glisse un fichier */
+.depot {
+    position: fixed;
+    inset: 12px 12px 12px 282px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px dashed var(--texte-2);
+    border-radius: 4px;
+    background: rgba(5, 5, 5, .88);
+    pointer-events: none;
+}
+.depot[hidden] { display: none; }
+.depot__texte { font: 400 26px var(--police-titre); text-shadow: var(--lueur); }
+
+/* Interrupteur du mode prof */
+.interrupteur { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid var(--ligne); border-radius: 2px; text-align: left; }
+.interrupteur__texte { display: flex; flex-direction: column; font-size: 14px; color: var(--texte-2); }
+.interrupteur__detail { font-size: 12px; color: var(--texte-3); }
+.interrupteur__piste { position: relative; width: 30px; height: 16px; border: 1px solid var(--ligne-2); border-radius: 2px; flex-shrink: 0; }
+.interrupteur__point { position: absolute; top: 3px; left: 3px; width: 8px; height: 8px; background: var(--texte-3); transition: left .2s var(--ease), background .2s ease, box-shadow .2s ease; }
+.interrupteur[aria-checked="true"] { border-color: var(--ligne-2); }
+.interrupteur[aria-checked="true"] .interrupteur__texte { color: var(--lumiere); }
+.interrupteur[aria-checked="true"] .interrupteur__point { left: 17px; background: var(--oeil); box-shadow: 0 0 6px var(--oeil-lueur); }
+
+/* Fenêtre avant / après */
+.fenetre__boite--large { width: min(980px, 94vw); max-height: 88vh; display: flex; flex-direction: column; }
+.fenetre__titre#diff-chemin { font: 14px var(--police-mono); word-break: break-all; }
+.diff { flex: 1; min-height: 120px; margin-top: 14px; overflow: auto; border: 1px solid var(--ligne-2); border-radius: 2px; background: #000; font: 12.5px/1.55 var(--police-mono); }
+.diff__ligne { display: grid; grid-template-columns: 44px 44px 16px 1fr; white-space: pre; }
+.diff__num { padding-right: 8px; text-align: right; color: var(--texte-3); user-select: none; }
+.diff__signe { color: var(--texte-3); user-select: none; }
+.diff__ligne.is-ajout { background: rgba(120, 200, 120, .12); }
+.diff__ligne.is-ajout .diff__signe { color: #8fd18f; }
+.diff__ligne.is-retrait { background: rgba(230, 100, 100, .12); color: var(--texte-2); }
+.diff__ligne.is-retrait .diff__signe { color: #e58a8a; }
+.diff__saut { padding: 2px 12px; color: var(--texte-3); background: var(--surface); border-block: 1px solid var(--ligne); }
+
+/* Étirement du chat au réveil */
+.s-etire { transform-origin: 50% 100%; animation: etirement .9s var(--ease); }
+@keyframes etirement { 0% { transform: scale(1, 1); } 30% { transform: scale(1.12, .86); } 60% { transform: scale(.94, 1.08); } 100% { transform: scale(1, 1); } }
+.saisie textarea {
+    flex: 1;
+    max-height: 200px;
+    padding: 11px 14px;
+    resize: none;
+    background: var(--surface);
+    border: 1px solid var(--ligne-2);
+    border-radius: 2px;
+    transition: border-color .2s ease, box-shadow .2s ease;
+}
+.saisie textarea:focus { outline: none; border-color: var(--texte-2); box-shadow: 0 0 20px rgba(255, 255, 255, .06); }
+.saisie textarea::placeholder { color: var(--texte-3); }
+
+/* Sélecteurs fournisseur / modèle */
+.rangee--entre { justify-content: space-between; }
+.rangee--entre .etiquette { margin: 0; }
+.etiquette--suite { margin-top: 6px; }
+.lien--petit { font-size: 12px; }
+.statut.is-erreur { color: var(--texte-2); }
+
+/* Sous la liste des modèles : conseillé (couleur des yeux du chat) ou gourmand */
+.conseil { margin: 6px 0 8px; font-size: 12px; line-height: 1.4; color: var(--texte-3); }
+.conseil:empty { display: none; }
+.conseil.is-conseille { color: var(--oeil); text-shadow: 0 0 6px var(--oeil-lueur); }
+.conseil.is-gourmand { color: var(--texte-2); }
+.conseil .lien { padding: 0; text-align: left; }
+
+/* Panneau Fournisseurs : une carte par fournisseur en ligne */
+.fournisseurs { display: flex; flex-direction: column; gap: 10px; margin: 18px 0 0; }
+.fournisseur { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border: 1px solid var(--ligne); border-radius: 2px; }
+.fournisseur__tete { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.fournisseur__nom { font-family: var(--police-titre); font-size: 17px; }
+.fournisseur__etat { font: 12px var(--police-mono); color: var(--texte-3); }
+.fournisseur__etat.is-ok { color: var(--oeil); }
+.fournisseur__url { margin: 0; font: 12px var(--police-mono); color: var(--texte-3); word-break: break-all; }
+.fournisseur input {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 10px;
+    background: var(--surface);
+    border: 1px solid var(--ligne-2);
+    border-radius: 2px;
+    font: 13px var(--police-mono);
+}
+.fournisseur input:focus { outline: none; border-color: var(--texte-2); }
+.fournisseur .bouton { padding: 8px 14px; font-size: 12px; }
+.fournisseur__message { margin: 0; font-size: 13px; color: var(--texte-2); }
+.fournisseur__alerte { margin: 0; padding: 8px 10px; border-left: 2px solid var(--oeil); background: var(--surface); font-size: 13px; color: var(--texte); }
+
+/* ---------- 7. Fenêtre mémoire ---------- */
+.fenetre { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, .7); }
+.fenetre[hidden] { display: none; }
+.fenetre__boite { width: min(580px, 92vw); max-height: 82vh; overflow-y: auto; padding: 24px; background: var(--bg); border: 1px solid var(--ligne-2); border-radius: 4px; }
+.fenetre__titre { margin: 0 0 6px; font: 400 26px/1.2 var(--police-titre); }
+.souvenirs { list-style: none; margin: 18px 0; padding: 0; }
+.souvenirs li { display: flex; gap: 10px; align-items: baseline; padding: 9px 0; border-bottom: 1px solid var(--ligne); font-size: 14.5px; }
+.souvenirs li span { flex: 1; }
+.souvenirs li button { color: var(--texte-3); font-size: 12px; }
+.souvenirs li button:hover { color: var(--lumiere); }
+#memory-input { flex: 1; padding: 9px 12px; background: var(--surface); border: 1px solid var(--ligne-2); border-radius: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+}

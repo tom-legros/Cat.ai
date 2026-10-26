@@ -1,0 +1,8 @@
+node_modules/
+
+# Fichiers de dossier Windows
+desktop.ini
+Thumbs.db
+
+# Copies de sauvegarde
+*.avant-*
