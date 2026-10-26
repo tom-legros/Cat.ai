@@ -60,3 +60,47 @@ test('messageErreurOpenAI : message clair en français selon le code', async () 
   assert.match(await erreur(403, { error: { message: 'Key limit exceeded' } }), /limite de crédit de cette clé/);
   assert.match(await erreur(503, {}), /problème de son côté/);
 });
+
+test('Gemini 3 : la signature de réflexion d un appel d outil est gardée et renvoyée telle quelle', () => {
+  const signature = { google: { thought_signature: 'EpoGCpcGAXLI2nx' } };
+  // Les morceaux du flux, comme les envoie le point d'accès compatible OpenAI de Gemini
+  const appels = [{ id: 'c1', name: 'chercher', arguments: '{"texte":"x"}', extra_content: signature }];
+  const [appel] = finirAppels(appels);
+  assert.deepEqual(appel.extra_content, signature);
+  const openai = versOpenAI([{ role: 'assistant', content: '', tool_calls: [appel] }, { role: 'tool', content: 'r', tool_call_id: 'c1' }]);
+  assert.deepEqual(openai[0].tool_calls[0].extra_content, signature);
+});
+
+test('sans signature (Groq, OpenRouter), aucun champ extra_content n est envoyé', () => {
+  const [appel] = finirAppels([{ id: 'c1', name: 'chercher', arguments: '{}' }]);
+  assert.equal('extra_content' in appel, false);
+  assert.equal('extra_content' in versOpenAI([{ role: 'assistant', content: '', tool_calls: [appel] }])[0].tool_calls[0], false);
+});
+
+test('Gemini 3 : la signature survit au flux SSE, puis repart dans la requête suivante', async (t) => {
+  const { envoyerOpenAI } = require('../principal/envoi');
+  const config = { id: 'gemini', nom: 'Gemini', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', cle: 'cle-factice' };
+  const morceau = (delta) => `data: ${JSON.stringify({ choices: [{ delta }] })}\n\n`;
+  const flux = morceau({ tool_calls: [{ index: 0, id: 'c1', type: 'function', function: { name: 'chercher', arguments: '{"texte":' }, extra_content: { google: { thought_signature: 'SIG' } } }] })
+    + morceau({ tool_calls: [{ index: 0, function: { arguments: '"remplacerTexte"}' } }] })
+    + 'data: [DONE]\n\n';
+  const corpsEnvoyes = [];
+  const fetchOriginal = globalThis.fetch;
+  globalThis.fetch = async (_url, options) => {
+    corpsEnvoyes.push(JSON.parse(options.body));
+    return new Response(flux, { status: 200 });
+  };
+  t.after(() => { globalThis.fetch = fetchOriginal; });
+
+  const { toolCalls } = await envoyerOpenAI(config, [{ role: 'user', content: 'où ?' }], 'gemini-3.5-flash-lite', () => {}, undefined, {});
+  assert.deepEqual(toolCalls[0].function, { name: 'chercher', arguments: { texte: 'remplacerTexte' } });
+  assert.deepEqual(toolCalls[0].extra_content, { google: { thought_signature: 'SIG' } });
+
+  // Tour suivant : l'historique avec l'appel et son résultat repart vers Gemini, signature comprise
+  await envoyerOpenAI(config, [
+    { role: 'user', content: 'où ?' },
+    { role: 'assistant', content: '', tool_calls: toolCalls },
+    { role: 'tool', content: 'principal/outils.js:118: function remplacerTexte', tool_call_id: 'c1' },
+  ], 'gemini-3.5-flash-lite', () => {}, undefined, {});
+  assert.equal(corpsEnvoyes[1].messages[1].tool_calls[0].extra_content.google.thought_signature, 'SIG');
+});

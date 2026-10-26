@@ -970,9 +970,11 @@ $("#fournisseurs-modal").onclick = (e) => { if (e.target.id === "fournisseurs-mo
 
 
 // Le texte de l'accueil dit la vérité : tout reste sur le PC seulement avec Ollama ou un serveur local
+// Ollama, ou un serveur sur le PC (LM Studio…) : rien ne sort de chez l’utilisateur
+const fournisseurLocal = (f) => f.type === "ollama" || /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/i.test(f.baseUrl || "");
+
 function renderAccueil(f) {
-    const local = f.type === "ollama" || /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/i.test(f.baseUrl || "");
-    $("#accueil-texte").textContent = local
+    $("#accueil-texte").textContent = fournisseurLocal(f)
         ? "Tout tourne sur ton PC. Gratuit, sans limite, et je ne dis rien à personne."
         : `Je passe par ${f.nom}, en ligne : gratuit, mais tes messages et les fichiers que je lis partent sur ses serveurs.`;
 }

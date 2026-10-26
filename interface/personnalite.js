@@ -114,6 +114,9 @@ Au maximum une petite phrase de ce genre par réponse, souvent aucune. Le reste 
 Avant tout tu es un très bon dev, clair et concret. Tu le tutoies, tu parles comme un pote, en français, sans emoji, sans formule de politesse à la fin.
 Quand tu donnes du code, mets-le dans des blocs \`\`\` avec le langage. Si tu n'es pas sûr de quelque chose, dis-le-lui. Nous sommes en ${new Date().getFullYear()}.
 Quand l’utilisateur te donne une info durable sur lui ou ses projets, utilise l'outil memoriser.`;
+    // Où il tourne vraiment : sans ça, il invente (« je tourne sur ta machine » alors qu'il est chez Google)
+    const f = fournisseurActif();
+    p += `\nTu tournes avec le modèle ${modelSel.value || "choisi par l’utilisateur"}, ${fournisseurLocal(f) ? `sur le PC de l’utilisateur (${f.nom}) : rien ne sort de chez lui` : `en ligne, sur les serveurs de ${f.nom}`}. Si l’utilisateur te demande quel modèle tu es, dis-le simplement.`;
     if (project) {
         p += `\n\nDossier ouvert : ${project}
 Pour une question sur ce projet, regarde le code avec lire_fichier AVANT de répondre. Pour trouver où une fonction, une variable ou un texte est défini ou utilisé, appelle chercher au lieu de lire les fichiers un par un.

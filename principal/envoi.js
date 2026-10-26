@@ -125,6 +125,9 @@ async function envoyerOpenAI(config, messages, modele, onMorceau, signal, option
         if (morceau.id) appel.id = morceau.id;
         if (morceau.function?.name) appel.name += morceau.function.name;
         if (morceau.function?.arguments) appel.arguments += morceau.function.arguments;
+        // Gemini 3 joint à ses appels d'outils une « signature de réflexion » (extra_content.google.thought_signature).
+        // Il faut la lui renvoyer telle quelle au tour suivant, sinon il répond 400. On garde tout extra_content.
+        if (morceau.extra_content) appel.extra_content = { ...appel.extra_content, ...morceau.extra_content };
       }
     }
   }
@@ -157,7 +160,9 @@ function finirAppels(appels) {
     try {
       args = a.arguments ? JSON.parse(a.arguments) : {};
     } catch {}
-    return { id: a.id || `appel_${i}`, function: { name: a.name, arguments: args } };
+    const appel = { id: a.id || `appel_${i}`, function: { name: a.name, arguments: args } };
+    if (a.extra_content) appel.extra_content = a.extra_content;
+    return appel;
   });
 }
 
@@ -171,7 +176,10 @@ function versOpenAI(messages) {
         const id = c.id || `appel_${Date.now()}_${i}`;
         enAttente.push(id);
         const args = c.function.arguments;
-        return { id, type: 'function', function: { name: c.function.name, arguments: typeof args === 'string' ? args : JSON.stringify(args || {}) } };
+        const appel = { id, type: 'function', function: { name: c.function.name, arguments: typeof args === 'string' ? args : JSON.stringify(args || {}) } };
+        // Renvoyé seulement s'il existe (Gemini) : les autres fournisseurs pourraient refuser un champ inconnu
+        if (c.extra_content) appel.extra_content = c.extra_content;
+        return appel;
       });
       return { role: 'assistant', content: m.content || null, tool_calls };
     }
