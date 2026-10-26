@@ -230,4 +230,16 @@ async function messageErreurOpenAI(config, res) {
   return `${config.nom} a répondu ${res.status}.${suite}`;
 }
 
-module.exports = { OLLAMA, REFLEXION, envoyerOllama, envoyerOpenAI, versOpenAI, finirAppels, attenteDemandee, estModeleCasse, messageErreurOpenAI };
+// Vulkan pour Ollama : utile sous Windows avec une carte AMD (une RX 6600 par exemple), que Ollama ne sait pas
+// toujours utiliser autrement. Avec une NVIDIA, CUDA est plus rapide : on laisse Ollama choisir. Une carte
+// Intel seule n'y gagne rien. Une valeur OLLAMA_VULKAN réglée à la main est toujours respectée.
+const AMD = 0x1002;
+const NVIDIA = 0x10de;
+
+function vulkanUtile(plateforme, env, cartes = []) {
+  if (plateforme !== 'win32' || 'OLLAMA_VULKAN' in env) return false;
+  const vendeurs = cartes.map((c) => c.vendorId);
+  return vendeurs.includes(AMD) && !vendeurs.includes(NVIDIA);
+}
+
+module.exports = { OLLAMA, REFLEXION, vulkanUtile, envoyerOllama, envoyerOpenAI, versOpenAI, finirAppels, attenteDemandee, estModeleCasse, messageErreurOpenAI };

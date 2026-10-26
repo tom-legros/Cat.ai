@@ -1,7 +1,7 @@
 // Envoi au modèle : conversion des formats Ollama / OpenAI, reconnaissance des erreurs des fournisseurs
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { versOpenAI, finirAppels, attenteDemandee, estModeleCasse, messageErreurOpenAI } = require('../principal/envoi');
+const { versOpenAI, finirAppels, attenteDemandee, estModeleCasse, messageErreurOpenAI, vulkanUtile } = require('../principal/envoi');
 
 test('versOpenAI : arguments en texte JSON, et chaque résultat relié à son appel', () => {
   const ollama = [
@@ -103,4 +103,17 @@ test('Gemini 3 : la signature survit au flux SSE, puis repart dans la requête s
     { role: 'tool', content: 'principal/outils.js:118: function remplacerTexte', tool_call_id: 'c1' },
   ], 'gemini-3.5-flash-lite', () => {}, undefined, {});
   assert.equal(corpsEnvoyes[1].messages[1].tool_calls[0].extra_content.google.thought_signature, 'SIG');
+});
+
+test('vulkanUtile : seulement sous Windows avec une AMD sans NVIDIA, et jamais contre un réglage manuel', () => {
+  const amd = { vendorId: 0x1002 };
+  const nvidia = { vendorId: 0x10de };
+  const intel = { vendorId: 0x8086 };
+  assert.equal(vulkanUtile('win32', {}, [amd]), true);
+  assert.equal(vulkanUtile('win32', {}, [intel, amd]), true);
+  assert.equal(vulkanUtile('win32', {}, [amd, nvidia]), false);
+  assert.equal(vulkanUtile('win32', {}, [intel]), false);
+  assert.equal(vulkanUtile('win32', {}, []), false);
+  assert.equal(vulkanUtile('linux', {}, [amd]), false);
+  assert.equal(vulkanUtile('win32', { OLLAMA_VULKAN: '0' }, [amd]), false);
 });

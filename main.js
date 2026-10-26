@@ -9,7 +9,7 @@ const { OUTILS_ECRITURE, RIEN_N_A_CHANGE, REFUS_LECTURE, ecritureRefusee, rempla
 const { hote, HOTES_LOCAUX, fournisseurGratuit, modeleGratuit, conseilGratuit, adresseValide } = require('./principal/gratuit');
 const { LIMITES_OLLAMA, MAX_JOINT, limitesTaille, raccourcir, compacter } = require('./principal/taille');
 const { ajouterFait, nettoyerPrenom } = require('./principal/memoire');
-const { OLLAMA, REFLEXION, envoyerOllama, envoyerOpenAI } = require('./principal/envoi');
+const { OLLAMA, REFLEXION, envoyerOllama, envoyerOpenAI, vulkanUtile } = require('./principal/envoi');
 const {
   FOURNISSEURS_DE_BASE, lireReglagesFournisseurs, infosFournisseur, configFournisseur, versInterface,
   etatChiffrement, chiffrer, formatDouteux, avertissementFormat, marquerModeleCasse, listerModeles,
@@ -54,11 +54,12 @@ async function demarrerOllama() {
   if (await ollamaRepond()) return;
   const commande = commandeOllama();
   if (!commande) return;
+  // Les cartes graphiques du PC, pour décider de Vulkan (voir vulkanUtile)
+  const cartes = await app.getGPUInfo('basic').then((infos) => infos.gpuDevice || [], () => []);
   serveurOllama = spawn(commande, ['serve'], {
     windowsHide: true,
     stdio: 'ignore',
-    // Vulkan : réglé pour les cartes AMD sous Windows ; ailleurs, Ollama choisit seul
-    env: process.platform === 'win32' ? { ...process.env, OLLAMA_VULKAN: '1' } : process.env,
+    env: vulkanUtile(process.platform, process.env, cartes) ? { ...process.env, OLLAMA_VULKAN: '1' } : process.env,
   });
   // Pas installé : rien ne se lance, et l'interface affiche « Ollama ne répond pas »
   serveurOllama.on('error', () => (serveurOllama = null));
