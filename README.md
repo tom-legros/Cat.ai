@@ -12,14 +12,14 @@ Un chat noir en pixel art qui vit sur ton PC et t'aide pour tout : expliquer un 
 
 Va dans les [Releases](https://github.com/tom-legros/Cat.ai/releases/latest) et prends le fichier de ton système :
 
-- **Windows** : `Cat-Ai-1.0.1-installateur.exe`
-- **Linux** : `Cat-Ai-1.0.1.AppImage`
+- **Windows** : `Cat-Ai-1.0.2-installateur.exe`
+- **Linux** : `Cat-Ai-1.0.2.AppImage`
 
 ### 2. Installer
 
 - **Windows** : double-clique sur l'installateur. L'app n'est pas signée (un certificat coûte cher), donc Windows affiche « Windows a protégé votre ordinateur » : clique sur **Informations complémentaires**, puis **Exécuter quand même**. Pas besoin d'être administrateur.
   - **« Le Contrôle intelligent des applications a bloqué… »** : c'est une protection plus stricte de Windows 11, qui bloque toute app non signée, sans bouton pour passer outre. L'app n'est pas dangereuse, Windows ne la connaît juste pas encore. L'app n'est pas encore signée, donc pour l'instant la seule solution est de désactiver cette protection dans Sécurité Windows → Contrôle des applications et du navigateur → Paramètres du Contrôle intelligent des applications. C'est une protection de ton PC : ne la coupe que si tu es à l'aise avec ça, et sache que selon ta version de Windows tu ne pourras peut-être pas la réactiver sans réinitialiser Windows.
-- **Linux** : `chmod +x Cat-Ai-1.0.1.AppImage && ./Cat-Ai-1.0.1.AppImage` (sur Arch, il peut falloir `fuse2`).
+- **Linux** : `chmod +x Cat-Ai-1.0.2.AppImage && ./Cat-Ai-1.0.2.AppImage` (sur Arch, il peut falloir `fuse2`).
 
 ### 3. Premier lancement
 
