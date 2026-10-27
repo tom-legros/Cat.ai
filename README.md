@@ -18,7 +18,7 @@ Va dans les [Releases](https://github.com/tom-legros/Cat.ai/releases/latest) et 
 ### 2. Installer
 
 - **Windows** : double-clique sur l'installateur. L'app n'est pas signée (un certificat coûte cher), donc Windows affiche « Windows a protégé votre ordinateur » : clique sur **Informations complémentaires**, puis **Exécuter quand même**. Pas besoin d'être administrateur.
-  - **« Le Contrôle intelligent des applications a bloqué… »** : c'est une protection plus stricte de Windows 11, qui bloque toute app non signée, sans bouton pour passer outre. L'app n'est pas dangereuse, Windows ne la connaît juste pas encore. La signature est en cours (voir [Signature du code](#signature-du-code)). En attendant, la seule solution est de désactiver cette protection dans Sécurité Windows → Contrôle des applications et du navigateur → Paramètres du Contrôle intelligent des applications. C'est une protection de ton PC : ne la coupe que si tu es à l'aise avec ça, et sache que selon ta version de Windows tu ne pourras peut-être pas la réactiver sans réinitialiser Windows.
+  - **« Le Contrôle intelligent des applications a bloqué… »** : c'est une protection plus stricte de Windows 11, qui bloque toute app non signée, sans bouton pour passer outre. L'app n'est pas dangereuse, Windows ne la connaît juste pas encore. L'app n'est pas encore signée, donc pour l'instant la seule solution est de désactiver cette protection dans Sécurité Windows → Contrôle des applications et du navigateur → Paramètres du Contrôle intelligent des applications. C'est une protection de ton PC : ne la coupe que si tu es à l'aise avec ça, et sache que selon ta version de Windows tu ne pourras peut-être pas la réactiver sans réinitialiser Windows.
 - **Linux** : `chmod +x Cat-Ai-1.0.1.AppImage && ./Cat-Ai-1.0.1.AppImage` (sur Arch, il peut falloir `fuse2`).
 
 ### 3. Premier lancement
@@ -83,21 +83,6 @@ npm start
 | `npm run installateur:linux` | Crée l'AppImage (à lancer depuis Linux ou WSL) |
 
 Le code est séparé en deux : `main.js` et `principal/` pour le processus principal (fichiers, modèles, garde-fous), `renderer.js` et `interface/` pour la fenêtre. Les données (discussions, mémoire, clés chiffrées) sont dans `%APPDATA%\assistant-ia` sur Windows et `~/.config/assistant-ia` sur Linux.
-
-## Signature du code
-
-L'installateur Windows est construit automatiquement par GitHub Actions à partir de ce dépôt ([`.github/workflows/installateur-windows.yml`](.github/workflows/installateur-windows.yml)). Une demande de signature gratuite pour les projets open source est en cours auprès de SignPath Foundation. Une fois acceptée, chaque installateur sera signé ainsi :
-
-> Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
-
-Tant que cette phrase n'est pas accompagnée d'un installateur signé dans les [Releases](https://github.com/tom-legros/Cat.ai/releases), les installateurs ne sont pas encore signés.
-
-**Rôles** :
-
-- Auteurs, relecteurs et approbateurs : [les membres du dépôt](https://github.com/tom-legros/Cat.ai/graphs/contributors) ayant les droits d'écriture (aujourd'hui, uniquement [tom-legros](https://github.com/tom-legros)).
-- Chaque signature est approuvée à la main avant d'être publiée.
-
-**Vie privée** : cette application n'envoie aucune information vers un autre système, sauf quand l'utilisateur le demande. Tes messages partent uniquement vers le fournisseur que tu choisis (Ollama sur ton PC, ou Gemini, Groq ou OpenRouter avec ta propre clé), selon leurs règles de confidentialité : [Google](https://policies.google.com/privacy), [Groq](https://groq.com/privacy-policy/), [OpenRouter](https://openrouter.ai/privacy). Il n'y a ni statistiques ni pistage.
 
 ## Crédits
 
