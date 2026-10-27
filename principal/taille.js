@@ -72,4 +72,21 @@ function compacter(messages, total) {
   return liste;
 }
 
-module.exports = { LIMITES_TAILLE, LIMITES_OLLAMA, MAX_JOINT, limitesTaille, estimerTokens, taille, raccourcir, compacter };
+// Liste des fichiers du dossier ouvert donnée dans les consignes : au plus ~800 tokens.
+// Avec un gros dossier (Documents, Bureau…), 150 chemins remplissaient à eux seuls la moitié des 8 192 tokens
+// d'Ollama, et la fin des consignes était coupée à chaque message. Le reste, le modèle le voit avec lister_fichiers.
+const MAX_LISTE = 2500;
+
+// Garde les premiers fichiers tant qu'ils tiennent dans `max` caractères ; `coupee` dit s'il en manque
+function listeCourte(fichiers, max = MAX_LISTE) {
+  const gardes = [];
+  let place = max;
+  for (const f of fichiers) {
+    if (f.length + 1 > place) break;
+    gardes.push(f);
+    place -= f.length + 1;
+  }
+  return { fichiers: gardes, coupee: gardes.length < fichiers.length };
+}
+
+module.exports = { LIMITES_TAILLE, LIMITES_OLLAMA, MAX_JOINT, MAX_LISTE, limitesTaille, estimerTokens, taille, raccourcir, compacter, listeCourte };

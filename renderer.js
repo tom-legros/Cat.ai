@@ -196,6 +196,7 @@ async function projectInfo(text) {
     const ctx = await window.api.projectContext(text);
     if (!ctx) return "";
     let p = `\n\nFichiers du dossier ouvert :\n${ctx.files.join("\n") || "(vide)"}`;
+    if (ctx.coupee) p += "\n(liste coupée : il y a d'autres fichiers, vois-les avec lister_fichiers)";
     for (const f of ctx.mentioned) p += `\n\nContenu de ${f.path} :\n\`\`\`\n${f.content}\n\`\`\``;
     p += `\n\nBase-toi UNIQUEMENT sur ces fichiers réels. Pour voir un autre fichier, utilise lire_fichier. N'invente jamais le contenu d'un fichier.`;
     return p;
@@ -262,10 +263,15 @@ const CONTEXTE_OLLAMA = 8192;
 const MAX_CONSIGNES = 8000;
 const enTokens = (texte) => Math.ceil(texte.length / 3); // ~3 caractères par token, comme principal/taille.js
 
+// On ne conseille que ce que l'utilisateur peut alléger : la mémoire, et les fichiers cités dans son message
 function budgetConsignes(consignes) {
     if (consignes.length <= MAX_CONSIGNES) return "";
-    return `Consignes lourdes : ~${enTokens(consignes)} tokens sur les ${CONTEXTE_OLLAMA} d'Ollama, dont ~${enTokens(memory.join("\n"))} pour la mémoire. `
-        + "Leur fin sera coupée : fais du tri dans la mémoire, ou cite moins de fichiers.";
+    const memoire = enTokens(memory.join("\n"));
+    const conseils = [];
+    if (memoire > 300) conseils.push(`fais du tri dans la mémoire (~${memoire} tokens)`);
+    if (consignes.includes("\n\nContenu de ")) conseils.push("cite moins de fichiers à la fois");
+    return `Consignes lourdes : ~${enTokens(consignes)} tokens sur les ${CONTEXTE_OLLAMA} d'Ollama, leur fin sera coupée.`
+        + (conseils.length ? ` Pour alléger : ${conseils.join(", ou ")}.` : "");
 }
 
 let envoiEnCours = false;

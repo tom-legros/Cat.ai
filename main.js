@@ -7,7 +7,7 @@ const { configurerStockage, readJson, writeJson, prendreAlertes } = require('./p
 const { IGNORED, MAX_FILE, cheminSur, estSensible, listFiles, chercherDansProjet, fichiersCites, contenuJoint } = require('./principal/fichiers');
 const { OUTILS_ECRITURE, RIEN_N_A_CHANGE, REFUS_LECTURE, ecritureRefusee, remplacerTexte, parseTextToolCalls, resumerAction } = require('./principal/outils');
 const { hote, HOTES_LOCAUX, fournisseurGratuit, modeleGratuit, conseilGratuit, adresseValide } = require('./principal/gratuit');
-const { LIMITES_OLLAMA, MAX_JOINT, limitesTaille, raccourcir, compacter } = require('./principal/taille');
+const { LIMITES_OLLAMA, MAX_JOINT, limitesTaille, raccourcir, compacter, listeCourte } = require('./principal/taille');
 const { ajouterFait, nettoyerPrenom } = require('./principal/memoire');
 const { OLLAMA, REFLEXION, envoyerOllama, envoyerOpenAI, vulkanUtile } = require('./principal/envoi');
 const {
@@ -518,7 +518,8 @@ ipcMain.handle('project-context', (_e, message) => {
     place -= content.length;
     return { path: f, content };
   });
-  return { files: files.slice(0, 150), mentioned };
+  const { fichiers, coupee } = listeCourte(files);
+  return { files: fichiers, coupee, mentioned };
 });
 
 // Dossiers de projets connus, donnés au modèle pour qu'il ait les chemins exacts

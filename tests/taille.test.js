@@ -1,7 +1,23 @@
 // Taille des messages : rester sous la limite d'un fournisseur sans casser la discussion
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { raccourcir, compacter, limitesTaille, taille, estimerTokens, LIMITES_OLLAMA } = require('../principal/taille');
+const { raccourcir, compacter, limitesTaille, taille, estimerTokens, LIMITES_OLLAMA, MAX_LISTE, listeCourte } = require('../principal/taille');
+
+test('listeCourte : un petit dossier reste entier', () => {
+  assert.deepEqual(listeCourte(['a.js', 'b/', 'b/c.js']), { fichiers: ['a.js', 'b/', 'b/c.js'], coupee: false });
+});
+
+test('listeCourte : un gros dossier est coupé sous la limite, dans l ordre', () => {
+  const gros = Array.from({ length: 300 }, (_, i) => `Documents/un dossier aux noms longs/fichier-${i}.txt`);
+  const { fichiers, coupee } = listeCourte(gros);
+  assert.ok(coupee);
+  assert.ok(fichiers.join('\n').length <= MAX_LISTE);
+  assert.deepEqual(fichiers, gros.slice(0, fichiers.length));
+});
+
+test('listeCourte : la liste coupée laisse de la place aux consignes dans les 8 192 tokens d Ollama', () => {
+  assert.ok(estimerTokens('x'.repeat(MAX_LISTE)) <= 1000);
+});
 
 test('raccourcir : texte court intact, texte long coupé avec une note pour le modèle', () => {
   assert.equal(raccourcir('court', 10), 'court');
