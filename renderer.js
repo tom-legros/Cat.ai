@@ -320,9 +320,10 @@ async function send(text) {
         bulle.classList.add("is-typing");
         // Avec Ollama, des consignes trop lourdes sont coupées : l'utilisateur le voit en haut de la réponse
         const alerteBudget = fournisseurActif().type === "ollama" ? budgetConsignes(consignes) : "";
-        streaming = { id, el: bulle, chat, text: alerteBudget ? etiquetteAction(alerteBudget) : "", actions: [] };
+        streaming = { id, el: bulle, chat, text: alerteBudget ? etiquetteAction(alerteBudget) : "", actions: [], dernierSignal: Date.now() };
         if (alerteBudget) afficherFlux();
         setStreaming(true);
+        surveillerSilence();
 
         window.api.chat({
             id,
@@ -338,8 +339,45 @@ async function send(text) {
 }
 
 function afficherFlux() {
+    streaming.dernierSignal = Date.now();
     streaming.el.innerHTML = renderMarkdown(streaming.text);
     messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+// Ollama n'affiche rien pendant qu'il charge le modèle ou qu'il écrit le contenu d'un fichier (l'appel d'outil
+// arrive d'un bloc, à la fin) : sur un PC moyen ça dure une à deux minutes, et on croit que l'app est bloquée.
+// Après SILENCE_LONG sans rien recevoir, une ligne sous la réponse dit qu'il travaille, avec le temps écoulé.
+const SILENCE_LONG = 15000;
+let veilleSilence = null;
+
+function ligneAttente() {
+    return streaming?.el.parentElement.querySelector(".attente-ollama");
+}
+
+function surveillerSilence() {
+    clearInterval(veilleSilence);
+    if (fournisseurActif().type !== "ollama") return;
+    veilleSilence = setInterval(() => {
+        if (!streaming) return clearInterval(veilleSilence);
+        let ligne = ligneAttente();
+        // Pendant la fenêtre avant / après, c'est l'utilisateur qu'on attend, pas Ollama
+        if (confirmationEnCours) {
+            streaming.dernierSignal = Date.now();
+            return ligne?.remove();
+        }
+        const silence = Date.now() - streaming.dernierSignal;
+        if (silence < SILENCE_LONG) return ligne?.remove();
+        if (!ligne) {
+            ligne = document.createElement("p");
+            ligne.className = "attente-ollama";
+            ligne.append(document.createElement("span"));
+            ligne.firstChild.className = "action";
+            streaming.el.after(ligne);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+        ligne.firstChild.textContent = `Ollama travaille sur ton PC depuis ${Math.round(silence / 1000)} s sans rien afficher : `
+            + "charger le modèle ou écrire un fichier entier peut prendre une à deux minutes. Tu peux arrêter avec le bouton carré.";
+    }, 1000);
 }
 
 window.api.onChunk(({ id, text }) => {
@@ -383,6 +421,8 @@ window.api.onAction(({ id, action }) => {
 });
 
 function finirFlux() {
+    clearInterval(veilleSilence);
+    ligneAttente()?.remove();
     streaming.el.classList.remove("is-typing");
     streaming.chat.reflechit = false;
     streaming = null;
