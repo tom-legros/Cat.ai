@@ -85,6 +85,14 @@ const TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'lire_page_web',
+      description: "Lit le texte d'une page internet dont tu as l'adresse exacte (ex : un lien donné par l'utilisateur), pour la résumer ou répondre à partir d'elle. Ce n'est pas un moteur de recherche. Pour une adresse que l'utilisateur ne t'a pas donnée, il doit confirmer.",
+      parameters: { type: 'object', properties: { url: { type: 'string', description: "Adresse complète de la page, qui commence par https://" } }, required: ['url'] },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'memoriser',
       description: "Enregistre un fait durable et important sur l'utilisateur ou ses projets (préférences, technos, objectifs) pour s'en souvenir dans les prochaines discussions. Un fait court, une seule fois : pas les détails d'une seule discussion.",
       parameters: { type: 'object', properties: { fait: { type: 'string', description: 'Le fait à retenir, en une phrase' } }, required: ['fait'] },
@@ -202,6 +210,9 @@ function resumerAction(nom, args = {}, resultat = '') {
       if (r.startsWith('Fichier modifié')) return `a modifié ${chemin}`;
       if (r.startsWith("L'utilisateur a refusé")) return `voulait modifier ${chemin}, mais la modification a été refusée : le fichier n'a pas changé`;
       return `n'a pas pu modifier ${chemin} : le fichier n'a pas changé`;
+    case 'lire_page_web':
+      if (r.startsWith("L'utilisateur a refusé")) return `n'a pas pu lire la page ${args.url} (lecture refusée)`;
+      return r.startsWith('Page : ') ? `a lu la page ${args.url}` : `n'a pas pu lire la page ${args.url}`;
     case 'memoriser':
       return r.startsWith('Mémorisé') ? `a retenu : ${args.fait}` : '';
     case 'ouvrir_dossier':

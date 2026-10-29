@@ -401,7 +401,9 @@ const ACTIONS = {
     ecrire_fichier: (a) => `Veut écrire ${a.chemin}`,
     remplacer_texte: (a) => `Veut modifier ${a.chemin}`,
     "refus-lecture": (a) => `Tu as refusé : ${a.chemin} n'a pas été lu`,
+    "refus-page": (a) => `Tu as refusé : la page ${a.url} n'a pas été lue`,
     refus: (a) => `Refusé : ${a.chemin} n'a pas changé (${prof ? "mode prof" : role === "readme" ? "le rédacteur README n'écrit que des .md" : "le relecteur ne modifie rien"})`,
+    lire_page_web: (a) => `Lit la page ${a.url}`,
     memoriser: (a) => `Retient : ${a.fait}`,
     pause: (a) => `Pause de ${a.secondes} s : limite par minute du fournisseur, je réessaie tout seul`,
     limite: (a) => `Arrêt après ${a.etapes} étapes d'outils pour ce message : dis-moi « continue » pour que je reprenne`

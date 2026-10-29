@@ -10,6 +10,7 @@ const { hote, HOTES_LOCAUX, fournisseurGratuit, modeleGratuit, conseilGratuit, a
 const { LIMITES_OLLAMA, MAX_JOINT, limitesTaille, raccourcir, compacter, listeCourte } = require('./principal/taille');
 const { ajouterFait, nettoyerPrenom } = require('./principal/memoire');
 const { configurerMiseAJour } = require('./principal/miseajour');
+const { REFUS_PAGE, urlsDans, memePage, verifierUrl, lirePageWeb } = require('./principal/web');
 const { MAX_FICHIER_ROLE, nettoyerRoles, roleVersFichier, roleDepuisFichier, nomFichierRole, ajouterRole } = require('./principal/roles');
 const { OLLAMA, REFLEXION, envoyerOllama, envoyerOpenAI, vulkanUtile } = require('./principal/envoi');
 const {
@@ -174,6 +175,24 @@ async function runTool(name, args, mode) {
       if (!reponse.startsWith('Fichier modifié') || !partout) return reponse;
       return `${reponse} (${resultat.fois} remplacement${resultat.fois > 1 ? 's' : ''})`;
     }
+    case 'lire_page_web': {
+      // Un lien donné par l'utilisateur dans la discussion se lit directement ; un lien trouvé ou deviné
+      // par le modèle (ou lu sur une autre page) attend son accord
+      const url = String(args.url || '').trim();
+      if (verifierUrl(url).url && !mode.liensDonnes?.some((l) => memePage(l, url))) {
+        const { response } = await dialog.showMessageBox(win, {
+          type: 'question',
+          buttons: ['Autoriser', 'Refuser'],
+          defaultId: 0,
+          cancelId: 1,
+          title: 'Lire une page internet',
+          message: `Le chat veut lire cette page :\n${url}`,
+          detail: "Tu ne lui as pas donné ce lien. Ton PC va télécharger la page, comme si tu l'ouvrais dans ton navigateur.",
+        });
+        if (response !== 0) return `${REFUS_PAGE}${url}. Ne la lis pas autrement, et ne dis pas ce qu'elle contient.`;
+      }
+      return lirePageWeb(url, mode.signal);
+    }
     case 'memoriser': {
       const resultat = ajouterFait(readJson('memory.json', []), args.fait);
       if (resultat.erreur) return resultat.erreur;
@@ -261,6 +280,8 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, role, fournisseurI
   const controller = new AbortController();
   controllers.set(id, controller);
   const history = [...messages];
+  // Les liens écrits par l'utilisateur dans la discussion : lire_page_web les ouvre sans redemander
+  const liensDonnes = messages.filter((m) => m.role === 'user').flatMap((m) => urlsDans(m.content));
   let nudged = false;
   const onMorceau = (text) => event.sender.send('chat-chunk', { id, text });
   try {
@@ -306,7 +327,7 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, role, fournisseurI
         }
         let result;
         try {
-          result = await runTool(name, args || {}, { prof, role, fournisseurId });
+          result = await runTool(name, args || {}, { prof, role, fournisseurId, liensDonnes, signal: controller.signal });
         } catch (err) {
           result = `Erreur : ${err.message}`;
         }
@@ -314,6 +335,9 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, role, fournisseurI
         // Lecture d'un fichier sensible refusée par l'utilisateur : l'étiquette « Lit .env » ne doit pas laisser croire le contraire
         if (name === 'lire_fichier' && String(result).startsWith(REFUS_LECTURE)) {
           event.sender.send('chat-tool', { id, name: 'refus-lecture', args: { chemin: args.chemin } });
+        }
+        if (name === 'lire_page_web' && String(result).startsWith(REFUS_PAGE)) {
+          event.sender.send('chat-tool', { id, name: 'refus-page', args: { url: args.url } });
         }
         const action = resumerAction(name, args || {}, result);
         if (action) event.sender.send('chat-action', { id, action });

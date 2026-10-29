@@ -135,3 +135,10 @@ test('résumé d action : mémoire et dossier, rien pour ce qui n est pas une ac
   assert.equal(resumerAction('ouvrir_dossier', { chemin: 'C:\p' }, "L'utilisateur a refusé"), '');
   assert.equal(resumerAction('outil_inconnu', {}, 'x'), '');
 });
+
+test('resumerAction : lecture d une page internet, réussie, refusée ou ratée', () => {
+  const url = 'https://exemple.fr/page';
+  assert.equal(resumerAction('lire_page_web', { url }, 'Page : Exemple\nAdresse : https://exemple.fr/page'), `a lu la page ${url}`);
+  assert.equal(resumerAction('lire_page_web', { url }, "L'utilisateur a refusé la lecture de la page https://exemple.fr/page."), `n'a pas pu lire la page ${url} (lecture refusée)`);
+  assert.equal(resumerAction('lire_page_web', { url }, 'La page a répondu 404 : elle n existe pas.'), `n'a pas pu lire la page ${url}`);
+});

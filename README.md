@@ -59,6 +59,7 @@ Les clés gratuites (Gemini, Groq, OpenRouter) se collent dans **Réglages**, en
 ## Ce qu'il sait faire
 
 - **Lire ton projet** : il ouvre un dossier, lit et cherche dans le code, et répond à partir du vrai code.
+- **Lire une page internet** : donne-lui un lien, il lit la page et la résume ou répond à partir d'elle. Il ne cherche pas sur internet, et pour un lien que tu ne lui as pas donné, il te demande d'abord.
 - **Modifier des fichiers** : chaque modification s'affiche avant / après, et rien n'est écrit sans ton accord.
 - **Pour tout le monde** : il explique, aide à écrire, fait réviser, apprend à coder depuis zéro.
 - **Mode prof** : il explique et pose des questions, mais c'est toi qui trouves.
@@ -66,7 +67,7 @@ Les clés gratuites (Gemini, Groq, OpenRouter) se collent dans **Réglages**, en
 - **Un vrai chat** : il cligne des yeux, suit ta souris, s'endort quand tu ne fais rien et a toujours une réplique selon l'heure.
 - **Mémoire** : il retient ce que tu lui dis d'une discussion à l'autre, et tu peux tout modifier.
 - **Mises à jour** : quand une nouvelle version sort, l'app te le dit en bas à gauche et l'installe en un clic (installateur Windows et AppImage). Rien ne se télécharge sans ton accord.
-- **Sécurité** : un `.env` ou une clé privée n'est jamais lu sans ton accord, les clés API sont chiffrées par le système, et le chat ne sort jamais du dossier ouvert. La seule chose que l'app fait seule sur internet, c'est demander à GitHub, au démarrage, s'il existe une nouvelle version : rien sur toi n'est envoyé.
+- **Sécurité** : un `.env` ou une clé privée n'est jamais lu sans ton accord, les clés API sont chiffrées par le système, et le chat ne sort jamais du dossier ouvert. Il ne lit que des pages internet publiques, jamais celles de ton PC ou de ton réseau (box, imprimante…). La seule chose que l'app fait seule sur internet, c'est demander à GitHub, au démarrage, s'il existe une nouvelle version : rien sur toi n'est envoyé.
 
 ## Lancer depuis le code
 
