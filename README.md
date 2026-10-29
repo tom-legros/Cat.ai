@@ -61,6 +61,7 @@ Les clés gratuites (Gemini, Groq, OpenRouter) se collent dans **Réglages**, en
 - **Lire ton projet** : il ouvre un dossier, lit et cherche dans le code, et répond à partir du vrai code.
 - **Lire une page internet** : donne-lui un lien, il lit la page et la résume ou répond à partir d'elle. Il ne cherche pas sur internet, et pour un lien que tu ne lui as pas donné, il te demande d'abord.
 - **Modifier des fichiers** : chaque modification s'affiche avant / après, et rien n'est écrit sans ton accord.
+- **Mode auto** (dans Réglages) : pour les longues tâches, le chat enchaîne jusqu'à 30 actions par message au lieu de 8 sans s'arrêter. Les modifications de fichiers te sont toujours montrées avant.
 - **Pour tout le monde** : il explique, aide à écrire, fait réviser, apprend à coder depuis zéro.
 - **Mode prof** : il explique et pose des questions, mais c'est toi qui trouves.
 - **Rôles** : Rédaction, ceux pour coder (relecteur, débogueur, README), et les tiens, à partager avec tes amis.

@@ -5,7 +5,7 @@ const { spawn } = require('child_process');
 
 const { configurerStockage, readJson, writeJson, prendreAlertes } = require('./principal/stockage');
 const { IGNORED, MAX_FILE, cheminSur, estSensible, listFiles, chercherDansProjet, fichiersCites, contenuJoint } = require('./principal/fichiers');
-const { OUTILS_ECRITURE, RIEN_N_A_CHANGE, REFUS_LECTURE, ecritureRefusee, remplacerTexte, parseTextToolCalls, resumerAction } = require('./principal/outils');
+const { OUTILS_ECRITURE, RIEN_N_A_CHANGE, REFUS_LECTURE, BOUCLE, appelRepete, ecritureRefusee, remplacerTexte, parseTextToolCalls, resumerAction } = require('./principal/outils');
 const { hote, HOTES_LOCAUX, fournisseurGratuit, modeleGratuit, conseilGratuit, adresseValide } = require('./principal/gratuit');
 const { LIMITES_OLLAMA, MAX_JOINT, limitesTaille, raccourcir, compacter, listeCourte } = require('./principal/taille');
 const { ajouterFait, nettoyerPrenom } = require('./principal/memoire');
@@ -18,7 +18,11 @@ const {
   etatChiffrement, chiffrer, formatDouteux, avertissementFormat, marquerModeleCasse, listerModeles,
 } = require('./principal/fournisseurs');
 
+// Nombre d'allers-retours avec les outils pour un seul message. 8 évite qu'un petit modèle tourne en rond
+// longtemps ; le mode auto (Réglages) monte à 30 pour les longues tâches. Dans les deux cas, chaque écriture
+// passe par la fenêtre avant / après, et un appel répété à l'identique n'est pas refait (appelRepete).
 const MAX_STEPS = 8;
+const MAX_STEPS_AUTO = 30;
 
 let win;
 let projectDir = null;
@@ -276,10 +280,12 @@ function verifierGratuit(fournisseurId, modele) {
   }
 }
 
-ipcMain.on('chat', async (event, { id, model, messages, prof, role, fournisseurId = 'ollama' }) => {
+ipcMain.on('chat', async (event, { id, model, messages, prof, role, auto, fournisseurId = 'ollama' }) => {
   const controller = new AbortController();
   controllers.set(id, controller);
   const history = [...messages];
+  const etapesMax = auto ? MAX_STEPS_AUTO : MAX_STEPS;
+  const appelsFaits = new Map();
   // Les liens écrits par l'utilisateur dans la discussion : lire_page_web les ouvre sans redemander
   const liensDonnes = messages.filter((m) => m.role === 'user').flatMap((m) => urlsDans(m.content));
   let nudged = false;
@@ -292,7 +298,7 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, role, fournisseurI
     const config = infosFournisseur(fournisseurId);
     const limites = config.type === 'ollama' ? LIMITES_OLLAMA : limitesTaille(config);
     let fini = false;
-    for (let step = 0; step < MAX_STEPS; step++) {
+    for (let step = 0; step < etapesMax; step++) {
       const aEnvoyer = limites ? compacter(history, limites.total) : history;
       // onPause : affiche une étiquette pendant que l'app attend la fin de la limite par minute
       const onPause = (secondes) => event.sender.send('chat-tool', { id, name: 'pause', args: { secondes } });
@@ -327,7 +333,9 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, role, fournisseurI
         }
         let result;
         try {
-          result = await runTool(name, args || {}, { prof, role, fournisseurId, liensDonnes, signal: controller.signal });
+          result = appelRepete(appelsFaits, name, args)
+            ? BOUCLE
+            : await runTool(name, args || {}, { prof, role, fournisseurId, liensDonnes, signal: controller.signal });
         } catch (err) {
           result = `Erreur : ${err.message}`;
         }
@@ -347,7 +355,7 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, role, fournisseurI
       }
     }
     // Toutes les étapes utilisées sans réponse finale : l'utilisateur le voit, au lieu d'une réponse qui s'arrête sans rien dire
-    if (!fini) event.sender.send('chat-tool', { id, name: 'limite', args: { etapes: MAX_STEPS } });
+    if (!fini) event.sender.send('chat-tool', { id, name: 'limite', args: { etapes: etapesMax, auto: !!auto } });
     event.sender.send('chat-done', { id });
   } catch (err) {
     if (err.name === 'AbortError') event.sender.send('chat-done', { id });

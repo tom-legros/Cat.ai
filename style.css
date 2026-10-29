@@ -561,6 +561,8 @@ select.pastille option { background: var(--surface); color: var(--texte); }
 
 /* Fenêtre Réglages */
 .fenetre__titre--suite { margin-top: 26px; font-size: 20px; }
+.interrupteur { display: flex; gap: 10px; align-items: flex-start; margin-top: 8px; color: var(--texte-3); font-size: 14px; line-height: 1.45; cursor: pointer; }
+.interrupteur input { flex: none; width: 16px; height: 16px; margin: 2px 0 0; accent-color: var(--oeil); cursor: pointer; }
 .role-form { display: flex; flex-direction: column; gap: 8px; }
 .role-form input, .role-form textarea { padding: 9px 12px; background: var(--surface); border: 1px solid var(--ligne-2); border-radius: var(--rayon-petit); resize: vertical; }
 .role-form .bouton { align-self: flex-start; }

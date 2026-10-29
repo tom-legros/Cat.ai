@@ -112,6 +112,18 @@ const RIEN_N_A_CHANGE = " Le fichier n'a pas changé : ne dis pas à l'utilisate
 // Début du résultat d'une lecture de fichier sensible refusée : main.js et resumerAction le reconnaissent
 const REFUS_LECTURE = "L'utilisateur a refusé la lecture de ";
 
+// Les petits modèles tournent parfois en rond (même lecture, même recherche, même écriture proposée) :
+// au-delà de REPETITIONS_MAX fois le même appel avec les mêmes arguments pour un message, il n'est plus refait.
+// `deja` est une Map propre à chaque message de l'utilisateur.
+const REPETITIONS_MAX = 2;
+const BOUCLE = "Tu as déjà fait exactement cette action pour ce message, le résultat serait le même : ne la refais pas. Continue autrement, ou réponds à l'utilisateur avec ce que tu as.";
+function appelRepete(deja, nom, args) {
+  const cle = `${nom} ${JSON.stringify(args ?? {})}`;
+  const fois = (deja.get(cle) || 0) + 1;
+  deja.set(cle, fois);
+  return fois > REPETITIONS_MAX;
+}
+
 // Renvoie la raison du refus, ou rien si l'écriture est permise
 function ecritureRefusee({ prof, role } = {}, chemin) {
   if (prof) return "Mode prof activé : tu n'as pas le droit d'écrire de fichier. Explique à l'utilisateur ce qu'il doit faire et laisse-le coder." + RIEN_N_A_CHANGE;
@@ -222,4 +234,4 @@ function resumerAction(nom, args = {}, resultat = '') {
   }
 }
 
-module.exports = { TOOLS, OUTILS_ECRITURE, peutEcrire, outilsPour, RIEN_N_A_CHANGE, REFUS_LECTURE, ecritureRefusee, remplacerTexte, desechapper, parseTextToolCalls, matchingBrace, resumerAction };
+module.exports = { TOOLS, OUTILS_ECRITURE, peutEcrire, outilsPour, RIEN_N_A_CHANGE, REFUS_LECTURE, BOUCLE, appelRepete, ecritureRefusee, remplacerTexte, desechapper, parseTextToolCalls, matchingBrace, resumerAction };

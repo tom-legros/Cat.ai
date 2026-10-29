@@ -1,7 +1,7 @@
 // Outils du modèle : règles d'écriture par mode et par rôle, remplacer_texte, appels d'outils écrits en texte
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { outilsPour, ecritureRefusee, remplacerTexte, parseTextToolCalls, matchingBrace, resumerAction, REFUS_LECTURE } = require('../principal/outils');
+const { outilsPour, ecritureRefusee, remplacerTexte, parseTextToolCalls, matchingBrace, resumerAction, REFUS_LECTURE, appelRepete } = require('../principal/outils');
 
 const noms = (mode) => outilsPour(mode).map((t) => t.function.name);
 
@@ -141,4 +141,14 @@ test('resumerAction : lecture d une page internet, réussie, refusée ou ratée'
   assert.equal(resumerAction('lire_page_web', { url }, 'Page : Exemple\nAdresse : https://exemple.fr/page'), `a lu la page ${url}`);
   assert.equal(resumerAction('lire_page_web', { url }, "L'utilisateur a refusé la lecture de la page https://exemple.fr/page."), `n'a pas pu lire la page ${url} (lecture refusée)`);
   assert.equal(resumerAction('lire_page_web', { url }, 'La page a répondu 404 : elle n existe pas.'), `n'a pas pu lire la page ${url}`);
+});
+
+test('appelRepete : le même appel est refait deux fois au plus pour un message', () => {
+  const deja = new Map();
+  assert.equal(appelRepete(deja, 'lire_fichier', { chemin: 'a.js' }), false);
+  assert.equal(appelRepete(deja, 'lire_fichier', { chemin: 'a.js' }), false);
+  assert.equal(appelRepete(deja, 'lire_fichier', { chemin: 'a.js' }), true);
+  // D'autres arguments, c'est une autre action
+  assert.equal(appelRepete(deja, 'lire_fichier', { chemin: 'b.js' }), false);
+  assert.equal(appelRepete(deja, 'lire_fichier', { chemin: 'a.js', ligne: 40 }), false);
 });
