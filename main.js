@@ -9,6 +9,7 @@ const { OUTILS_ECRITURE, RIEN_N_A_CHANGE, REFUS_LECTURE, ecritureRefusee, rempla
 const { hote, HOTES_LOCAUX, fournisseurGratuit, modeleGratuit, conseilGratuit, adresseValide } = require('./principal/gratuit');
 const { LIMITES_OLLAMA, MAX_JOINT, limitesTaille, raccourcir, compacter, listeCourte } = require('./principal/taille');
 const { ajouterFait, nettoyerPrenom } = require('./principal/memoire');
+const { MAX_FICHIER_ROLE, nettoyerRoles, roleVersFichier, roleDepuisFichier, nomFichierRole, ajouterRole } = require('./principal/roles');
 const { OLLAMA, REFLEXION, envoyerOllama, envoyerOpenAI, vulkanUtile } = require('./principal/envoi');
 const {
   FOURNISSEURS_DE_BASE, lireReglagesFournisseurs, infosFournisseur, configFournisseur, versInterface,
@@ -560,22 +561,56 @@ const lirePrenom = () => String(readJson('settings.json', {}).prenom || '');
 
 ipcMain.handle('get-prenom', () => lirePrenom());
 
-// Rôles créés par l'utilisateur : ils finissent dans les consignes du modèle, donc textes courts et sans contrôle.
-// Ils n'ouvrent aucun droit : écrire un fichier passe toujours par la fenêtre avant / après.
-const MAX_ROLES = 12;
-const nettoyerTexte = (v, max) => String(v ?? '').replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, ' ').trim().slice(0, max);
-const lireRoles = () => {
-  const roles = readJson('settings.json', {}).roles;
-  return Array.isArray(roles) ? roles : [];
-};
-ipcMain.handle('roles-perso', () => lireRoles());
-ipcMain.handle('roles-perso-enregistrer', (_e, roles) => {
-  const propres = (Array.isArray(roles) ? roles : [])
-    .map((r) => ({ nom: nettoyerTexte(r?.nom, 40).replace(/\n/g, ' '), consigne: nettoyerTexte(r?.consigne, 1000) }))
-    .filter((r) => r.nom && r.consigne)
-    .slice(0, MAX_ROLES);
+// Rôles créés par l'utilisateur : ils finissent dans les consignes du modèle, donc textes courts et sans contrôle
+// (nettoyés dans principal/roles.js). Ils n'ouvrent aucun droit : écrire un fichier passe toujours par la fenêtre avant / après.
+const lireRoles = () => nettoyerRoles(readJson('settings.json', {}).roles);
+const enregistrerRoles = (roles) => {
+  const propres = nettoyerRoles(roles);
   writeJson('settings.json', { ...readJson('settings.json', {}), roles: propres });
   return propres;
+};
+ipcMain.handle('roles-perso', () => lireRoles());
+ipcMain.handle('roles-perso-enregistrer', (_e, roles) => enregistrerRoles(roles));
+
+// Partager un rôle avec un ami : il est enregistré dans un petit fichier .catai, là où l'utilisateur choisit
+ipcMain.handle('role-exporter', async (_e, index) => {
+  const role = lireRoles()[index];
+  if (!role) return { ok: false };
+  const { canceled, filePath } = await dialog.showSaveDialog(win, {
+    title: 'Partager le rôle',
+    defaultPath: path.join(app.getPath('documents'), nomFichierRole(role.nom)),
+    filters: [{ name: 'Rôle Cat Ai', extensions: ['catai'] }],
+  });
+  if (canceled || !filePath) return { ok: false };
+  fs.writeFileSync(filePath, roleVersFichier(role), 'utf8');
+  return { ok: true, chemin: filePath };
+});
+
+// Importer un rôle reçu : le fichier vient de quelqu'un d'autre, donc l'utilisateur lit la consigne avant de l'ajouter
+ipcMain.handle('role-importer', async () => {
+  const { canceled, filePaths } = await dialog.showOpenDialog(win, {
+    title: 'Importer un rôle reçu',
+    properties: ['openFile'],
+    filters: [{ name: 'Rôle Cat Ai', extensions: ['catai'] }],
+  });
+  if (canceled || !filePaths[0]) return { ok: false };
+  if (fs.statSync(filePaths[0]).size > MAX_FICHIER_ROLE) return { ok: false, erreur: 'Ce fichier est trop gros pour être un rôle Cat Ai.' };
+  const { role, erreur } = roleDepuisFichier(fs.readFileSync(filePaths[0], 'utf8'));
+  if (erreur) return { ok: false, erreur };
+  const { response } = await dialog.showMessageBox(win, {
+    type: 'question',
+    buttons: ['Ajouter', 'Annuler'],
+    defaultId: 0,
+    cancelId: 1,
+    title: 'Importer un rôle',
+    message: `Ajouter le rôle « ${role.nom} » ?`,
+    detail: `Ce que le chat devra faire :\n\n${role.consigne}`,
+  });
+  if (response !== 0) return { ok: false };
+  const ajout = ajouterRole(lireRoles(), role);
+  if (ajout.deja) return { ok: false, erreur: `Tu as déjà le rôle « ${role.nom} ».` };
+  if (ajout.erreur) return { ok: false, erreur: ajout.erreur };
+  return { ok: true, roles: enregistrerRoles(ajout.roles) };
 });
 
 ipcMain.handle('set-prenom', (_e, prenom) => {

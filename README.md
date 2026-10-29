@@ -45,7 +45,7 @@ Tout se règle d'un clic, sans fouiller dans les menus :
 
 - **Dossier** : ouvre un dossier pour que le chat lise son contenu.
 - **Mode prof** : il t'aide à trouver par toi-même, sans donner la réponse.
-- **Rôle** : la mission du chat (Assistant, Rédaction, ou ceux pour coder). « Créer un rôle » pour inventer le tien : Coach de révisions, Cuisinier…
+- **Rôle** : la mission du chat (Assistant, Rédaction, ou ceux pour coder). « Créer un rôle » pour inventer le tien : Coach de révisions, Cuisinier… Tu peux aussi le partager avec un ami : « Partager » crée un petit fichier `.catai`, qu'il ajoute avec « Importer un rôle reçu ».
 - **Fournisseur** et **Modèle** : qui fait réfléchir le chat, et quelle version. Chaque choix a un petit conseil, et le rond montre ce qu'il reste du quota gratuit du jour.
 
 ![Le menu des modèles, avec leurs conseils](docs/menu-modeles.png)
@@ -62,7 +62,7 @@ Les clés gratuites (Gemini, Groq, OpenRouter) se collent dans **Réglages**, en
 - **Modifier des fichiers** : chaque modification s'affiche avant / après, et rien n'est écrit sans ton accord.
 - **Pour tout le monde** : il explique, aide à écrire, fait réviser, apprend à coder depuis zéro.
 - **Mode prof** : il explique et pose des questions, mais c'est toi qui trouves.
-- **Rôles** : Rédaction, ceux pour coder (relecteur, débogueur, README), et les tiens.
+- **Rôles** : Rédaction, ceux pour coder (relecteur, débogueur, README), et les tiens, à partager avec tes amis.
 - **Un vrai chat** : il cligne des yeux, suit ta souris, s'endort quand tu ne fais rien et a toujours une réplique selon l'heure.
 - **Mémoire** : il retient ce que tu lui dis d'une discussion à l'autre, et tu peux tout modifier.
 - **Sécurité** : un `.env` ou une clé privée n'est jamais lu sans ton accord, les clés API sont chiffrées par le système, et le chat ne sort jamais du dossier ouvert.

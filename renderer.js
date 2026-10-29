@@ -1311,7 +1311,7 @@ function appliquerPerso() {
 
 // Fenêtre Réglages : fournisseur, modèle, clés et rôles perso
 $("#open-reglages").onclick = ouvrirFournisseurs;
-function ouvrirRoles() { renderRolesPerso(); $("#roles-modal").hidden = false; $("#role-nom").focus(); }
+function ouvrirRoles() { renderRolesPerso(); messageRoles(""); $("#roles-modal").hidden = false; $("#role-nom").focus(); }
 
 // Menu Rôle : ceux de tous les jours, ceux pour coder, puis « créer un rôle »
 function ouvrirMenuRoles() {
@@ -1371,7 +1371,7 @@ function renderRolesPerso() {
         const suppr = document.createElement("button");
         suppr.textContent = "Supprimer";
         suppr.onclick = async () => { rolesPerso = await window.api.setRolesPerso(rolesPerso.filter((_, j) => j !== i)); appliquerRolesPerso(); renderRolesPerso(); };
-        li.append(texte, suppr);
+        li.append(texte, partager, suppr);
         liste.append(li);
     });
 }
@@ -1412,6 +1412,17 @@ $("#role-form").addEventListener("submit", async (e) => {
     current = null; // on arrive toujours sur l'accueil, avec le chat
     renderConv();
     reglages = await window.api.lireFournisseurs();
+        // Partager : le rôle part dans un petit fichier .catai, à envoyer à un ami qui l'importera
+        const partager = document.createElement("button");
+        partager.textContent = "Partager";
+        partager.onclick = async () => {
+            try {
+                const { ok, chemin } = await window.api.exporterRole(i);
+                if (ok) messageRoles(`Rôle enregistré dans ${chemin}. Envoie ce fichier à un ami : il l'ajoute avec « Importer un rôle reçu ».`);
+            } catch {
+                messageRoles("Impossible d'enregistrer le fichier ici : choisis un autre dossier.");
+            }
+        };
     renderFournisseurs();
     interfacePrete = true;
     afficherAlertes(await window.api.alertesStockage());
@@ -1420,5 +1431,19 @@ $("#role-form").addEventListener("submit", async (e) => {
     let tours = 0;
     setInterval(() => { if (fournisseurActif().type === "ollama" || ++tours % 12 === 0) loadModels(); }, 10000);
     surActivite();
+function messageRoles(texte) {
+    $("#roles-message").textContent = texte;
+}
+
+$("#importer-role").onclick = async () => {
+    const { ok, roles, erreur } = await window.api.importerRole();
+    if (erreur) return messageRoles(erreur);
+    if (!ok) return;
+    rolesPerso = roles;
+    appliquerRolesPerso();
+    renderRolesPerso();
+    messageRoles(`Rôle « ${rolesPerso.at(-1).nom} » ajouté : choisis-le dans la pastille du rôle.`);
+};
+
     input.focus();
 })();

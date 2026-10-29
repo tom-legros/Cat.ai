@@ -44,6 +44,8 @@ contextBridge.exposeInMainWorld('api', {
   // Rôles créés dans Réglages : [{ nom, consigne }]
   getRolesPerso: () => ipcRenderer.invoke('roles-perso'),
   setRolesPerso: (roles) => ipcRenderer.invoke('roles-perso-enregistrer', roles),
+  exporterRole: (index) => ipcRenderer.invoke('role-exporter', index),
+  importerRole: () => ipcRenderer.invoke('role-importer'),
   loadMemory: () => ipcRenderer.invoke('load-memory'),
   saveMemory: (m) => ipcRenderer.invoke('save-memory', m),
   onMemoryChanged: (cb) => ipcRenderer.on('memory-changed', (_e, m) => cb(m)),
