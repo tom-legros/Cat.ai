@@ -1391,6 +1391,31 @@ $("#role-form").addEventListener("submit", async (e) => {
     $("#roles-modal").hidden = true;
 });
 
+// Mise à jour : main.js prévient quand une version plus récente existe sur GitHub (principal/miseajour.js).
+// Rien ne se télécharge sans un clic ; « Redémarrer » installe et relance l'app, les discussions sont gardées.
+window.api.onMiseAJour(({ etat, version, pourcent }) => {
+    const texte = $("#maj-texte");
+    const bouton = $("#maj-bouton");
+    $("#maj").hidden = false;
+    bouton.hidden = false;
+    bouton.disabled = false;
+    if (etat === "dispo") {
+        texte.textContent = `Cat Ai ${version} est sortie.`;
+        bouton.textContent = "Mettre à jour";
+        bouton.onclick = () => { bouton.disabled = true; texte.textContent = "Téléchargement…"; window.api.telechargerMiseAJour(); };
+    } else if (etat === "telechargement") {
+        texte.textContent = `Téléchargement… ${pourcent} %`;
+        bouton.hidden = true;
+    } else if (etat === "prete") {
+        texte.textContent = `Cat Ai ${version} est prête.`;
+        bouton.textContent = "Redémarrer pour l'installer";
+        bouton.onclick = () => window.api.installerMiseAJour();
+    } else {
+        texte.textContent = "La mise à jour n'a pas pu se télécharger. Tu peux la prendre à la main sur la page GitHub de Cat Ai.";
+        bouton.hidden = true;
+    }
+});
+
 (async () => {
     appliquerNom();
     perso = await window.api.perso();

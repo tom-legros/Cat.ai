@@ -9,6 +9,7 @@ const { OUTILS_ECRITURE, RIEN_N_A_CHANGE, REFUS_LECTURE, ecritureRefusee, rempla
 const { hote, HOTES_LOCAUX, fournisseurGratuit, modeleGratuit, conseilGratuit, adresseValide } = require('./principal/gratuit');
 const { LIMITES_OLLAMA, MAX_JOINT, limitesTaille, raccourcir, compacter, listeCourte } = require('./principal/taille');
 const { ajouterFait, nettoyerPrenom } = require('./principal/memoire');
+const { configurerMiseAJour } = require('./principal/miseajour');
 const { MAX_FICHIER_ROLE, nettoyerRoles, roleVersFichier, roleDepuisFichier, nomFichierRole, ajouterRole } = require('./principal/roles');
 const { OLLAMA, REFLEXION, envoyerOllama, envoyerOpenAI, vulkanUtile } = require('./principal/envoi');
 const {
@@ -654,6 +655,8 @@ if (!app.requestSingleInstanceLock()) {
   app.whenReady().then(() => {
     demarrerOllama();
     createWindow();
+    // Une fois l'interface prête à écouter : elle affichera « Cat Ai x.y.z est sortie » s'il y a mieux sur GitHub
+    win.webContents.once('did-finish-load', () => configurerMiseAJour((etat) => win?.webContents.send('mise-a-jour', etat)));
   });
 }
 app.on('window-all-closed', () => app.quit());

@@ -65,7 +65,8 @@ Les clés gratuites (Gemini, Groq, OpenRouter) se collent dans **Réglages**, en
 - **Rôles** : Rédaction, ceux pour coder (relecteur, débogueur, README), et les tiens, à partager avec tes amis.
 - **Un vrai chat** : il cligne des yeux, suit ta souris, s'endort quand tu ne fais rien et a toujours une réplique selon l'heure.
 - **Mémoire** : il retient ce que tu lui dis d'une discussion à l'autre, et tu peux tout modifier.
-- **Sécurité** : un `.env` ou une clé privée n'est jamais lu sans ton accord, les clés API sont chiffrées par le système, et le chat ne sort jamais du dossier ouvert.
+- **Mises à jour** : quand une nouvelle version sort, l'app te le dit en bas à gauche et l'installe en un clic (installateur Windows et AppImage). Rien ne se télécharge sans ton accord.
+- **Sécurité** : un `.env` ou une clé privée n'est jamais lu sans ton accord, les clés API sont chiffrées par le système, et le chat ne sort jamais du dossier ouvert. La seule chose que l'app fait seule sur internet, c'est demander à GitHub, au démarrage, s'il existe une nouvelle version : rien sur toi n'est envoyé.
 
 ## Lancer depuis le code
 
@@ -81,6 +82,8 @@ npm start
 | `npm test` | Lance les tests (`node --test`, sans Electron) |
 | `npm run installateur` | Crée l'installateur Windows dans `dist/` |
 | `npm run installateur:linux` | Crée l'AppImage (à lancer depuis Linux ou WSL) |
+
+Pour publier une version, joins à la release les installateurs **et** `latest.yml`, `latest-linux.yml` et `Cat-Ai-x.y.z-installateur.exe.blockmap` (tous dans `dist/`) : c'est ce que lit la mise à jour automatique.
 
 Le code est séparé en deux : `main.js` et `principal/` pour le processus principal (fichiers, modèles, garde-fous), `renderer.js` et `interface/` pour la fenêtre. Les données (discussions, mémoire, clés chiffrées) sont dans `%APPDATA%\assistant-ia` sur Windows et `~/.config/assistant-ia` sur Linux.
 
