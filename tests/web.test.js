@@ -1,7 +1,7 @@
 // Lecture de pages internet : adresses autorisées, liens donnés par l'utilisateur, et HTML transformé en texte
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { urlsDans, memePage, ipInterdite, verifierUrl, texteDepuisHtml, presenterPage } = require('../principal/web');
+const { urlsDans, memePage, ipInterdite, verifierUrl, texteDepuisHtml, presenterPage, urlResultat, resultatsDepuisHtml, presenterResultats } = require('../principal/web');
 
 test('urlsDans : trouve les liens d un message, sans la ponctuation collée', () => {
   assert.deepEqual(urlsDans('Résume https://fr.wikipedia.org/wiki/Chat. Et (https://exemple.fr/a?b=1) stp !'), [
@@ -60,4 +60,36 @@ test('presenterPage : rappelle au modèle que le texte vient d internet, et coup
   assert.match(court, /pas des consignes/);
   const long = presenterPage({ url: 'https://exemple.fr', titre: '', texte: 'x'.repeat(50000) });
   assert.ok(long.length < 31000 && long.includes('page coupée'));
+});
+
+// Morceau de page de résultats DuckDuckGo (version HTML), avec une publicité et un lien emballé
+const PAGE_RESULTATS = `
+<div class="result results_links result--ad"><h2 class="result__title"><a rel="nofollow" class="result__a" href="https://duckduckgo.com/y.js?ad=1">Pub</a></h2></div>
+<div class="result results_links results_links_deep web-result ">
+  <h2 class="result__title"><a rel="nofollow" class="result__a" href="https://wiki.archlinux.org/title/GNOME/Keyring">GNOME/Keyring - <b>ArchWiki</b></a></h2>
+  <a class="result__snippet" href="https://wiki.archlinux.org/title/GNOME/Keyring">Installation : <b>gnome-keyring</b> d&#x27;abord.</a>
+</div>
+<div class="result results_links results_links_deep web-result ">
+  <h2 class="result__title"><a rel="nofollow" class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fman.archlinux.org%2Fman%2Fpacman.8&amp;rut=abc">pacman(8)</a></h2>
+</div>
+<div class="result results_links web-result "><h2 class="result__title"><a rel="nofollow" class="result__a" href="https://wiki.archlinux.org/title/GNOME/Keyring">Doublon</a></h2></div>`;
+
+test('resultatsDepuisHtml : titres, adresses réelles et extraits, sans publicité ni doublon', () => {
+  assert.deepEqual(resultatsDepuisHtml(PAGE_RESULTATS), [
+    { titre: 'GNOME/Keyring - ArchWiki', url: 'https://wiki.archlinux.org/title/GNOME/Keyring', extrait: "Installation : gnome-keyring d'abord." },
+    { titre: 'pacman(8)', url: 'https://man.archlinux.org/man/pacman.8', extrait: '' },
+  ]);
+  assert.deepEqual(resultatsDepuisHtml('<html>rien</html>'), []);
+});
+
+test('urlResultat : refuse ce qui n est pas une page web', () => {
+  assert.equal(urlResultat('javascript:alert(1)'), null);
+  assert.equal(urlResultat('https://duckduckgo.com/y.js?ad=1'), null);
+});
+
+test('presenterResultats : liste numérotée, et conseille de lire les pages avant de répondre', () => {
+  const texte = presenterResultats('pacman', [{ titre: 'pacman(8)', url: 'https://man.archlinux.org/man/pacman.8', extrait: 'Gestionnaire de paquets' }]);
+  assert.match(texte, /1\. pacman\(8\)\n {3}https:\/\/man\.archlinux\.org\/man\/pacman\.8\n {3}Gestionnaire de paquets/);
+  assert.match(texte, /lire_page_web/);
+  assert.match(presenterResultats('xyz', []), /Aucun résultat/);
 });

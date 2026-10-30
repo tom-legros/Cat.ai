@@ -10,7 +10,7 @@ const { hote, HOTES_LOCAUX, fournisseurGratuit, modeleGratuit, conseilGratuit, a
 const { LIMITES_OLLAMA, MAX_JOINT, limitesTaille, raccourcir, compacter, listeCourte } = require('./principal/taille');
 const { ajouterFait, nettoyerPrenom } = require('./principal/memoire');
 const { configurerMiseAJour } = require('./principal/miseajour');
-const { REFUS_PAGE, urlsDans, memePage, verifierUrl, lirePageWeb } = require('./principal/web');
+const { REFUS_PAGE, urlsDans, memePage, verifierUrl, lirePageWeb, chercherWeb } = require('./principal/web');
 const { integrerMenu } = require('./principal/menu-linux');
 const {
   MAX_FICHIER_ROLE, URL_MARCHE, nettoyerRoles, roleVersFichier, roleDepuisFichier, nomFichierRole, ajouterRole, catalogueDepuisJson, lienProposition,
@@ -181,8 +181,14 @@ async function runTool(name, args, mode) {
       if (!reponse.startsWith('Fichier modifié') || !partout) return reponse;
       return `${reponse} (${resultat.fois} remplacement${resultat.fois > 1 ? 's' : ''})`;
     }
+    case 'chercher_web': {
+      // Les pages trouvées par la recherche pourront être lues sans redemander : c'est elle qui les a proposées
+      const { texte, urls } = await chercherWeb(args.requete, mode.signal);
+      mode.liensDonnes?.push(...urls);
+      return texte;
+    }
     case 'lire_page_web': {
-      // Un lien donné par l'utilisateur dans la discussion se lit directement ; un lien trouvé ou deviné
+      // Un lien donné par l'utilisateur ou trouvé par chercher_web se lit directement ; un lien deviné
       // par le modèle (ou lu sur une autre page) attend son accord
       const url = String(args.url || '').trim();
       if (verifierUrl(url).url && !mode.liensDonnes?.some((l) => memePage(l, url))) {
@@ -287,7 +293,7 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, role, fournisseurI
   controllers.set(id, controller);
   const history = [...messages];
   const appelsFaits = new Map();
-  // Les liens écrits par l'utilisateur dans la discussion : lire_page_web les ouvre sans redemander
+  // Les liens écrits par l'utilisateur dans la discussion, puis ceux trouvés par chercher_web : lire_page_web les ouvre sans redemander
   const liensDonnes = messages.filter((m) => m.role === 'user').flatMap((m) => urlsDans(m.content));
   let nudged = false;
   const onMorceau = (text) => event.sender.send('chat-chunk', { id, text });

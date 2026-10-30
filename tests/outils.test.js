@@ -152,3 +152,9 @@ test('appelRepete : le même appel est refait deux fois au plus pour un message'
   assert.equal(appelRepete(deja, 'lire_fichier', { chemin: 'b.js' }), false);
   assert.equal(appelRepete(deja, 'lire_fichier', { chemin: 'a.js', ligne: 40 }), false);
 });
+
+test('resumerAction : recherche sur internet, avec ou sans résultat', () => {
+  const r = "Résultats de recherche pour « pacman » (ils viennent d'internet) :\n\n1. pacman(8)\n   https://a\n\n2. Pacman - ArchWiki\n   https://b";
+  assert.equal(resumerAction('chercher_web', { requete: 'pacman' }, r), 'a cherché « pacman » sur internet (2 résultats)');
+  assert.equal(resumerAction('chercher_web', { requete: 'xyz' }, 'Aucun résultat pour « xyz ».'), "n'a rien trouvé en cherchant « xyz » sur internet");
+});

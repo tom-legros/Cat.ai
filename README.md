@@ -59,7 +59,7 @@ Les clés gratuites (Gemini, Groq, OpenRouter) se collent dans **Réglages**, en
 ## Ce qu'il sait faire
 
 - **Lire ton projet** : il ouvre un dossier, lit et cherche dans le code, et répond à partir du vrai code.
-- **Lire une page internet** : donne-lui un lien, il lit la page et la résume ou répond à partir d'elle. Il ne cherche pas sur internet, et pour un lien que tu ne lui as pas donné, il te demande d'abord.
+- **Chercher sur internet** : pour une doc (Linux, une commande, une erreur…) ou une info récente, il cherche, lit les meilleures pages (ArchWiki, manuels, doc officielle…) et te répond avec leurs liens. Tu peux aussi lui donner un lien à lire ou à résumer. La recherche passe par DuckDuckGo, gratuit et sans compte : seuls les mots cherchés y partent.
 - **Modifier des fichiers** : chaque modification s'affiche avant / après, et rien n'est écrit sans ton accord.
 - **Longues tâches** : le chat enchaîne jusqu'à 30 actions par message sans te demander de continuer, et ne refait jamais trois fois la même. Les modifications de fichiers te sont toujours montrées avant.
 - **Pour tout le monde** : il explique, aide à écrire, fait réviser, apprend à coder depuis zéro.

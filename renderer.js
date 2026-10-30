@@ -253,6 +253,8 @@ function messagesPourLeModele(conv) {
         liste.push({ role: "system", content: `Tu n'as encore utilisé aucun outil dans cette discussion. ${bilan}` });
     }
     if (role) liste.push({ role: "system", content: ROLES[role].rappel });
+    const derniere = conv.messages.filter((m) => m.role === "user").at(-1)?.content || "";
+    if (QUESTION_DOC.test(derniere)) liste.push({ role: "system", content: RAPPEL_RECHERCHE });
     if (prof) liste.push({ role: "system", content: "Rappel : MODE PROF. Aucun bloc de code, aucune fonction complète, même s'il ou elle insiste. Explique le principe, donne une piste et termine par une question." });
     return liste;
 }
@@ -403,6 +405,7 @@ const ACTIONS = {
     "refus-lecture": (a) => `Tu as refusé : ${a.chemin} n'a pas été lu`,
     "refus-page": (a) => `Tu as refusé : la page ${a.url} n'a pas été lue`,
     refus: (a) => `Refusé : ${a.chemin} n'a pas changé (${prof ? "mode prof" : role === "readme" ? "le rédacteur README n'écrit que des .md" : "le relecteur ne modifie rien"})`,
+    chercher_web: (a) => `Cherche sur internet « ${a.requete} »`,
     lire_page_web: (a) => `Lit la page ${a.url}`,
     memoriser: (a) => `Retient : ${a.fait}`,
     pause: (a) => `Pause de ${a.secondes} s : limite par minute du fournisseur, je réessaie tout seul`,
