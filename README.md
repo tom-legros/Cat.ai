@@ -45,7 +45,7 @@ Tout se règle d'un clic, sans fouiller dans les menus :
 
 - **Dossier** : ouvre un dossier pour que le chat lise son contenu.
 - **Mode prof** : il t'aide à trouver par toi-même, sans donner la réponse.
-- **Rôle** : la mission du chat (Assistant, Rédaction, ou ceux pour coder). « Créer un rôle » pour inventer le tien : Coach de révisions, Cuisinier… Tu peux aussi le partager avec un ami : « Partager » crée un petit fichier `.catai`, qu'il ajoute avec « Importer un rôle reçu ».
+- **Rôle** : la mission du chat (Assistant, Rédaction, ou ceux pour coder). « Créer un rôle » pour inventer le tien : Coach de révisions, Cuisinier… Tu peux aussi le partager avec un ami : « Partager » crée un petit fichier `.catai`, qu'il ajoute avec « Importer un rôle reçu ». Et le **Marché des rôles** (dans le même menu) propose des rôles prêts à l'emploi : Correcteur d'orthographe, Coach de révisions, Prof d'anglais, Cuisinier étudiant…
 - **Fournisseur** et **Modèle** : qui fait réfléchir le chat, et quelle version. Chaque choix a un petit conseil, et le rond montre ce qu'il reste du quota gratuit du jour.
 
 ![Le menu des modèles, avec leurs conseils](docs/menu-modeles.png)
@@ -64,7 +64,7 @@ Les clés gratuites (Gemini, Groq, OpenRouter) se collent dans **Réglages**, en
 - **Longues tâches** : le chat enchaîne jusqu'à 30 actions par message sans te demander de continuer, et ne refait jamais trois fois la même. Les modifications de fichiers te sont toujours montrées avant.
 - **Pour tout le monde** : il explique, aide à écrire, fait réviser, apprend à coder depuis zéro.
 - **Mode prof** : il explique et pose des questions, mais c'est toi qui trouves.
-- **Rôles** : Rédaction, ceux pour coder (relecteur, débogueur, README), et les tiens, à partager avec tes amis.
+- **Rôles** : Rédaction, ceux pour coder (relecteur, débogueur, README), les tiens, à partager avec tes amis, et ceux du marché des rôles. Un bon rôle ? « Proposer » ouvre une demande sur GitHub, relue avant d'arriver au marché.
 - **Un vrai chat** : il cligne des yeux, suit ta souris, s'endort quand tu ne fais rien et a toujours une réplique selon l'heure.
 - **Mémoire** : il retient ce que tu lui dis d'une discussion à l'autre, et tu peux tout modifier.
 - **Mises à jour** : quand une nouvelle version sort, l'app te le dit en bas à gauche et l'installe en un clic (installateur Windows et AppImage). Rien ne se télécharge sans ton accord.
@@ -86,6 +86,8 @@ npm start
 | `npm run installateur:linux` | Crée l'AppImage (à lancer depuis Linux ou WSL) |
 
 Pour publier une version, joins à la release les installateurs **et** `latest.yml`, `latest-linux.yml` et `Cat-Ai-x.y.z-installateur.exe.blockmap` (tous dans `dist/`) : c'est ce que lit la mise à jour automatique.
+
+Le marché des rôles est le fichier [`marche/roles.json`](marche/roles.json) : pour ajouter un rôle proposé, ajoute-le à la liste (nom, description, auteur, consigne), lance `npm test` (il vérifie le fichier), puis pousse sur `main`. Les apps le lisent directement sur GitHub, sans nouvelle version. Avec `npm start`, c'est le fichier local qui est lu.
 
 Le code est séparé en deux : `main.js` et `principal/` pour le processus principal (fichiers, modèles, garde-fous), `renderer.js` et `interface/` pour la fenêtre. Les données (discussions, mémoire, clés chiffrées) sont dans `%APPDATA%\assistant-ia` sur Windows et `~/.config/assistant-ia` sur Linux.
 

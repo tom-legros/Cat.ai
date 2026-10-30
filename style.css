@@ -565,6 +565,16 @@ select.pastille option { background: var(--surface); color: var(--texte); }
 .maj-notes { max-height: 260px; overflow-y: auto; margin-top: 14px; padding: 4px 14px; border: 1px solid var(--ligne); font-size: 13px; line-height: 1.5; color: var(--texte-2); }
 .maj-notes h1, .maj-notes h2, .maj-notes h3 { font-size: 14px; margin: 12px 0 4px; }
 .maj-notes ul { padding-left: 18px; margin: 4px 0; }
+/* Marché des rôles : une liste qui défile, un rôle par ligne avec son bouton Ajouter */
+#marche-recherche { width: 100%; margin-top: 14px; padding: 9px 12px; background: var(--surface); border: 1px solid var(--ligne-2); border-radius: var(--rayon-petit); }
+.marche { list-style: none; margin: 0; padding: 0; max-height: 50vh; overflow-y: auto; }
+.marche li { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--ligne); }
+.marche li > .bouton, .marche li > .lien { flex: none; }
+.marche__nom { margin: 0; color: var(--texte); font-size: 15px; }
+.marche__description { margin: 2px 0 0; font-size: 13px; color: var(--texte-3); }
+.marche details { margin-top: 6px; font-size: 13px; color: var(--texte-2); }
+.marche summary { cursor: pointer; font-size: 12px; color: var(--texte-3); }
+.marche details p { margin: 6px 0 0; line-height: 1.5; }
 .role-form { display: flex; flex-direction: column; gap: 8px; }
 .role-form input, .role-form textarea { padding: 9px 12px; background: var(--surface); border: 1px solid var(--ligne-2); border-radius: var(--rayon-petit); resize: vertical; }
 .role-form .bouton { align-self: flex-start; }

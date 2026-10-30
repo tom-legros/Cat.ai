@@ -12,7 +12,9 @@ const { ajouterFait, nettoyerPrenom } = require('./principal/memoire');
 const { configurerMiseAJour } = require('./principal/miseajour');
 const { REFUS_PAGE, urlsDans, memePage, verifierUrl, lirePageWeb } = require('./principal/web');
 const { integrerMenu } = require('./principal/menu-linux');
-const { MAX_FICHIER_ROLE, nettoyerRoles, roleVersFichier, roleDepuisFichier, nomFichierRole, ajouterRole } = require('./principal/roles');
+const {
+  MAX_FICHIER_ROLE, URL_MARCHE, nettoyerRoles, roleVersFichier, roleDepuisFichier, nomFichierRole, ajouterRole, catalogueDepuisJson, lienProposition,
+} = require('./principal/roles');
 const { OLLAMA, REFLEXION, envoyerOllama, envoyerOpenAI, vulkanUtile } = require('./principal/envoi');
 const {
   FOURNISSEURS_DE_BASE, lireReglagesFournisseurs, infosFournisseur, configFournisseur, versInterface,
@@ -643,6 +645,36 @@ ipcMain.handle('role-importer', async () => {
   if (ajout.deja) return { ok: false, erreur: `Tu as déjà le rôle « ${role.nom} ».` };
   if (ajout.erreur) return { ok: false, erreur: ajout.erreur };
   return { ok: true, roles: enregistrerRoles(ajout.roles) };
+});
+
+// Marché des rôles : le catalogue marche/roles.json du dépôt GitHub, lu seulement quand l'utilisateur ouvre le marché.
+// Avec npm start, c'est le fichier du dossier qui est lu : on voit ses modifications avant de les publier.
+ipcMain.handle('marche-lire', async () => {
+  try {
+    if (!app.isPackaged) return catalogueDepuisJson(fs.readFileSync(path.join(__dirname, 'marche', 'roles.json'), 'utf8'));
+    const res = await fetch(URL_MARCHE, { signal: AbortSignal.timeout(10000), cache: 'no-store' });
+    if (!res.ok) return { erreur: 'Le marché des rôles ne répond pas pour le moment : réessaie plus tard.' };
+    return catalogueDepuisJson(await res.text());
+  } catch {
+    return { erreur: 'Impossible de joindre le marché des rôles : il faut une connexion internet.' };
+  }
+});
+
+// Ajouter un rôle du marché : l'utilisateur a lu sa consigne dans la liste avant de cliquer
+ipcMain.handle('role-ajouter', (_e, role) => {
+  const propre = nettoyerRoles([role])[0];
+  if (!propre) return { ok: false, erreur: 'Ce rôle est incomplet.' };
+  const ajout = ajouterRole(lireRoles(), propre);
+  if (ajout.deja) return { ok: false, erreur: `Tu as déjà le rôle « ${propre.nom} ».` };
+  if (ajout.erreur) return { ok: false, erreur: ajout.erreur };
+  return { ok: true, roles: enregistrerRoles(ajout.roles) };
+});
+
+// Proposer un de ses rôles au marché : une demande GitHub pré-remplie s'ouvre dans le navigateur
+ipcMain.handle('role-proposer', (_e, index) => {
+  const role = lireRoles()[index];
+  if (role) shell.openExternal(lienProposition(role));
+  return !!role;
 });
 
 ipcMain.handle('set-prenom', (_e, prenom) => {

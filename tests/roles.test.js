@@ -1,7 +1,7 @@
 // Rôles perso : nettoyage et partage dans un fichier .catai reçu d'un ami
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { MAX_ROLES, nettoyerRoles, roleVersFichier, roleDepuisFichier, nomFichierRole, ajouterRole } = require('../principal/roles');
+const { MAX_ROLES, nettoyerRoles, roleVersFichier, roleDepuisFichier, nomFichierRole, ajouterRole, catalogueDepuisJson, lienProposition } = require('../principal/roles');
 
 const coach = { nom: 'Coach de révisions', consigne: 'Pose-moi des questions sur mon cours, une par une.' };
 
@@ -56,4 +56,37 @@ test('ajouterRole : même nom, autre consigne, les deux sont gardés et le reçu
 test('ajouterRole : refuse au-delà du nombre maximal de rôles', () => {
   const pleins = Array.from({ length: MAX_ROLES }, (_, i) => ({ nom: `Rôle ${i}`, consigne: 'x' }));
   assert.ok(ajouterRole(pleins, coach).erreur);
+});
+
+test('catalogueDepuisJson : garde les rôles valides du marché, nettoyés, avec description et auteur', () => {
+  const texte = JSON.stringify({ roles: [
+    { nom: 'Correcteur', consigne: 'Corrige mes fautes.', description: 'Corrige\nl orthographe', auteur: 'Cat Ai', outils: ['ecrire_fichier'] },
+    { nom: '', consigne: 'incomplet' },
+    'pas un rôle',
+  ] });
+  assert.deepEqual(catalogueDepuisJson(texte), { roles: [{ nom: 'Correcteur', consigne: 'Corrige mes fautes.', description: 'Corrige l orthographe', auteur: 'Cat Ai' }] });
+});
+
+test('catalogueDepuisJson : un catalogue illisible ou trop gros donne une erreur claire', () => {
+  assert.ok(catalogueDepuisJson('<html>404</html>').erreur);
+  assert.ok(catalogueDepuisJson('x'.repeat(600 * 1024)).erreur);
+  assert.deepEqual(catalogueDepuisJson('{}'), { roles: [] });
+});
+
+test('le catalogue du dépôt (marche/roles.json) est valide et ne perd aucun rôle', () => {
+  const texte = require('fs').readFileSync(require('path').join(__dirname, '..', 'marche', 'roles.json'), 'utf8');
+  const brut = JSON.parse(texte).roles;
+  const { roles, erreur } = catalogueDepuisJson(texte);
+  assert.equal(erreur, undefined);
+  assert.equal(roles.length, brut.length);
+  assert.equal(new Set(roles.map((r) => r.nom)).size, roles.length); // pas deux rôles du même nom
+  for (const r of roles) assert.ok(r.description && r.auteur, r.nom);
+});
+
+test('lienProposition : une demande GitHub pré-remplie avec le nom et la consigne', () => {
+  const lien = lienProposition(coach);
+  assert.ok(lien.startsWith('https://github.com/tom-legros/Cat.ai/issues/new?title='));
+  const params = new URL(lien).searchParams;
+  assert.equal(params.get('title'), 'Rôle pour le marché : Coach de révisions');
+  assert.ok(params.get('body').includes(coach.consigne));
 });

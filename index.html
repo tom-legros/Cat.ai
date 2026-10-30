@@ -161,7 +161,20 @@
       <p class="etiquette etiquette--suite">Mes rôles</p>
       <ul id="roles-liste" class="souvenirs"></ul>
       <p id="roles-message" class="conseil" aria-live="polite"></p>
-      <div class="rangee rangee--fin"><button id="importer-role" class="lien" type="button">Importer un rôle reçu</button><button id="close-roles" class="lien" type="button">Fermer</button></div>
+      <div class="rangee rangee--fin"><button id="ouvrir-marche" class="lien" type="button">Marché des rôles</button><button id="importer-role" class="lien" type="button">Importer un rôle reçu</button><button id="close-roles" class="lien" type="button">Fermer</button></div>
+    </div>
+  </div>
+
+  <!-- Marché des rôles : ouvert depuis la pastille du rôle ou la fenêtre des rôles -->
+  <div id="marche-modal" class="fenetre" hidden>
+    <div class="fenetre__boite fenetre__boite--large">
+      <p class="etiquette">Rôles</p>
+      <h2 class="fenetre__titre">Le marché des rôles</h2>
+      <p class="discret">Des rôles prêts à l'emploi, choisis et relus. Lis ce que le chat fera, puis ajoute-le en un clic. Tu as créé un bon rôle ? Clique sur « Proposer » à côté de lui dans tes rôles.</p>
+      <input id="marche-recherche" type="search" placeholder="Chercher un rôle : révisions, cuisine, anglais…">
+      <p id="marche-message" class="conseil" aria-live="polite"></p>
+      <ul id="marche-liste" class="marche"></ul>
+      <div class="rangee rangee--fin"><button id="close-marche" class="lien" type="button">Fermer</button></div>
     </div>
   </div>
 

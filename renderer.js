@@ -1336,6 +1336,7 @@ function ouvrirMenuRoles() {
         }
     }
     choixMenu(menu, "Créer un rôle", false, ouvrirRoles, "menu-modeles__autre", { icone: "plus", couleur: "gris", conseil: "Ta propre mission pour le chat" });
+    choixMenu(menu, "Marché des rôles", false, ouvrirMarche, "menu-modeles__autre", { icone: "etoile", couleur: "gris", conseil: "Des rôles prêts à l'emploi, en un clic" });
     menu.hidden = false;
 }
 $("#close-roles").onclick = () => ($("#roles-modal").hidden = true);
@@ -1370,10 +1371,18 @@ function renderRolesPerso() {
         const texte = document.createElement("span");
         texte.textContent = r.nom;
         texte.title = r.consigne;
+        // Proposer : une demande GitHub pré-remplie pour mettre ce rôle au marché
+        const proposer = document.createElement("button");
+        proposer.textContent = "Proposer";
+        proposer.title = "Proposer ce rôle au marché des rôles (ouvre GitHub)";
+        proposer.onclick = () => {
+            window.api.proposerRole(i);
+            messageRoles("Ta proposition s'ouvre sur GitHub : complète-la et envoie-la (il faut un compte GitHub). Elle sera relue avant d'arriver au marché.");
+        };
         const suppr = document.createElement("button");
         suppr.textContent = "Supprimer";
         suppr.onclick = async () => { rolesPerso = await window.api.setRolesPerso(rolesPerso.filter((_, j) => j !== i)); appliquerRolesPerso(); renderRolesPerso(); };
-        li.append(texte, partager, suppr);
+        li.append(texte, partager, proposer, suppr);
         liste.append(li);
     });
 }
@@ -1482,6 +1491,70 @@ $("#importer-role").onclick = async () => {
     renderRolesPerso();
     messageRoles(`Rôle « ${rolesPerso.at(-1).nom} » ajouté : choisis-le dans la pastille du rôle.`);
 };
+
+// Marché des rôles : le catalogue marche/roles.json du dépôt GitHub, lu par main.js quand on ouvre la fenêtre.
+// Chaque rôle montre ce que le chat fera avant d'être ajouté. « Proposer » (dans Mes rôles) ouvre une demande
+// GitHub : le créateur de l'app relit les propositions avant de les mettre au marché.
+let catalogue = [];
+
+async function ouvrirMarche() {
+    $("#marche-modal").hidden = false;
+    $("#marche-recherche").value = "";
+    $("#marche-liste").replaceChildren();
+    $("#marche-message").textContent = "Chargement du marché…";
+    const { roles, erreur } = await window.api.lireMarche();
+    catalogue = roles || [];
+    $("#marche-message").textContent = erreur || "";
+    renderMarche();
+    $("#marche-recherche").focus();
+}
+
+function renderMarche() {
+    const filtre = $("#marche-recherche").value.trim().toLowerCase();
+    const liste = $("#marche-liste");
+    liste.replaceChildren();
+    const visibles = catalogue.filter((r) => !filtre || `${r.nom} ${r.description} ${r.consigne}`.toLowerCase().includes(filtre));
+    if (catalogue.length && !visibles.length) liste.innerHTML = '<li class="discret">Aucun rôle ne correspond.</li>';
+    for (const r of visibles) {
+        const li = document.createElement("li");
+        const infos = document.createElement("div");
+        const nom = document.createElement("p");
+        nom.className = "marche__nom";
+        nom.textContent = r.nom;
+        const description = document.createElement("p");
+        description.className = "marche__description";
+        description.textContent = r.auteur ? `${r.description} · par ${r.auteur}` : r.description;
+        const details = document.createElement("details");
+        const resume = document.createElement("summary");
+        resume.textContent = "Ce que le chat fera";
+        const consigne = document.createElement("p");
+        consigne.textContent = r.consigne;
+        details.append(resume, consigne);
+        infos.append(nom, description, details);
+        const deja = rolesPerso.some((p) => p.nom === r.nom && p.consigne === r.consigne);
+        const bouton = document.createElement("button");
+        bouton.type = "button";
+        bouton.className = deja ? "lien" : "bouton";
+        bouton.textContent = deja ? "Ajouté" : "Ajouter";
+        bouton.disabled = deja;
+        bouton.onclick = async () => {
+            const resultat = await window.api.ajouterRole({ nom: r.nom, consigne: r.consigne });
+            if (resultat.erreur) return ($("#marche-message").textContent = resultat.erreur);
+            rolesPerso = resultat.roles;
+            appliquerRolesPerso();
+            renderRolesPerso();
+            $("#marche-message").textContent = `« ${r.nom} » ajouté : choisis-le dans la pastille du rôle.`;
+            renderMarche();
+        };
+        li.append(infos, bouton);
+        liste.append(li);
+    }
+}
+
+$("#marche-recherche").oninput = renderMarche;
+$("#ouvrir-marche").onclick = ouvrirMarche;
+$("#close-marche").onclick = () => ($("#marche-modal").hidden = true);
+$("#marche-modal").onclick = (e) => { if (e.target.id === "marche-modal") e.target.hidden = true; };
 
     input.focus();
 })();

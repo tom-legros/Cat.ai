@@ -4,7 +4,7 @@
 // Un rôle finit dans les consignes du modèle, mais il n'ouvre aucun droit : écrire un fichier passe toujours
 // par la fenêtre avant / après, et lire un fichier sensible demande toujours l'accord de l'utilisateur.
 
-const MAX_ROLES = 12;
+const MAX_ROLES = 30;
 const MAX_NOM = 40;
 const MAX_CONSIGNE = 1000;
 // Un rôle fait moins de 2 Ko : au-delà, ce n'est pas un fichier de rôle et on ne le lit même pas
@@ -54,4 +54,51 @@ function ajouterRole(roles, role) {
   return { roles: [...liste, { nom, consigne: role.consigne }] };
 }
 
-module.exports = { MAX_ROLES, MAX_FICHIER_ROLE, nettoyerRoles, roleVersFichier, roleDepuisFichier, nomFichierRole, ajouterRole };
+// ---------- Marché des rôles ----------
+// Le catalogue est un fichier du dépôt GitHub (marche/roles.json), choisi et relu par le créateur de l'app.
+// L'app le lit seulement quand l'utilisateur ouvre le marché. Il est quand même vérifié comme un fichier reçu.
+const URL_MARCHE = 'https://raw.githubusercontent.com/tom-legros/Cat.ai/main/marche/roles.json';
+const MAX_CATALOGUE = 512 * 1024;
+const MAX_ROLES_MARCHE = 200;
+
+// { roles: [{ nom, consigne, description, auteur }] }, ou { erreur } si le catalogue est illisible
+function catalogueDepuisJson(texte) {
+  if (String(texte).length > MAX_CATALOGUE) return { erreur: 'Le marché des rôles est trop gros pour être lu.' };
+  let donnees;
+  try {
+    donnees = JSON.parse(String(texte).replace(/^﻿/, ''));
+  } catch {
+    return { erreur: 'Le marché des rôles est illisible pour le moment : réessaie plus tard.' };
+  }
+  const roles = (Array.isArray(donnees?.roles) ? donnees.roles : [])
+    .map((r) => {
+      const role = nettoyerRole(r);
+      return role && { ...role, description: nettoyerTexte(r.description, 160).replace(/\n/g, ' '), auteur: nettoyerTexte(r.auteur, 40).replace(/\n/g, ' ') };
+    })
+    .filter(Boolean)
+    .slice(0, MAX_ROLES_MARCHE);
+  return { roles };
+}
+
+// Proposer un rôle au marché : une demande (issue) GitHub pré-remplie, que le créateur de l'app relit avant
+// de l'ajouter au catalogue. Elle s'ouvre dans le navigateur ; il faut un compte GitHub pour l'envoyer.
+function lienProposition(role) {
+  const titre = `Rôle pour le marché : ${role.nom}`;
+  const corps = [
+    'Je propose ce rôle pour le marché des rôles de Cat Ai.',
+    '',
+    `**Nom** : ${role.nom}`,
+    '',
+    '**Ce que le chat doit faire** :',
+    '',
+    role.consigne,
+    '',
+    '**En une phrase, à quoi il sert** : (à compléter)',
+  ].join('\n');
+  return `https://github.com/tom-legros/Cat.ai/issues/new?title=${encodeURIComponent(titre)}&body=${encodeURIComponent(corps)}`;
+}
+
+module.exports = {
+  MAX_ROLES, MAX_FICHIER_ROLE, URL_MARCHE, nettoyerRoles, roleVersFichier, roleDepuisFichier, nomFichierRole, ajouterRole,
+  catalogueDepuisJson, lienProposition,
+};
