@@ -331,7 +331,6 @@ async function send(text) {
             fournisseurId: reglages.actif,
             prof,
             role,
-            auto: modeAuto,
             messages: [{ role: "system", content: consignes }, ...messagesPourLeModele(current)]
         });
     } finally {
@@ -408,7 +407,6 @@ const ACTIONS = {
     memoriser: (a) => `Retient : ${a.fait}`,
     pause: (a) => `Pause de ${a.secondes} s : limite par minute du fournisseur, je réessaie tout seul`,
     limite: (a) => `Arrêt après ${a.etapes} étapes d'outils pour ce message : dis-moi « continue » pour que je reprenne`
-        + (a.auto ? "" : ", ou active le mode auto dans Réglages pour les longues tâches")
 };
 
 window.api.onTool(({ id, name, args }) => {
@@ -1343,16 +1341,6 @@ function ouvrirMenuRoles() {
 $("#close-roles").onclick = () => ($("#roles-modal").hidden = true);
 $("#roles-modal").onclick = (e) => { if (e.target.id === "roles-modal") e.target.hidden = true; };
 $("#close-reglages").onclick = () => ($("#reglages-modal").hidden = true);
-
-// Mode auto (Réglages) : jusqu'à 30 actions par message au lieu de 8 (main.js). Les écritures passent toujours
-// par la fenêtre avant / après. Gardé sur ce PC, comme le mode prof.
-let modeAuto = false;
-try { modeAuto = localStorage.getItem("modeAuto") === "1"; } catch {}
-$("#mode-auto").checked = modeAuto;
-$("#mode-auto").onchange = (e) => {
-    modeAuto = e.target.checked;
-    try { localStorage.setItem("modeAuto", modeAuto ? "1" : "0"); } catch {}
-};
 $("#reglages-modal").onclick = (e) => { if (e.target.id === "reglages-modal") e.target.hidden = true; };
 
 // Rôles créés par l'utilisateur (settings.json) : ajoutés à ROLES avec une clé « perso-… »

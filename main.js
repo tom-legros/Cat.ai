@@ -18,11 +18,10 @@ const {
   etatChiffrement, chiffrer, formatDouteux, avertissementFormat, marquerModeleCasse, listerModeles,
 } = require('./principal/fournisseurs');
 
-// Nombre d'allers-retours avec les outils pour un seul message. 8 évite qu'un petit modèle tourne en rond
-// longtemps ; le mode auto (Réglages) monte à 30 pour les longues tâches. Dans les deux cas, chaque écriture
-// passe par la fenêtre avant / après, et un appel répété à l'identique n'est pas refait (appelRepete).
-const MAX_STEPS = 8;
-const MAX_STEPS_AUTO = 30;
+// Nombre d'allers-retours avec les outils pour un seul message : assez pour les longues tâches sans devoir
+// dire « continue ». Un petit modèle qui tourne en rond est arrêté autrement : un appel répété à l'identique
+// n'est pas refait (appelRepete). Chaque écriture passe toujours par la fenêtre avant / après.
+const MAX_STEPS = 30;
 
 let win;
 let projectDir = null;
@@ -280,11 +279,10 @@ function verifierGratuit(fournisseurId, modele) {
   }
 }
 
-ipcMain.on('chat', async (event, { id, model, messages, prof, role, auto, fournisseurId = 'ollama' }) => {
+ipcMain.on('chat', async (event, { id, model, messages, prof, role, fournisseurId = 'ollama' }) => {
   const controller = new AbortController();
   controllers.set(id, controller);
   const history = [...messages];
-  const etapesMax = auto ? MAX_STEPS_AUTO : MAX_STEPS;
   const appelsFaits = new Map();
   // Les liens écrits par l'utilisateur dans la discussion : lire_page_web les ouvre sans redemander
   const liensDonnes = messages.filter((m) => m.role === 'user').flatMap((m) => urlsDans(m.content));
@@ -298,7 +296,7 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, role, auto, fourni
     const config = infosFournisseur(fournisseurId);
     const limites = config.type === 'ollama' ? LIMITES_OLLAMA : limitesTaille(config);
     let fini = false;
-    for (let step = 0; step < etapesMax; step++) {
+    for (let step = 0; step < MAX_STEPS; step++) {
       const aEnvoyer = limites ? compacter(history, limites.total) : history;
       // onPause : affiche une étiquette pendant que l'app attend la fin de la limite par minute
       const onPause = (secondes) => event.sender.send('chat-tool', { id, name: 'pause', args: { secondes } });
@@ -355,7 +353,7 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, role, auto, fourni
       }
     }
     // Toutes les étapes utilisées sans réponse finale : l'utilisateur le voit, au lieu d'une réponse qui s'arrête sans rien dire
-    if (!fini) event.sender.send('chat-tool', { id, name: 'limite', args: { etapes: etapesMax, auto: !!auto } });
+    if (!fini) event.sender.send('chat-tool', { id, name: 'limite', args: { etapes: MAX_STEPS } });
     event.sender.send('chat-done', { id });
   } catch (err) {
     if (err.name === 'AbortError') event.sender.send('chat-done', { id });
