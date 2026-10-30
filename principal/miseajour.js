@@ -1,6 +1,6 @@
 // Mises à jour : au démarrage, l'app regarde sur GitHub (releases de tom-legros/Cat.ai) s'il existe une version
 // plus récente. C'est la seule demande qui part sans que l'utilisateur la fasse, et elle ne contient rien de lui.
-// Rien n'est téléchargé sans son accord : il voit « Cat Ai x.y.z est sortie », clique, puis redémarre l'app.
+// Rien n'est téléchargé sans son accord : une fenêtre annonce « Cat Ai x.y.z est sortie », il clique, puis redémarre.
 //
 // Seulement dans l'app installée : l'installateur Windows, ou l'AppImage sur Linux (APPIMAGE est défini quand
 // elle tourne). Avec npm start, ou un .deb, il n'y a rien à remplacer. Sans internet, la vérification échoue
@@ -17,7 +17,9 @@ function configurerMiseAJour(envoyer) {
   // Une erreur pendant la vérification du démarrage ne regarde pas l'utilisateur ; pendant un téléchargement
   // qu'il a demandé, si : on lui dit où la prendre à la main.
   let demandee = false;
-  autoUpdater.on('update-available', ({ version }) => envoyer({ etat: 'dispo', version }));
+  // Les nouveautés : le texte de la release GitHub (en HTML, nettoyé par l'interface avant affichage)
+  const notes = (n) => (Array.isArray(n) ? n.map((x) => x.note || '').join('\n') : String(n || ''));
+  autoUpdater.on('update-available', ({ version, releaseNotes }) => envoyer({ etat: 'dispo', version, notes: notes(releaseNotes) }));
   autoUpdater.on('download-progress', ({ percent }) => envoyer({ etat: 'telechargement', pourcent: Math.floor(percent) }));
   autoUpdater.on('update-downloaded', ({ version }) => envoyer({ etat: 'prete', version }));
   autoUpdater.on('error', () => {

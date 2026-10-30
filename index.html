@@ -21,7 +21,6 @@
     <!-- En bas, comme sur Claude : la mémoire, les réglages et l'état de la connexion -->
     <div class="cote__bas">
       <p id="memoire-ajout" class="conseil" aria-live="polite"></p>
-      <div id="maj" hidden><p id="maj-texte" class="conseil" aria-live="polite"></p><button id="maj-bouton" class="lien" type="button"></button></div>
       <button id="open-memory" class="lien lien--bloc"><span class="lien__icone"><svg class="icone icone-px" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="1" y="1" width="2" height="1"/><rect x="5" y="1" width="2" height="1"/><rect x="0" y="2" width="8" height="1"/><rect x="0" y="3" width="8" height="1"/><rect x="1" y="4" width="6" height="1"/><rect x="2" y="5" width="4" height="1"/><rect x="3" y="6" width="2" height="1"/></svg>Mémoire</span> <span id="memory-count" class="compteur">0</span></button>
       <button id="open-reglages" class="lien lien--bloc" type="button"><span class="lien__icone"><svg class="icone icone-px" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="3" y="0" width="2" height="1"/><rect x="1" y="1" width="6" height="1"/><rect x="1" y="2" width="2" height="1"/><rect x="5" y="2" width="2" height="1"/><rect x="0" y="3" width="3" height="1"/><rect x="5" y="3" width="3" height="1"/><rect x="0" y="4" width="3" height="1"/><rect x="5" y="4" width="3" height="1"/><rect x="1" y="5" width="2" height="1"/><rect x="5" y="5" width="2" height="1"/><rect x="1" y="6" width="6" height="1"/><rect x="3" y="7" width="2" height="1"/></svg>Réglages</span></button>
       <p id="status" class="statut">Connexion…</p>
@@ -163,6 +162,17 @@
       <ul id="roles-liste" class="souvenirs"></ul>
       <p id="roles-message" class="conseil" aria-live="polite"></p>
       <div class="rangee rangee--fin"><button id="importer-role" class="lien" type="button">Importer un rôle reçu</button><button id="close-roles" class="lien" type="button">Fermer</button></div>
+    </div>
+  </div>
+
+  <!-- Mise à jour : ouverte par renderer.js quand GitHub a une version plus récente -->
+  <div id="maj-modal" class="fenetre" hidden>
+    <div class="fenetre__boite">
+      <p class="etiquette">Mise à jour</p>
+      <h2 id="maj-titre" class="fenetre__titre"></h2>
+      <p id="maj-texte" class="discret" aria-live="polite"></p>
+      <div id="maj-notes" class="maj-notes" hidden></div>
+      <div class="rangee rangee--fin"><button id="maj-plus-tard" class="lien" type="button">Plus tard</button><button id="maj-bouton" class="bouton" type="button"></button></div>
     </div>
   </div>
 

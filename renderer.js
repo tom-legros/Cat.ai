@@ -1394,26 +1394,37 @@ $("#role-form").addEventListener("submit", async (e) => {
 });
 
 // Mise à jour : main.js prévient quand une version plus récente existe sur GitHub (principal/miseajour.js).
-// Rien ne se télécharge sans un clic ; « Redémarrer » installe et relance l'app, les discussions sont gardées.
-window.api.onMiseAJour(({ etat, version, pourcent }) => {
+// Une fenêtre l'annonce avec ses nouveautés ; rien ne se télécharge sans un clic, et « Redémarrer » installe
+// puis relance l'app (les discussions sont gardées). « Plus tard » ferme : une version téléchargée
+// s'installera de toute façon à la fermeture de l'app.
+$("#maj-plus-tard").onclick = () => ($("#maj-modal").hidden = true);
+
+window.api.onMiseAJour(({ etat, version, pourcent, notes }) => {
+    const titre = $("#maj-titre");
     const texte = $("#maj-texte");
     const bouton = $("#maj-bouton");
-    $("#maj").hidden = false;
+    $("#maj-modal").hidden = false;
     bouton.hidden = false;
     bouton.disabled = false;
     if (etat === "dispo") {
-        texte.textContent = `Cat Ai ${version} est sortie.`;
+        titre.textContent = `Cat Ai ${version} est sortie`;
+        texte.textContent = "Une nouvelle version du chat t'attend. La mise à jour garde tes discussions, ta mémoire et tes réglages.";
+        // Les notes viennent de la page de la release sur GitHub : nettoyées, et sans images (elles ne chargeraient pas)
+        $("#maj-notes").innerHTML = notes ? DOMPurify.sanitize(notes, { FORBID_TAGS: ["img", "style", "form", "input", "button"], FORBID_ATTR: ["style"] }) : "";
+        $("#maj-notes").hidden = !notes;
         bouton.textContent = "Mettre à jour";
         bouton.onclick = () => { bouton.disabled = true; texte.textContent = "Téléchargement…"; window.api.telechargerMiseAJour(); };
     } else if (etat === "telechargement") {
         texte.textContent = `Téléchargement… ${pourcent} %`;
         bouton.hidden = true;
     } else if (etat === "prete") {
-        texte.textContent = `Cat Ai ${version} est prête.`;
-        bouton.textContent = "Redémarrer pour l'installer";
+        titre.textContent = `Cat Ai ${version} est prête`;
+        texte.textContent = "Redémarre l'app pour l'installer, ça prend quelques secondes. Sinon, elle s'installera quand tu fermeras Cat Ai.";
+        bouton.textContent = "Redémarrer maintenant";
         bouton.onclick = () => window.api.installerMiseAJour();
     } else {
-        texte.textContent = "La mise à jour n'a pas pu se télécharger. Tu peux la prendre à la main sur la page GitHub de Cat Ai.";
+        titre.textContent = "La mise à jour a échoué";
+        texte.textContent = "Elle n'a pas pu se télécharger. Vérifie ta connexion, ou prends-la à la main sur la page GitHub de Cat Ai.";
         bouton.hidden = true;
     }
 });

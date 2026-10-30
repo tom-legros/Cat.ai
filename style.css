@@ -561,6 +561,10 @@ select.pastille option { background: var(--surface); color: var(--texte); }
 
 /* Fenêtre Réglages */
 .fenetre__titre--suite { margin-top: 26px; font-size: 20px; }
+/* Nouveautés d'une mise à jour : le texte de la release GitHub, dans une petite zone qui défile */
+.maj-notes { max-height: 260px; overflow-y: auto; margin-top: 14px; padding: 4px 14px; border: 1px solid var(--ligne); font-size: 13px; line-height: 1.5; color: var(--texte-2); }
+.maj-notes h1, .maj-notes h2, .maj-notes h3 { font-size: 14px; margin: 12px 0 4px; }
+.maj-notes ul { padding-left: 18px; margin: 4px 0; }
 .role-form { display: flex; flex-direction: column; gap: 8px; }
 .role-form input, .role-form textarea { padding: 9px 12px; background: var(--surface); border: 1px solid var(--ligne-2); border-radius: var(--rayon-petit); resize: vertical; }
 .role-form .bouton { align-self: flex-start; }
