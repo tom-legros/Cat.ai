@@ -11,6 +11,7 @@ const { LIMITES_OLLAMA, MAX_JOINT, limitesTaille, raccourcir, compacter, listeCo
 const { ajouterFait, nettoyerPrenom } = require('./principal/memoire');
 const { configurerMiseAJour } = require('./principal/miseajour');
 const { REFUS_PAGE, urlsDans, memePage, verifierUrl, lirePageWeb } = require('./principal/web');
+const { integrerMenu } = require('./principal/menu-linux');
 const { MAX_FICHIER_ROLE, nettoyerRoles, roleVersFichier, roleDepuisFichier, nomFichierRole, ajouterRole } = require('./principal/roles');
 const { OLLAMA, REFLEXION, envoyerOllama, envoyerOpenAI, vulkanUtile } = require('./principal/envoi');
 const {
@@ -686,8 +687,41 @@ if (!app.requestSingleInstanceLock()) {
     demarrerOllama();
     createWindow();
     // Une fois l'interface prête à écouter : elle affichera « Cat Ai x.y.z est sortie » s'il y a mieux sur GitHub
-    win.webContents.once('did-finish-load', () => configurerMiseAJour((etat) => win?.webContents.send('mise-a-jour', etat)));
+    win.webContents.once('did-finish-load', () => {
+      configurerMiseAJour((etat) => win?.webContents.send('mise-a-jour', etat));
+      menuLinux();
+    });
   });
+}
+
+// Linux : propose une fois d'ajouter l'AppImage au menu des applications, puis garde l'entrée à jour
+// (principal/menu-linux.js). Sans AppImage (npm start, Windows), il n'y a rien à faire.
+async function menuLinux() {
+  if (process.platform !== 'linux' || !process.env.APPIMAGE) return;
+  try {
+    await integrerMenu({
+      appimage: process.env.APPIMAGE,
+      dossierDonnees: process.env.XDG_DATA_HOME || path.join(app.getPath('home'), '.local', 'share'),
+      icone: fs.readFileSync(path.join(__dirname, 'icone.png')),
+      nomFenetre: app.getName(),
+      choix: readJson('settings.json', {}).menuLinux,
+      demander: async () => {
+        const { response } = await dialog.showMessageBox(win, {
+          type: 'question',
+          buttons: ['Ajouter', 'Non merci'],
+          defaultId: 0,
+          cancelId: 1,
+          title: 'Menu des applications',
+          message: 'Ajouter Cat Ai au menu des applications ?',
+          detail: "Tu pourras le lancer depuis le menu de ton bureau, avec son icône, comme une app installée. Laisse le fichier .AppImage là où il est : si tu le déplaces, relance-le une fois et le menu suivra.",
+        });
+        return response === 0;
+      },
+      enregistrerChoix: (choix) => writeJson('settings.json', { ...readJson('settings.json', {}), menuLinux: choix }),
+    });
+  } catch {
+    // Un dossier en lecture seule ne doit pas empêcher l'app de démarrer
+  }
 }
 app.on('window-all-closed', () => app.quit());
 app.on('quit', () => serveurOllama?.kill());
