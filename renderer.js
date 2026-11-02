@@ -790,6 +790,7 @@ function renderMemory() {
         const li = document.createElement("li");
         const texte = document.createElement("span");
         texte.textContent = fait;
+
         const oublier = document.createElement("button");
         oublier.textContent = "Oublier";
         oublier.onclick = () => { memory.splice(i, 1); window.api.saveMemory(memory); renderMemory(); };
@@ -1374,6 +1375,17 @@ function renderRolesPerso() {
         const texte = document.createElement("span");
         texte.textContent = r.nom;
         texte.title = r.consigne;
+        // Partager : le rôle part dans un petit fichier .catai, à envoyer à un ami qui l'importera
+        const partager = document.createElement("button");
+        partager.textContent = "Partager";
+        partager.onclick = async () => {
+            try {
+                const { ok, chemin } = await window.api.exporterRole(i);
+                if (ok) messageRoles(`Rôle enregistré dans ${chemin}. Envoie ce fichier à un ami : il l'ajoute avec « Importer un rôle reçu ».`);
+            } catch {
+                messageRoles("Impossible d'enregistrer le fichier ici : choisis un autre dossier.");
+            }
+        };
         // Proposer : une demande GitHub pré-remplie pour mettre ce rôle au marché
         const proposer = document.createElement("button");
         proposer.textContent = "Proposer";
@@ -1390,97 +1402,6 @@ function renderRolesPerso() {
     });
 }
 
-$("#role-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const nom = $("#role-nom").value.trim();
-    const consigne = $("#role-consigne").value.trim();
-    if (!nom || !consigne) return;
-    rolesPerso = await window.api.setRolesPerso([...rolesPerso, { nom, consigne }]);
-    $("#role-nom").value = "";
-    $("#role-consigne").value = "";
-    appliquerRolesPerso();
-    renderRolesPerso();
-    roleSel.value = `perso-${rolesPerso.length - 1}`;
-    roleSel.onchange();
-    $("#roles-modal").hidden = true;
-});
-
-// Mise à jour : main.js prévient quand une version plus récente existe sur GitHub (principal/miseajour.js).
-// Une fenêtre l'annonce avec ses nouveautés ; rien ne se télécharge sans un clic, et « Redémarrer » installe
-// puis relance l'app (les discussions sont gardées). « Plus tard » ferme : une version téléchargée
-// s'installera de toute façon à la fermeture de l'app.
-$("#maj-plus-tard").onclick = () => ($("#maj-modal").hidden = true);
-
-window.api.onMiseAJour(({ etat, version, pourcent, notes }) => {
-    const titre = $("#maj-titre");
-    const texte = $("#maj-texte");
-    const bouton = $("#maj-bouton");
-    $("#maj-modal").hidden = false;
-    bouton.hidden = false;
-    bouton.disabled = false;
-    if (etat === "dispo") {
-        titre.textContent = `Cat Ai ${version} est sortie`;
-        texte.textContent = "Une nouvelle version du chat t'attend. La mise à jour garde tes discussions, ta mémoire et tes réglages.";
-        // Les notes viennent de la page de la release sur GitHub : nettoyées, et sans images (elles ne chargeraient pas)
-        $("#maj-notes").innerHTML = notes ? DOMPurify.sanitize(notes, { FORBID_TAGS: ["img", "style", "form", "input", "button"], FORBID_ATTR: ["style"] }) : "";
-        $("#maj-notes").hidden = !notes;
-        bouton.textContent = "Mettre à jour";
-        bouton.onclick = () => { bouton.disabled = true; texte.textContent = "Téléchargement…"; window.api.telechargerMiseAJour(); };
-    } else if (etat === "telechargement") {
-        texte.textContent = `Téléchargement… ${pourcent} %`;
-        bouton.hidden = true;
-    } else if (etat === "prete") {
-        titre.textContent = `Cat Ai ${version} est prête`;
-        texte.textContent = "Redémarre l'app pour l'installer, ça prend quelques secondes. Sinon, elle s'installera quand tu fermeras Cat Ai.";
-        bouton.textContent = "Redémarrer maintenant";
-        bouton.onclick = () => window.api.installerMiseAJour();
-    } else {
-        titre.textContent = "La mise à jour a échoué";
-        texte.textContent = "Elle n'a pas pu se télécharger. Vérifie ta connexion, ou prends-la à la main sur la page GitHub de Cat Ai.";
-        bouton.hidden = true;
-    }
-});
-
-(async () => {
-    appliquerNom();
-    perso = await window.api.perso();
-    appliquerPerso();
-    prenom = await window.api.getPrenom();
-    if (!prenom) await demanderPrenom();
-    memory = await window.api.loadMemory();
-    project = await window.api.getProject();
-    knownProjects = await window.api.knownProjects();
-    specialDirs = await window.api.specialDirs();
-    try { prof = localStorage.getItem("modeProf") === "1"; } catch {}
-    rolesPerso = await window.api.getRolesPerso();
-    appliquerRolesPerso();
-    try { const r = localStorage.getItem("role"); if (ROLES[r]) role = r; } catch {}
-    renderMemory();
-    renderProject();
-    renderRole();
-    convs = await window.api.loadConvs();
-    current = null; // on arrive toujours sur l'accueil, avec le chat
-    renderConv();
-    reglages = await window.api.lireFournisseurs();
-        // Partager : le rôle part dans un petit fichier .catai, à envoyer à un ami qui l'importera
-        const partager = document.createElement("button");
-        partager.textContent = "Partager";
-        partager.onclick = async () => {
-            try {
-                const { ok, chemin } = await window.api.exporterRole(i);
-                if (ok) messageRoles(`Rôle enregistré dans ${chemin}. Envoie ce fichier à un ami : il l'ajoute avec « Importer un rôle reçu ».`);
-            } catch {
-                messageRoles("Impossible d'enregistrer le fichier ici : choisis un autre dossier.");
-            }
-        };
-    renderFournisseurs();
-    interfacePrete = true;
-    afficherAlertes(await window.api.alertesStockage());
-    await loadModels();
-    // Ollama est revérifié toutes les 10 s ; un fournisseur en ligne seulement toutes les 2 min (ses limites de requêtes)
-    let tours = 0;
-    setInterval(() => { if (fournisseurActif().type === "ollama" || ++tours % 12 === 0) loadModels(); }, 10000);
-    surActivite();
 function messageRoles(texte) {
     $("#roles-message").textContent = texte;
 }
@@ -1559,5 +1480,85 @@ $("#ouvrir-marche").onclick = ouvrirMarche;
 $("#close-marche").onclick = () => ($("#marche-modal").hidden = true);
 $("#marche-modal").onclick = (e) => { if (e.target.id === "marche-modal") e.target.hidden = true; };
 
+$("#role-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const nom = $("#role-nom").value.trim();
+    const consigne = $("#role-consigne").value.trim();
+    if (!nom || !consigne) return;
+    rolesPerso = await window.api.setRolesPerso([...rolesPerso, { nom, consigne }]);
+    $("#role-nom").value = "";
+    $("#role-consigne").value = "";
+    appliquerRolesPerso();
+    renderRolesPerso();
+    roleSel.value = `perso-${rolesPerso.length - 1}`;
+    roleSel.onchange();
+    $("#roles-modal").hidden = true;
+});
+
+// Mise à jour : main.js prévient quand une version plus récente existe sur GitHub (principal/miseajour.js).
+// Une fenêtre l'annonce avec ses nouveautés ; rien ne se télécharge sans un clic, et « Redémarrer » installe
+// puis relance l'app (les discussions sont gardées). « Plus tard » ferme : une version téléchargée
+// s'installera de toute façon à la fermeture de l'app.
+$("#maj-plus-tard").onclick = () => ($("#maj-modal").hidden = true);
+
+window.api.onMiseAJour(({ etat, version, pourcent, notes }) => {
+    const titre = $("#maj-titre");
+    const texte = $("#maj-texte");
+    const bouton = $("#maj-bouton");
+    $("#maj-modal").hidden = false;
+    bouton.hidden = false;
+    bouton.disabled = false;
+    if (etat === "dispo") {
+        titre.textContent = `Cat Ai ${version} est sortie`;
+        texte.textContent = "Une nouvelle version du chat t'attend. La mise à jour garde tes discussions, ta mémoire et tes réglages.";
+        // Les notes viennent de la page de la release sur GitHub : nettoyées, et sans images (elles ne chargeraient pas)
+        $("#maj-notes").innerHTML = notes ? DOMPurify.sanitize(notes, { FORBID_TAGS: ["img", "style", "form", "input", "button"], FORBID_ATTR: ["style"] }) : "";
+        $("#maj-notes").hidden = !notes;
+        bouton.textContent = "Mettre à jour";
+        bouton.onclick = () => { bouton.disabled = true; texte.textContent = "Téléchargement…"; window.api.telechargerMiseAJour(); };
+    } else if (etat === "telechargement") {
+        texte.textContent = `Téléchargement… ${pourcent} %`;
+        bouton.hidden = true;
+    } else if (etat === "prete") {
+        titre.textContent = `Cat Ai ${version} est prête`;
+        texte.textContent = "Redémarre l'app pour l'installer, ça prend quelques secondes. Sinon, elle s'installera quand tu fermeras Cat Ai.";
+        bouton.textContent = "Redémarrer maintenant";
+        bouton.onclick = () => window.api.installerMiseAJour();
+    } else {
+        titre.textContent = "La mise à jour a échoué";
+        texte.textContent = "Elle n'a pas pu se télécharger. Vérifie ta connexion, ou prends-la à la main sur la page GitHub de Cat Ai.";
+        bouton.hidden = true;
+    }
+});
+
+(async () => {
+    appliquerNom();
+    perso = await window.api.perso();
+    appliquerPerso();
+    prenom = await window.api.getPrenom();
+    if (!prenom) await demanderPrenom();
+    memory = await window.api.loadMemory();
+    project = await window.api.getProject();
+    knownProjects = await window.api.knownProjects();
+    specialDirs = await window.api.specialDirs();
+    try { prof = localStorage.getItem("modeProf") === "1"; } catch {}
+    rolesPerso = await window.api.getRolesPerso();
+    appliquerRolesPerso();
+    try { const r = localStorage.getItem("role"); if (ROLES[r]) role = r; } catch {}
+    renderMemory();
+    renderProject();
+    renderRole();
+    convs = await window.api.loadConvs();
+    current = null; // on arrive toujours sur l'accueil, avec le chat
+    renderConv();
+    reglages = await window.api.lireFournisseurs();
+    renderFournisseurs();
+    interfacePrete = true;
+    afficherAlertes(await window.api.alertesStockage());
+    await loadModels();
+    // Ollama est revérifié toutes les 10 s ; un fournisseur en ligne seulement toutes les 2 min (ses limites de requêtes)
+    let tours = 0;
+    setInterval(() => { if (fournisseurActif().type === "ollama" || ++tours % 12 === 0) loadModels(); }, 10000);
+    surActivite();
     input.focus();
 })();
