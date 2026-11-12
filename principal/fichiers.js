@@ -4,7 +4,11 @@ const path = require('path');
 const fs = require('fs');
 
 const IGNORED = new Set(['node_modules', '.git', 'dist', 'build', '.next', '__pycache__', '.venv', 'venv', 'vendor', '.idea', '.vscode']);
+// Fichiers joints automatiquement au message ou glissés dans la fenêtre : au plus 100 Ko, ils partent en entier
 const MAX_FILE = 100 * 1024;
+// Fichiers que le modèle lit, fouille ou modifie avec ses outils : jusqu'à 2 Mo, car il les lit par morceaux
+// (extraitLignes) et les modifie passage par passage avec remplacer_texte, sans jamais tout renvoyer
+const MAX_FICHIER_OUTIL = 2 * 1024 * 1024;
 
 // Empêche le modèle de sortir du dossier projet choisi, y compris par un lien symbolique
 // ou une jonction Windows placés dans le projet : on vérifie aussi où mène vraiment le chemin
@@ -105,7 +109,7 @@ function chercherDansProjet(projet, texte, { regex = false, dossier = '' } = {})
       continue; // lien qui mène hors du projet
     }
     const stat = fs.statSync(full);
-    if (!stat.isFile() || stat.size > MAX_FILE) continue;
+    if (!stat.isFile() || stat.size > MAX_FICHIER_OUTIL) continue;
     const contenu = fs.readFileSync(full, 'utf8');
     if (contenu.includes('\u0000')) continue; // binaire
     const lignes = contenu.split(/\r?\n/);
@@ -142,6 +146,21 @@ function fichiersCites(message, fichiers) {
   return [...parChemin, ...parNom];
 }
 
+// Un morceau d'un long fichier pour lire_fichier : les lignes à partir de `ligne`, tant qu'elles tiennent dans `max`
+// caractères, avec un en-tête qui dit quoi demander pour la suite. Un fichier court revient en entier.
+function extraitLignes(contenu, chemin, ligne = 1, max = 20000) {
+  const lignes = contenu.split('\n');
+  const debut = Math.max(1, Math.floor(Number(ligne)) || 1);
+  if (debut > lignes.length) return `${chemin} n'a que ${lignes.length} lignes.`;
+  if (debut === 1 && contenu.length <= max) return contenu;
+  let fin = debut - 1;
+  let taille = 0;
+  // Toujours au moins une ligne, même très longue (elle sera coupée plus loin si besoin)
+  while (fin < lignes.length && (fin === debut - 1 || taille + lignes[fin].length + 1 <= max)) taille += lignes[fin++].length + 1;
+  const suite = fin < lignes.length ? ` Pour la suite : lire_fichier avec ligne = ${fin + 1}.` : " C'est la fin du fichier.";
+  return `(${chemin} : lignes ${debut} à ${fin} sur ${lignes.length}.${suite})\n${lignes.slice(debut - 1, fin).join('\n')}`;
+}
+
 // Ce qui est joint au message pour un fichier cité : son texte, ou la raison pour laquelle il ne l'est pas
 function contenuJoint(projet, relatif) {
   let full;
@@ -156,4 +175,4 @@ function contenuJoint(projet, relatif) {
   return contenu.includes('\u0000') ? "(fichier binaire, pas joint)" : contenu;
 }
 
-module.exports = { IGNORED, MAX_FILE, cheminSur, estSensible, listFiles, chercherDansProjet, fichiersCites, contenuJoint };
+module.exports = { IGNORED, MAX_FILE, MAX_FICHIER_OUTIL, extraitLignes, cheminSur, estSensible, listFiles, chercherDansProjet, fichiersCites, contenuJoint };

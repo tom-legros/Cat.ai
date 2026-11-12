@@ -23,7 +23,7 @@ const TOOLS = [
     type: 'function',
     function: {
       name: 'lire_fichier',
-      description: "Lit le contenu d'un fichier du projet. Pour un long fichier coupé, donne ligne pour lire la suite à partir de cette ligne.",
+      description: "Lit le contenu d'un fichier du projet. Un long fichier arrive par morceaux : l'en-tête donne la ligne à demander pour lire la suite.",
       parameters: {
         type: 'object',
         properties: {
@@ -54,7 +54,7 @@ const TOOLS = [
     type: 'function',
     function: {
       name: 'ecrire_fichier',
-      description: "Crée un fichier, ou remplace un fichier entier avec le contenu COMPLET donné. Pour modifier une partie d'un fichier existant, utilise plutôt remplacer_texte. L'utilisateur doit confirmer.",
+      description: "Crée un fichier, ou remplace un fichier entier avec le contenu COMPLET donné. Pour modifier un fichier existant, surtout un long, ne le réécris pas : change seulement les passages avec remplacer_texte. L'utilisateur doit confirmer.",
       parameters: {
         type: 'object',
         properties: {

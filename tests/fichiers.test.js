@@ -6,7 +6,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { cheminSur, estSensible, listFiles, chercherDansProjet, fichiersCites, contenuJoint } = require('../principal/fichiers');
+const { cheminSur, estSensible, listFiles, chercherDansProjet, fichiersCites, contenuJoint, extraitLignes } = require('../principal/fichiers');
 
 const racine = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'chatnoir-piege-')));
 const projet = path.join(racine, 'projet');
@@ -144,4 +144,26 @@ test('chercher : plus de 50 résultats, coupé à 50 avec une consigne pour pré
   const resultat = chercher('ligne trouvee');
   assert.equal(resultat.split('\n').filter((l) => l.startsWith('src/beaucoup.txt:')).length, 50);
   assert.match(resultat, /et d'autres résultats : précise ta recherche/);
+});
+
+test('extraitLignes : un fichier court revient en entier', () => {
+  assert.equal(extraitLignes('a\nb\nc', 'petit.js'), 'a\nb\nc');
+});
+
+test('extraitLignes : un long fichier arrive par morceaux, avec la ligne à demander pour la suite', () => {
+  const contenu = Array.from({ length: 1000 }, (_, i) => `ligne ${i + 1}`).join('\n');
+  const premier = extraitLignes(contenu, 'gros.js', 1, 100);
+  assert.match(premier, /^\(gros\.js : lignes 1 à (\d+) sur 1000\. Pour la suite : lire_fichier avec ligne = (\d+)\.\)\n/);
+  const [, fin, suite] = premier.match(/lignes 1 à (\d+).*ligne = (\d+)/);
+  assert.equal(Number(suite), Number(fin) + 1);
+  assert.ok(premier.length < 200);
+  // Le morceau suivant commence là où le premier s'arrête
+  assert.ok(extraitLignes(contenu, 'gros.js', suite, 100).includes(`\nligne ${suite}\n`));
+  assert.match(extraitLignes(contenu, 'gros.js', 995, 1000), /lignes 995 à 1000 sur 1000\. C'est la fin du fichier\./);
+});
+
+test('extraitLignes : ligne trop loin, ou ligne très longue', () => {
+  assert.equal(extraitLignes('a\nb', 'x.js', 9), "x.js n'a que 2 lignes.");
+  const minifie = extraitLignes('x'.repeat(5000) + '\nfin', 'min.js', 1, 100);
+  assert.match(minifie, /lignes 1 à 1 sur 2/); // une ligne au moins, même trop longue
 });

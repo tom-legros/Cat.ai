@@ -4,7 +4,7 @@ const fs = require('fs');
 const { spawn } = require('child_process');
 
 const { configurerStockage, readJson, writeJson, prendreAlertes } = require('./principal/stockage');
-const { IGNORED, MAX_FILE, cheminSur, estSensible, listFiles, chercherDansProjet, fichiersCites, contenuJoint } = require('./principal/fichiers');
+const { IGNORED, MAX_FILE, MAX_FICHIER_OUTIL, extraitLignes, cheminSur, estSensible, listFiles, chercherDansProjet, fichiersCites, contenuJoint } = require('./principal/fichiers');
 const { OUTILS_ECRITURE, RIEN_N_A_CHANGE, REFUS_LECTURE, BOUCLE, appelRepete, ecritureRefusee, remplacerTexte, parseTextToolCalls, resumerAction } = require('./principal/outils');
 const { hote, HOTES_LOCAUX, fournisseurGratuit, modeleGratuit, conseilGratuit, adresseValide } = require('./principal/gratuit');
 const { LIMITES_OLLAMA, MAX_JOINT, limitesTaille, raccourcir, compacter, listeCourte } = require('./principal/taille');
@@ -151,17 +151,12 @@ async function runTool(name, args, mode) {
     case 'lire_fichier': {
       const full = safePath(args.chemin);
       const size = fs.statSync(full).size;
-      if (size > MAX_FILE) return `Fichier trop gros (${Math.round(size / 1024)} Ko), lecture refusée.`;
+      if (size > MAX_FICHIER_OUTIL) return `Fichier trop gros (${Math.round(size / 1024)} Ko, 2 Mo au plus), lecture refusée.`;
       if (estSensible(full) && !(await accordLectureSensible(args.chemin, mode.fournisseurId))) {
         return `${REFUS_LECTURE}${args.chemin} : ce fichier peut contenir des secrets. Fais sans, ou demande-lui l'information dont tu as besoin.`;
       }
-      const contenu = fs.readFileSync(full, 'utf8');
-      // Lire la suite d'un long fichier coupé pour tenir dans la limite du modèle
-      const ligne = Math.floor(Number(args.ligne));
-      if (!(ligne > 1)) return contenu;
-      const lignes = contenu.split('\n');
-      if (ligne > lignes.length) return `${args.chemin} n'a que ${lignes.length} lignes.`;
-      return `(${args.chemin}, à partir de la ligne ${ligne} sur ${lignes.length})\n${lignes.slice(ligne - 1).join('\n')}`;
+      // Un long fichier arrive par morceaux qui tiennent dans la limite du modèle (8 192 tokens avec Ollama)
+      return extraitLignes(fs.readFileSync(full, 'utf8'), args.chemin, args.ligne, mode.maxExtrait);
     }
     case 'chercher': {
       return chercherDansProjet(projectDir, args.texte, { regex: args.regex === true || args.regex === 'true', dossier: args.dossier });
@@ -172,7 +167,7 @@ async function runTool(name, args, mode) {
     case 'remplacer_texte': {
       const full = safePath(args.chemin);
       if (!fs.existsSync(full)) return `Le fichier ${args.chemin} n'existe pas. Pour créer un fichier, utilise ecrire_fichier.`;
-      if (fs.statSync(full).size > MAX_FILE) return 'Fichier trop gros pour être modifié par le chat.' + RIEN_N_A_CHANGE;
+      if (fs.statSync(full).size > MAX_FICHIER_OUTIL) return 'Fichier trop gros (2 Mo au plus) pour être modifié par le chat.' + RIEN_N_A_CHANGE;
       const partout = args.remplacer_partout === true || args.remplacer_partout === 'true';
       const resultat = remplacerTexte(fs.readFileSync(full, 'utf8'), String(args.ancien_texte ?? ''), String(args.nouveau_texte ?? ''), partout);
       if (resultat.erreur) return resultat.erreur;
@@ -251,7 +246,7 @@ async function writeWithConfirm(chemin, contenu) {
   const exists = fs.existsSync(full);
   let ancien = '';
   if (exists) {
-    if (fs.statSync(full).size > MAX_FILE) return 'Fichier existant trop gros pour être remplacé par le chat.';
+    if (fs.statSync(full).size > MAX_FICHIER_OUTIL) return 'Fichier existant trop gros pour être remplacé par le chat.';
     ancien = fs.readFileSync(full, 'utf8');
   }
   const ok = await demanderConfirmation({ chemin: full, ancien, nouveau: contenu, existe: exists });
@@ -343,7 +338,7 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, role, fournisseurI
         try {
           result = appelRepete(appelsFaits, name, args)
             ? BOUCLE
-            : await runTool(name, args || {}, { prof, role, fournisseurId, liensDonnes, signal: controller.signal });
+            : await runTool(name, args || {}, { prof, role, fournisseurId, liensDonnes, signal: controller.signal, maxExtrait: limites ? limites.resultatOutil - 500 : 20000 });
         } catch (err) {
           result = `Erreur : ${err.message}`;
         }
