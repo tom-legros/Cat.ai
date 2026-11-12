@@ -34,4 +34,14 @@ function nettoyerPrenom(prenom) {
   return String(prenom ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, MAX_PRENOM).trim();
 }
 
-module.exports = { MAX_FAITS, MAX_LONGUEUR_FAIT, MAX_PRENOM, ajouterFait, nettoyerPrenom };
+// La mémoire enregistrée depuis la fenêtre Mémoire (souvenir modifié ou oublié) : chaque fait sur une ligne,
+// sans caractères de contrôle, coupé à la longueur maximale, sans vide ni doublon, et pas plus de MAX_FAITS.
+function nettoyerMemoire(memoire) {
+  const vus = new Set();
+  return (Array.isArray(memoire) ? memoire : [])
+    .map((f) => String(f ?? '').replace(/[\u0000-\u001f\u007f\s]+/g, ' ').trim().slice(0, MAX_LONGUEUR_FAIT))
+    .filter((f) => f && !vus.has(normaliser(f)) && vus.add(normaliser(f)))
+    .slice(0, MAX_FAITS);
+}
+
+module.exports = { MAX_FAITS, MAX_LONGUEUR_FAIT, MAX_PRENOM, ajouterFait, nettoyerPrenom, nettoyerMemoire };

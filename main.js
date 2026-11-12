@@ -8,7 +8,7 @@ const { IGNORED, MAX_FILE, cheminSur, estSensible, listFiles, chercherDansProjet
 const { OUTILS_ECRITURE, RIEN_N_A_CHANGE, REFUS_LECTURE, BOUCLE, appelRepete, ecritureRefusee, remplacerTexte, parseTextToolCalls, resumerAction } = require('./principal/outils');
 const { hote, HOTES_LOCAUX, fournisseurGratuit, modeleGratuit, conseilGratuit, adresseValide } = require('./principal/gratuit');
 const { LIMITES_OLLAMA, MAX_JOINT, limitesTaille, raccourcir, compacter, listeCourte } = require('./principal/taille');
-const { ajouterFait, nettoyerPrenom } = require('./principal/memoire');
+const { ajouterFait, nettoyerPrenom, nettoyerMemoire } = require('./principal/memoire');
 const { configurerMiseAJour } = require('./principal/miseajour');
 const { REFUS_PAGE, urlsDans, memePage, verifierUrl, lirePageWeb, chercherWeb } = require('./principal/web');
 const { integrerMenu } = require('./principal/menu-linux');
@@ -709,7 +709,12 @@ ipcMain.handle('perso', () => {
   const perso = readJson('perso.json', {});
   return perso && typeof perso === 'object' && !Array.isArray(perso) ? perso : {};
 });
-ipcMain.handle('save-memory', (_e, memory) => writeJson('memory.json', memory));
+// Depuis la fenêtre Mémoire (souvenir modifié ou oublié) : nettoyée, enregistrée, et renvoyée telle qu'enregistrée
+ipcMain.handle('save-memory', (_e, memory) => {
+  const propre = nettoyerMemoire(memory);
+  writeJson('memory.json', propre);
+  return propre;
+});
 ipcMain.handle('load-convs', () => readJson('conversations.json', []));
 ipcMain.handle('save-convs', (_e, convs) => writeJson('conversations.json', convs));
 ipcMain.handle('alertes-stockage', () => prendreAlertes());

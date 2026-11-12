@@ -468,6 +468,13 @@ select {
 .souvenirs li button:hover { color: var(--lumiere); }
 #memory-input, #prenom-input { flex: 1; padding: 9px 12px; background: var(--surface); border: 1px solid var(--ligne-2); border-radius: 2px; }
 
+/* Modifier un souvenir sur place */
+.memoire-edition { display: flex; flex-direction: column; gap: 8px; width: 100%; margin: 4px 0; }
+.memoire-edition textarea { width: 100%; padding: 10px 12px; background: var(--surface); border: 1px solid var(--ligne-2); border-radius: var(--rayon-petit); color: var(--texte); font: 14px var(--police-texte); resize: vertical; }
+.memoire-edition textarea:focus { outline: none; border-color: rgba(var(--oeil-rvb), .5); }
+.memoire-edition__actions { display: flex; gap: 8px; justify-content: flex-end; align-items: center; }
+.souvenirs .memoire-edition .bouton { color: var(--bg); font-size: 13px; }
+
 @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; }
 }

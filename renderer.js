@@ -791,10 +791,47 @@ function renderMemory() {
         const texte = document.createElement("span");
         texte.textContent = fait;
 
+        // Modifier un souvenir sur place : Ctrl+Entrée enregistre, Échap annule. main.js nettoie le texte.
+        const modifier = document.createElement("button");
+        modifier.textContent = "Modifier";
+        modifier.onclick = () => {
+            const boite = document.createElement("div");
+            boite.className = "memoire-edition";
+            const champ = document.createElement("textarea");
+            champ.value = fait;
+            champ.rows = 2;
+            champ.maxLength = 200;
+            const actions = document.createElement("div");
+            actions.className = "memoire-edition__actions";
+            const enregistrer = document.createElement("button");
+            enregistrer.textContent = "Enregistrer";
+            enregistrer.className = "bouton";
+            enregistrer.onclick = async () => {
+                const nouveau = champ.value.trim();
+                if (!nouveau) return champ.focus();
+                memory[i] = nouveau;
+                memory = await window.api.saveMemory(memory);
+                renderMemory();
+            };
+            const annuler = document.createElement("button");
+            annuler.textContent = "Annuler";
+            annuler.className = "lien";
+            annuler.onclick = () => renderMemory();
+            champ.onkeydown = (e) => {
+                if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) enregistrer.click();
+                if (e.key === "Escape") annuler.click();
+            };
+            actions.append(annuler, enregistrer);
+            boite.append(champ, actions);
+            li.replaceChildren(boite);
+            champ.focus();
+            champ.select();
+        };
+
         const oublier = document.createElement("button");
         oublier.textContent = "Oublier";
         oublier.onclick = () => { memory.splice(i, 1); window.api.saveMemory(memory); renderMemory(); };
-        li.append(texte, oublier);
+        li.append(texte, modifier, oublier);
         list.appendChild(li);
     });
 }

@@ -1,7 +1,7 @@
 // Mémoire du chat : pas de doublons, une taille limitée, et un fait plus complet remplace l'ancien
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { ajouterFait, nettoyerPrenom, MAX_FAITS, MAX_LONGUEUR_FAIT, MAX_PRENOM } = require('../principal/memoire');
+const { ajouterFait, nettoyerPrenom, MAX_FAITS, MAX_LONGUEUR_FAIT, MAX_PRENOM, nettoyerMemoire } = require('../principal/memoire');
 
 test('ajout simple : le fait est ajouté à la fin, la mémoire d origine ne change pas', () => {
   const memoire = ['Sam apprend le Python.'];
@@ -43,4 +43,11 @@ test('prénom : une seule ligne propre, court, et vide s il ne reste rien', () =
   assert.equal(nettoyerPrenom('a'.repeat(100)).length, MAX_PRENOM);
   assert.equal(nettoyerPrenom('   '), '');
   assert.equal(nettoyerPrenom(undefined), '');
+});
+
+test('nettoyerMemoire : souvenirs modifiés à la main nettoyés, sans vide ni doublon', () => {
+  const longue = 'x'.repeat(500);
+  assert.deepEqual(nettoyerMemoire(['  Aime le\nPython ', '', 'aime le python', longue, 42, null]), ['Aime le Python', 'x'.repeat(200), '42']);
+  assert.deepEqual(nettoyerMemoire('pas une liste'), []);
+  assert.equal(nettoyerMemoire(Array.from({ length: 60 }, (_, i) => `fait ${i}`)).length, 40);
 });
