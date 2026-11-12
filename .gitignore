@@ -12,3 +12,8 @@ dist/
 
 # Notes de travail personnelles (gardées sur le disque, pas dans Git)
 PROMPT-claude-code.md
+
+# Fichiers perso de Tom dans le dossier du projet : raccourcis, rôles exportés, notes des testeurs
+*.lnk
+/*.catai
+noteAxeUpgade.txt
