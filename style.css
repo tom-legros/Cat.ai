@@ -627,6 +627,10 @@ optgroup { background: var(--surface); color: var(--texte-3); font-style: normal
 .discussions li { display: flex; align-items: center; gap: 10px; }
 .discussions li::before { content: ""; width: 6px; height: 6px; border-radius: 2px; flex-shrink: 0; background: var(--ligne-2); transition: background .2s ease, box-shadow .2s ease; }
 .discussions li.is-active::before { background: var(--oeil); box-shadow: 0 0 8px var(--oeil-lueur); }
+/* Le chat répond dans cette discussion (le point clignote par à-coups), ou une réponse y est arrivée pendant qu'on était ailleurs */
+.discussions li.is-en-cours::before { background: var(--oeil); animation: clignote-curseur 1s steps(1) infinite; }
+.discussions li.is-nouveau::before { background: var(--oeil); box-shadow: 0 0 8px var(--oeil-lueur); }
+.discussions li.is-nouveau span { color: var(--lumiere); }
 
 /* Le grand chat flotte doucement */
 .mascotte__bouton { animation: flotte 4s ease-in-out infinite; }

@@ -127,11 +127,34 @@ function addMessage(role, text, fichiers = []) {
     return { bulle, chat };
 }
 
+// Le texte suit la réponse seulement si on est déjà en bas : on peut remonter lire pendant que le chat écrit
+const enBas = () => messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 80;
+
 function renderConv() {
     messagesEl.querySelectorAll(".msg").forEach((m) => m.remove());
-    welcomeEl.hidden = !!(current && current.messages.length);
+    // La discussion ouverte n'a plus rien de nouveau à signaler
+    if (current?.nonLu) {
+        delete current.nonLu;
+        save();
+    }
+    // La réponse en cours (ou en préparation) appartient à cette discussion : sa bulle, toujours vivante, revient à la fin
+    const vivante = reponseVivante();
+    const enCoursIci = !!vivante && vivante.conv === current;
+    const erreur = current && erreursEnAttente.get(current);
+    welcomeEl.hidden = !!(current && current.messages.length) || enCoursIci || !!erreur;
     current?.messages.forEach((m) => addMessage(m.role, m.affichage ?? m.content, m.fichiers));
+    if (enCoursIci) {
+        messagesEl.appendChild(vivante.wrap);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+    if (erreur) {
+        erreursEnAttente.delete(current);
+        messagesEl.appendChild(erreur.wrap);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+        if (erreur.modeleCasse) remplacerModeleCasse(erreur.modeleCasse, erreur.bulle);
+    }
     renderList();
+    majSaisie();
     if (!welcomeEl.hidden) direBientot();
 }
 
@@ -139,7 +162,11 @@ function renderList() {
     convList.innerHTML = "";
     convs.forEach((c) => {
         const li = document.createElement("li");
-        li.className = c === current ? "is-active" : "";
+        li.classList.toggle("is-active", c === current);
+        li.classList.toggle("is-en-cours", reponseVivante()?.conv === c);
+        li.classList.toggle("is-nouveau", !!c.nonLu && c !== current);
+        if (reponseVivante()?.conv === c) li.title = "Le chat est en train de répondre ici";
+        else if (c.nonLu) li.title = "Nouvelle réponse";
         const titre = document.createElement("span");
         titre.textContent = c.title;
         const suppr = document.createElement("button");
@@ -148,14 +175,14 @@ function renderList() {
         suppr.textContent = "×";
         suppr.onclick = (e) => {
             e.stopPropagation();
-            if (streaming) return;
+            if (reponseVivante()?.conv === c) return; // la réponse en cours a besoin de sa discussion
             convs = convs.filter((x) => x !== c);
             if (current === c) current = convs[0] || null;
             save();
             renderConv();
         };
         li.append(titre, suppr);
-        li.onclick = () => { if (!streaming) { current = c; renderConv(); } };
+        li.onclick = () => { current = c; renderConv(); };
         convList.appendChild(li);
     });
 }
@@ -277,6 +304,11 @@ function budgetConsignes(consignes) {
 }
 
 let envoiEnCours = false;
+// Pendant la préparation d'un envoi (résumé, projet), streaming n'existe pas encore : on retient déjà sa discussion et sa bulle
+let preparation = null;
+const reponseVivante = () => streaming ?? preparation;
+// Erreur arrivée dans une discussion qu'on ne regardait pas : sa bulle attend qu'on y revienne
+const erreursEnAttente = new Map();
 
 async function send(text) {
     text = text.trim();
@@ -307,7 +339,8 @@ async function send(text) {
         }
         const message = { role: "user", content: contenu };
         if (fichiers.length) Object.assign(message, { affichage: text, fichiers });
-        current.messages.push(message);
+        const conv = current; // la réponse ira dans cette discussion, même si on en ouvre une autre entre-temps
+        conv.messages.push(message);
         addMessage("user", text, fichiers);
         renderList();
         save();
@@ -315,15 +348,18 @@ async function send(text) {
 
         const id = Date.now();
         const { bulle, chat } = addMessage("assistant", "");
+        preparation = { conv, wrap: bulle.closest(".msg") };
+        renderList();
         chat.reflechit = true;
-        await resumerSiBesoin(current, bulle);
+        await resumerSiBesoin(conv, bulle);
         const consignes = systemPrompt() + (await projectInfo(text));
         bulle.innerHTML = "";
         // attend-modele : rien reçu du modèle pour l'instant, « Miaou réfléchit » reste affiché (même sous l'alerte de budget)
         bulle.classList.add("is-typing", "attend-modele");
         // Avec Ollama, des consignes trop lourdes sont coupées : l'utilisateur le voit en haut de la réponse
         const alerteBudget = fournisseurActif().type === "ollama" ? budgetConsignes(consignes) : "";
-        streaming = { id, el: bulle, chat, text: alerteBudget ? etiquetteAction(alerteBudget) : "", actions: [], dernierSignal: Date.now() };
+        streaming = { id, el: bulle, wrap: preparation.wrap, conv, chat, text: alerteBudget ? etiquetteAction(alerteBudget) : "", actions: [], dernierSignal: Date.now() };
+        renderList();
         if (alerteBudget) afficherFlux();
         setStreaming(true);
         surveillerSilence();
@@ -334,17 +370,20 @@ async function send(text) {
             fournisseurId: reglages.actif,
             prof,
             role,
-            messages: [{ role: "system", content: consignes }, ...messagesPourLeModele(current)]
+            messages: [{ role: "system", content: consignes }, ...messagesPourLeModele(conv)]
         });
     } finally {
         envoiEnCours = false;
+        preparation = null;
+        majSaisie();
     }
 }
 
 function afficherFlux() {
     streaming.dernierSignal = Date.now();
+    const suivre = enBas();
     streaming.el.innerHTML = renderMarkdown(streaming.text);
-    messagesEl.scrollTop = messagesEl.scrollHeight;
+    if (suivre && streaming.conv === current) messagesEl.scrollTop = messagesEl.scrollHeight;
 }
 
 // Ollama n'affiche rien pendant qu'il charge le modèle ou qu'il écrit le contenu d'un fichier (l'appel d'outil
@@ -375,8 +414,9 @@ function surveillerSilence() {
             ligne.className = "attente-ollama";
             ligne.append(document.createElement("span"));
             ligne.firstChild.className = "action";
+            const suivre = enBas();
             streaming.el.after(ligne);
-            messagesEl.scrollTop = messagesEl.scrollHeight;
+            if (suivre && streaming.conv === current) messagesEl.scrollTop = messagesEl.scrollHeight;
         }
         ligne.firstChild.textContent = `Ollama travaille sur ton PC depuis ${Math.round(silence / 1000)} s sans rien afficher : `
             + "charger le modèle ou écrire un fichier entier peut prendre une à deux minutes. Tu peux arrêter avec le bouton carré.";
@@ -434,6 +474,8 @@ function finirFlux() {
     streaming.chat.reflechit = false;
     streaming = null;
     setStreaming(false);
+    renderList();
+    majSaisie();
 }
 
 window.api.onDone(({ id }) => {
@@ -442,7 +484,8 @@ window.api.onDone(({ id }) => {
     if (texte || streaming.actions.length) {
         const message = { role: "assistant", content: texte };
         if (streaming.actions.length) message.actions = streaming.actions;
-        current.messages.push(message);
+        streaming.conv.messages.push(message);
+        if (streaming.conv !== current) streaming.conv.nonLu = true;
     }
     // Réponse finie : le chat sautille, content
     streaming.chat.sautiller(2);
@@ -457,8 +500,13 @@ window.api.onError(({ id, error, modeleCasse }) => {
     bulle.closest(".msg").classList.add("error");
     bulle.textContent = `Aïe, ça a planté : ${error}`;
     streaming.chat.expression("fache");
+    const ici = streaming.conv === current;
+    if (!ici) {
+        streaming.conv.nonLu = true;
+        erreursEnAttente.set(streaming.conv, { wrap: streaming.wrap, bulle, modeleCasse });
+    }
     finirFlux();
-    if (modeleCasse) remplacerModeleCasse(modeleCasse, bulle);
+    if (modeleCasse && ici) remplacerModeleCasse(modeleCasse, bulle);
 });
 
 // Le fournisseur dit que ce modèle n'existe plus : main.js l'a retiré de la liste,
@@ -496,6 +544,7 @@ async function remplacerModeleCasse(modele, bulle) {
 $("#composer").addEventListener("submit", (e) => {
     e.preventDefault();
     if (streaming) { window.api.stop(streaming.id); return; }
+    if (envoiEnCours) return; // envoi en préparation (résumé, projet) : on garde le texte tapé
     send(input.value);
     input.value = "";
     majEnvoi();
@@ -505,6 +554,7 @@ $("#composer").addEventListener("submit", (e) => {
 input.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
+        if (streaming || envoiEnCours) return;
         $("#composer").requestSubmit();
     }
 });
@@ -517,7 +567,6 @@ input.addEventListener("input", () => {
 document.querySelectorAll(".suggestions button").forEach((b) => (b.onclick = () => send(b.dataset.prompt)));
 
 $("#new-chat").onclick = () => {
-    if (streaming) return;
     current = null;
     renderConv();
     input.focus();
@@ -628,6 +677,16 @@ function renderProf() {
     document.body.classList.toggle("mode-prof", prof);
     ChatNoir.lunettes = prof;
     ChatNoir.rafraichirCouleurs();
+    majSaisie();
+}
+
+// Une seule réponse à la fois : si elle tourne dans une autre discussion, la saisie le dit (le carré l'arrête)
+function majSaisie() {
+    const vivante = reponseVivante();
+    if (vivante && vivante.conv !== current) {
+        input.placeholder = `Le chat répond dans « ${vivante.conv.title} » : attends qu'il ait fini, ou arrête-le avec le carré`;
+        return;
+    }
     input.placeholder = prof
         ? "Mode prof : pose ta question, il t'aide à trouver par toi-même"
         : role

@@ -420,6 +420,13 @@ ipcMain.handle('read-dropped', (_e, chemin) => {
   try {
     const stat = fs.statSync(chemin);
     if (stat.isDirectory()) return { dossier: true, chemin };
+    // Une image, un PDF ou un document Office n'est pas du texte : le dire clairement, avant de parler de taille
+    if (/\.(png|jpe?g|gif|webp|bmp|heic|heif|avif|tiff?|ico|svg)$/i.test(chemin)) {
+      return { erreur: `${path.basename(chemin)} est une image : je ne sais pas encore les regarder. Décris-moi ce qu'il y a dessus, ou copie son texte ici.` };
+    }
+    if (/\.(pdf|docx?|odt|pptx?|xlsx?|ods|zip|rar|7z|exe|mp3|mp4|mov|avi)$/i.test(chemin)) {
+      return { erreur: `${path.basename(chemin)} n'est pas un fichier texte : je ne sais pas encore le lire. Copie son texte ici, ou enregistre-le en .txt.` };
+    }
     if (stat.size > MAX_FILE) return { erreur: `${path.basename(chemin)} est trop gros (${Math.round(stat.size / 1024)} Ko, max 100 Ko).` };
     const contenu = fs.readFileSync(chemin, 'utf8');
     if (contenu.includes('\u0000')) return { erreur: `${path.basename(chemin)} n'est pas un fichier texte.` };
