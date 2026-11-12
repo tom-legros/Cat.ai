@@ -5,6 +5,14 @@ const { limitesTaille } = require('./taille');
 
 const OLLAMA = 'http://127.0.0.1:11434';
 
+// Réglages envoyés à Ollama à chaque demande, identiques partout : un autre num_ctx ferait recharger le modèle.
+// - keep_alive : le modèle reste chargé 30 min (5 par défaut), sinon chaque reprise coûte ~20 s de chargement ;
+// - pour Qwen 3 qui répond sans phase de réflexion (think: false), les réglages conseillés par l'équipe Qwen :
+//   temperature 0.7, top_p 0.8, top_k 20 (ceux d'Ollama par défaut sont prévus pour le mode réflexion).
+const GARDER_CHARGE = '30m';
+const optionsOllama = (modele) => ({ num_ctx: 8192, ...(String(modele).startsWith('qwen3') ? { temperature: 0.7, top_p: 0.8, top_k: 20 } : {}) });
+const sansReflexion = (modele) => (String(modele).startsWith('qwen3') ? false : undefined);
+
 // ---------- Discussion avec Ollama ----------
 // Envoie la discussion à Ollama et lit la réponse en streaming (JSON ligne par ligne).
 // onMorceau(texte) est appelé pour chaque morceau de texte reçu ; signal permet le bouton stop.
@@ -14,7 +22,7 @@ async function envoyerOllama(messages, modele, onMorceau, signal, options = {}) 
   const res = await fetch(`${OLLAMA}/api/chat`, {
     method: 'POST',
     // think: false : qwen3 répond direct au lieu d'écrire une longue réflexion avant
-    body: JSON.stringify({ model: modele, messages, tools: outilsPour(options), stream: true, think: modele.startsWith('qwen3') ? false : undefined, options: { num_ctx: 8192 } }),
+    body: JSON.stringify({ model: modele, messages, tools: outilsPour(options), stream: true, think: sansReflexion(modele), keep_alive: GARDER_CHARGE, options: optionsOllama(modele) }),
     signal,
   });
   if (!res.ok) throw new Error(`Ollama a répondu ${res.status}`);
@@ -242,4 +250,4 @@ function vulkanUtile(plateforme, env, cartes = []) {
   return vendeurs.includes(AMD) && !vendeurs.includes(NVIDIA);
 }
 
-module.exports = { OLLAMA, REFLEXION, vulkanUtile, envoyerOllama, envoyerOpenAI, versOpenAI, finirAppels, attenteDemandee, estModeleCasse, messageErreurOpenAI };
+module.exports = { OLLAMA, GARDER_CHARGE, optionsOllama, sansReflexion, REFLEXION, vulkanUtile, envoyerOllama, envoyerOpenAI, versOpenAI, finirAppels, attenteDemandee, estModeleCasse, messageErreurOpenAI };

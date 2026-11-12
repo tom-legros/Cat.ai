@@ -913,6 +913,15 @@ function renderFournisseurs() {
     fournisseurSel.value = reglages.actif;
 }
 
+// Avec Ollama, le modèle choisi est chargé sur la carte graphique tout de suite (main.js), une fois par modèle :
+// loadModels repasse toutes les 10 s, et un modèle déjà chargé y reste 30 min.
+let dejaPrechauffe = "";
+function prechauffer() {
+    if (fournisseurActif().type !== "ollama" || !modelSel.value || modelSel.value === dejaPrechauffe) return;
+    dejaPrechauffe = modelSel.value;
+    window.api.prechaufferOllama(modelSel.value);
+}
+
 async function loadModels() {
     const f = fournisseurActif();
     renderAccueil(f);
@@ -933,6 +942,7 @@ async function loadModels() {
     else if (models.includes(retenu)) modelSel.value = retenu;
     else if (models.length) modelSel.value = modeleParDefaut(models, f.id);
     afficherConseil();
+    prechauffer();
     statusEl.className = "statut" + (ok && models.length ? " is-ok" : " is-erreur");
     statusEl.title = erreur || "";
     if (f.type === "ollama") statusEl.textContent = !ok ? "Ollama ne répond pas" : models.length ? "Ollama connecté" : "Aucun modèle installé";
@@ -1193,6 +1203,7 @@ document.addEventListener("click", (e) => { if (!e.target.closest(".raccourci"))
 // Le modèle choisi est retenu pour chaque fournisseur
 modelSel.addEventListener("change", async () => {
     afficherConseil();
+    prechauffer();
     const r = await window.api.choisirFournisseur({ id: reglages.actif, modele: modelSel.value });
     if (r.ok) reglages = r.reglages;
 });

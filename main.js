@@ -16,7 +16,7 @@ const { conseilMateriel } = require('./principal/materiel');
 const {
   MAX_FICHIER_ROLE, URL_MARCHE, nettoyerRoles, roleVersFichier, roleDepuisFichier, nomFichierRole, ajouterRole, catalogueDepuisJson, lienProposition,
 } = require('./principal/roles');
-const { OLLAMA, REFLEXION, envoyerOllama, envoyerOpenAI, vulkanUtile } = require('./principal/envoi');
+const { OLLAMA, GARDER_CHARGE, optionsOllama, sansReflexion, REFLEXION, envoyerOllama, envoyerOpenAI, vulkanUtile } = require('./principal/envoi');
 const {
   FOURNISSEURS_DE_BASE, lireReglagesFournisseurs, infosFournisseur, configFournisseur, versInterface,
   etatChiffrement, chiffrer, formatDouteux, avertissementFormat, marquerModeleCasse, listerModeles,
@@ -394,7 +394,7 @@ ${texte}`;
     if (!config || config.type === 'ollama') {
       const res = await fetch(`${OLLAMA}/api/chat`, {
         method: 'POST',
-        body: JSON.stringify({ model, messages: [{ role: 'user', content: consigne }], stream: false, think: model.startsWith('qwen3') ? false : undefined, options: { num_ctx: 8192 } }),
+        body: JSON.stringify({ model, messages: [{ role: 'user', content: consigne }], stream: false, think: sansReflexion(model), keep_alive: GARDER_CHARGE, options: optionsOllama(model) }),
       });
       if (!res.ok) return null; // le résumé est facultatif : on envoie quand même, sans lui
       const data = await res.json();
@@ -482,6 +482,17 @@ ipcMain.handle('fournisseurs-choisir', async (_e, { id, modele }) => {
 ipcMain.handle('etat-ollama', async () => {
   const repond = await ollamaRepond();
   return { repond, installe: repond || (process.platform === 'win32' && !!commandeOllama()) };
+});
+
+// Charge le modèle sur la carte graphique dès qu'il est choisi (ouverture de l'app, changement de modèle) :
+// le premier message n'attend plus ~20 s le chargement. Une demande sans texte charge le modèle sans rien générer.
+ipcMain.handle('ollama-prechauffer', async (_e, modele) => {
+  try {
+    const res = await fetch(`${OLLAMA}/api/generate`, { method: 'POST', body: JSON.stringify({ model: modele, prompt: '', keep_alive: GARDER_CHARGE, options: optionsOllama(modele) }) });
+    return res.ok;
+  } catch {
+    return false;
+  }
 });
 
 // Télécharge un modèle dans Ollama depuis l'accueil (clic de l'utilisateur), en envoyant la progression
