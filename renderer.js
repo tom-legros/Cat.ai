@@ -921,6 +921,9 @@ function boutonAction(texte, classe, action) {
     return b;
 }
 
+// Qwen conseillé selon la carte graphique (principal/materiel.js) : demandé une seule fois
+let conseil = null;
+
 // Sans aucun modèle pour le fournisseur choisi, les suggestions laissent la place aux deux façons d'en avoir un
 async function renderDemarrage(f, models) {
     const bloc = $("#demarrage");
@@ -930,11 +933,15 @@ async function renderDemarrage(f, models) {
     etatOllama = await window.api.etatOllama();
 
     if (!telechargement) {
-        const modele = MODELE_PREFERE.ollama[0];
+        conseil = conseil || await window.api.conseilMateriel();
+        const modele = conseil.modele;
         const actions = $("#demarrage-ollama-actions");
         actions.replaceChildren();
         if (etatOllama.repond) {
-            $("#demarrage-ollama-texte").textContent = `Ollama est là, il lui manque un modèle : ${modele}, environ 5 Go à télécharger une seule fois. Il faut un PC puissant (type PC gamer) : sinon, prends Gemini.`;
+            const carte = conseil.vramGo ? `ta carte graphique (${conseil.vramGo} Go)` : "un PC sans carte graphique dédiée";
+            $("#demarrage-ollama-texte").textContent = `Ollama est là, il lui manque un modèle. Pour ${carte}, je conseille ${modele} : ${conseil.raison}. `
+                + `Environ ${String(conseil.taille).replace(".", ",")} Go à télécharger une seule fois.`
+                + (conseil.geminiMieux ? " Ton PC est un peu juste : Gemini sera plus rapide." : "");
             actions.append(boutonAction(`Télécharger ${modele}`, "bouton", () => telechargerModele(modele)));
         } else if (etatOllama.installe) {
             $("#demarrage-ollama-texte").textContent = "Ollama est installé mais ne répond pas. Relance l'app, ou lance Ollama toi-même.";

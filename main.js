@@ -12,6 +12,7 @@ const { ajouterFait, nettoyerPrenom } = require('./principal/memoire');
 const { configurerMiseAJour } = require('./principal/miseajour');
 const { REFUS_PAGE, urlsDans, memePage, verifierUrl, lirePageWeb, chercherWeb } = require('./principal/web');
 const { integrerMenu } = require('./principal/menu-linux');
+const { conseilMateriel } = require('./principal/materiel');
 const {
   MAX_FICHIER_ROLE, URL_MARCHE, nettoyerRoles, roleVersFichier, roleDepuisFichier, nomFichierRole, ajouterRole, catalogueDepuisJson, lienProposition,
 } = require('./principal/roles');
@@ -489,6 +490,9 @@ ipcMain.handle('etat-ollama', async () => {
 });
 
 // Télécharge un modèle dans Ollama depuis l'accueil (clic de l'utilisateur), en envoyant la progression
+// Le Qwen conseillé selon la mémoire de la carte graphique (principal/materiel.js), pour l'accueil
+ipcMain.handle('conseil-materiel', () => conseilMateriel());
+
 ipcMain.handle('ollama-telecharger', async (event, modele) => {
   if (!/^[\w.-]+(:[\w.-]+)?$/.test(String(modele))) return { ok: false, erreur: 'Nom de modèle invalide.' };
   try {

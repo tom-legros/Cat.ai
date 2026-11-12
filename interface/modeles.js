@@ -7,7 +7,8 @@
 // Du meilleur au moins bon. Une RegExp prend la version la plus récente qui correspond
 // (Gemini change souvent de numéro de version). C'est aussi le modèle choisi quand rien n'est retenu.
 const MODELE_PREFERE = {
-    ollama: ["qwen3:8b", "qwen2.5-coder:7b"],
+    // Ollama : le plus gros Qwen installé passe en premier (le conseil selon la carte graphique est dans principal/materiel.js)
+    ollama: ["qwen3.6:27b", "qwen3:14b", "qwen3.5:9b", "qwen3:8b", "qwen3.5:4b", "qwen3.5:2b", "qwen2.5-coder:7b"],
     groq: ["openai/gpt-oss-20b", "qwen/qwen3-32b", "llama-3.1-8b-instant"],
     gemini: [/^gemini-[\d.]+-flash-lite$/, /^gemini-[\d.]+-flash$/],
     // Les :free changent souvent : north-mini-code a répondu juste au test d'octobre 2026, sinon un autre modèle de code

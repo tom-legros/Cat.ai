@@ -38,6 +38,7 @@ contextBridge.exposeInMainWorld('api', {
   // Accueil du premier lancement : où en est Ollama, et téléchargement d'un modèle avec sa progression
   etatOllama: () => ipcRenderer.invoke('etat-ollama'),
   telechargerModele: (modele) => ipcRenderer.invoke('ollama-telecharger', modele),
+  conseilMateriel: () => ipcRenderer.invoke('conseil-materiel'),
   onProgressionOllama: (cb) => ipcRenderer.on('ollama-progression', (_e, p) => cb(p)),
   // Touches personnelles facultatives (perso.json dans le dossier des données)
   perso: () => ipcRenderer.invoke('perso'),
