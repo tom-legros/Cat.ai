@@ -31,7 +31,10 @@ const taille = (m) => (m.content || '').length + (m.tool_calls ? JSON.stringify(
 function raccourcir(texte, max) {
   if (texte.length <= max) return texte;
   const garde = texte.slice(0, max);
-  const suite = garde.split('\n').length;
+  // Un morceau de lire_fichier commence par « (x.js : lignes D à F sur N. …) » : on compte à partir de la ligne D
+  const n = garde.split('\n').length;
+  const entete = /^\([^\n]* : lignes (\d+) à \d+ sur \d+\./.exec(garde);
+  const suite = entete ? Number(entete[1]) + n - 2 : n;
   return `${garde}\n[… coupé ici pour tenir dans la limite du modèle. Si c'est un fichier, la suite commence à la ligne ${suite} : relis-le avec lire_fichier et ligne = ${suite}.]`;
 }
 

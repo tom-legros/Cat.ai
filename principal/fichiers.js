@@ -72,6 +72,8 @@ function listFiles(dir, prefix = '', out = [], max = 300) {
 // fichiers binaires et trop gros ignorés.
 const MAX_RESULTATS = 50;
 const MAX_FICHIERS_FOUILLES = 3000;
+// Les fichiers sont lus d'un bloc dans le processus principal : au-delà de 20 Mo lus, la recherche s'arrête
+const MAX_OCTETS_FOUILLES = 20 * 1024 * 1024;
 
 function chercherDansProjet(projet, texte, { regex = false, dossier = '' } = {}) {
   const motif = String(texte ?? '');
@@ -98,6 +100,8 @@ function chercherDansProjet(projet, texte, { regex = false, dossier = '' } = {})
 
   const resultats = [];
   let sensibles = 0;
+  let octets = 0;
+  let arretee = false;
   for (const rel of listFiles(base, '', [], MAX_FICHIERS_FOUILLES)) {
     if (rel.endsWith('/')) continue;
     const relatif = sousDossier ? `${sousDossier}/${rel}` : rel;
@@ -110,6 +114,7 @@ function chercherDansProjet(projet, texte, { regex = false, dossier = '' } = {})
     }
     const stat = fs.statSync(full);
     if (!stat.isFile() || stat.size > MAX_FICHIER_OUTIL) continue;
+    if ((octets += stat.size) > MAX_OCTETS_FOUILLES) { arretee = true; break; }
     const contenu = fs.readFileSync(full, 'utf8');
     if (contenu.includes('\u0000')) continue; // binaire
     const lignes = contenu.split(/\r?\n/);
@@ -120,11 +125,12 @@ function chercherDansProjet(projet, texte, { regex = false, dossier = '' } = {})
   }
 
   const ou = sousDossier ? ` dans ${sousDossier}` : '';
+  const noteArret = arretee ? '\n(recherche arrêtée : le dossier est trop gros, cherche dans un sous-dossier pour la suite)' : '';
   const noteSensibles = sensibles ? `\n(${sensibles} fichier${sensibles > 1 ? 's' : ''} sensible${sensibles > 1 ? 's' : ''}, comme .env, non fouillé${sensibles > 1 ? 's' : ''})` : '';
-  if (!resultats.length) return `Aucun résultat pour « ${motif} »${ou}.${noteSensibles}`;
+  if (!resultats.length) return `Aucun résultat pour « ${motif} »${ou}.${noteSensibles}${noteArret}`;
   const trop = resultats.length > MAX_RESULTATS;
   const lignes = resultats.slice(0, MAX_RESULTATS).join('\n');
-  return lignes + (trop ? `\n… et d'autres résultats : précise ta recherche (un texte plus long, ou un sous-dossier).` : '') + noteSensibles;
+  return lignes + (trop ? `\n… et d'autres résultats : précise ta recherche (un texte plus long, ou un sous-dossier).` : '') + noteSensibles + noteArret;
 }
 
 // Fichiers cités dans le message de l'utilisateur : leur chemin relatif, ou leur nom comme mot entier.
@@ -149,16 +155,19 @@ function fichiersCites(message, fichiers) {
 // Un morceau d'un long fichier pour lire_fichier : les lignes à partir de `ligne`, tant qu'elles tiennent dans `max`
 // caractères, avec un en-tête qui dit quoi demander pour la suite. Un fichier court revient en entier.
 function extraitLignes(contenu, chemin, ligne = 1, max = 20000) {
-  const lignes = contenu.split('\n');
+  // Le saut de ligne de la fin n'est pas une ligne de plus
+  const lignes = contenu.replace(/\r?\n$/, '').split('\n');
   const debut = Math.max(1, Math.floor(Number(ligne)) || 1);
   if (debut > lignes.length) return `${chemin} n'a que ${lignes.length} lignes.`;
   if (debut === 1 && contenu.length <= max) return contenu;
   let fin = debut - 1;
   let taille = 0;
-  // Toujours au moins une ligne, même très longue (elle sera coupée plus loin si besoin)
+  // Toujours au moins une ligne, même très longue : elle est alors coupée ci-dessous, et l'en-tête le dit
   while (fin < lignes.length && (fin === debut - 1 || taille + lignes[fin].length + 1 <= max)) taille += lignes[fin++].length + 1;
+  const texte = lignes.slice(debut - 1, fin).join('\n');
+  const coupee = texte.length > max ? ` La ligne ${debut} est trop longue : seuls ses ${max} premiers caractères sont montrés, le reste ne peut pas être lu.` : '';
   const suite = fin < lignes.length ? ` Pour la suite : lire_fichier avec ligne = ${fin + 1}.` : " C'est la fin du fichier.";
-  return `(${chemin} : lignes ${debut} à ${fin} sur ${lignes.length}.${suite})\n${lignes.slice(debut - 1, fin).join('\n')}`;
+  return `(${chemin} : lignes ${debut} à ${fin} sur ${lignes.length}.${coupee}${suite})\n${texte.slice(0, max)}`;
 }
 
 // Ce qui est joint au message pour un fichier cité : son texte, ou la raison pour laquelle il ne l'est pas

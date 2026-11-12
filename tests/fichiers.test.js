@@ -167,3 +167,15 @@ test('extraitLignes : ligne trop loin, ou ligne très longue', () => {
   const minifie = extraitLignes('x'.repeat(5000) + '\nfin', 'min.js', 1, 100);
   assert.match(minifie, /lignes 1 à 1 sur 2/); // une ligne au moins, même trop longue
 });
+
+test('extraitLignes : une ligne géante est coupée à la limite, et l en-tête le dit', () => {
+  const texte = extraitLignes('x'.repeat(5000) + '\nfin', 'min.js', 1, 100);
+  assert.match(texte, /La ligne 1 est trop longue : seuls ses 100 premiers caractères sont montrés/);
+  assert.match(texte, /Pour la suite : lire_fichier avec ligne = 2\./);
+  assert.ok(texte.length < 400);
+});
+
+test('extraitLignes : le saut de ligne final ne compte pas comme une ligne', () => {
+  const contenu = Array.from({ length: 50 }, (_, i) => `ligne ${i + 1}`).join('\n') + '\n';
+  assert.match(extraitLignes(contenu, 'a.js', 45, 10000), /lignes 45 à 50 sur 50\. C'est la fin du fichier\./);
+});

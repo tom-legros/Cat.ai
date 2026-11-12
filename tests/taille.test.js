@@ -128,3 +128,11 @@ test('compacter : coupe d abord les plus gros résultats, le résultat de recher
   assert.equal(resultat[3].content, recherche, 'la recherche est intacte');
   assert.ok(resultat[5].content.length < 4000, 'la lecture de main.js est coupée');
 });
+
+test('raccourcir : un morceau de lire_fichier recoupé garde le bon numéro de ligne pour la suite', () => {
+  const morceau = `(gros.js : lignes 201 à 350 sur 900. Pour la suite : lire_fichier avec ligne = 351.)\n${Array.from({ length: 150 }, (_, i) => `ligne ${201 + i}`).join('\n')}`;
+  const coupe = raccourcir(morceau, 200);
+  // Lignes du fichier gardées sous l'en-tête : la dernière est coupée en plein milieu, on reprend donc à elle
+  const gardees = coupe.split('\n[…')[0].split('\n').length - 1;
+  assert.match(coupe, new RegExp(`ligne = ${201 + gardees - 1}\\.`));
+});

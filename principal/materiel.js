@@ -10,12 +10,12 @@ const { execFile } = require('child_process');
 // Du plus gros au plus petit. vram : mémoire vidéo nécessaire (le modèle, plus la place pour la discussion).
 // Les poids sont ceux du téléchargement sur ollama.com (novembre 2026).
 const MODELES_QWEN = [
-  { modele: 'qwen3.6:27b', taille: 17.8, vram: 22, raison: 'le plus fort : excellent en code et en raisonnement' },
+  { modele: 'qwen3.6:27b', taille: 17.8, vram: 22, raison: 'le plus fort, excellent en code et en raisonnement' },
   { modele: 'qwen3:14b', taille: 9.3, vram: 12, raison: 'très bon partout, sans être trop lent' },
   { modele: 'qwen3.5:9b', taille: 6.6, vram: 10, raison: 'récent et bon en code' },
   { modele: 'qwen3:8b', taille: 5.2, vram: 7, raison: 'le meilleur qui tient dans 8 Go' },
   { modele: 'qwen3.5:4b', taille: 3.3, vram: 5, raison: 'léger, pour les petites cartes graphiques' },
-  { modele: 'qwen3.5:2b', taille: 2.7, vram: 0, raison: 'le plus léger : il tourne même sans carte graphique, mais il est limité' },
+  { modele: 'qwen3.5:2b', taille: 2.7, vram: 0, raison: 'le plus léger, il tourne même sans carte graphique mais reste limité' },
 ];
 
 // Le plus gros modèle qui tient dans la carte. Sans carte (ou petite), avec peu de RAM, Gemini est conseillé à côté.

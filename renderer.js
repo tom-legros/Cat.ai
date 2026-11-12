@@ -319,7 +319,8 @@ async function send(text) {
         await resumerSiBesoin(current, bulle);
         const consignes = systemPrompt() + (await projectInfo(text));
         bulle.innerHTML = "";
-        bulle.classList.add("is-typing");
+        // attend-modele : rien reçu du modèle pour l'instant, « Miaou réfléchit » reste affiché (même sous l'alerte de budget)
+        bulle.classList.add("is-typing", "attend-modele");
         // Avec Ollama, des consignes trop lourdes sont coupées : l'utilisateur le voit en haut de la réponse
         const alerteBudget = fournisseurActif().type === "ollama" ? budgetConsignes(consignes) : "";
         streaming = { id, el: bulle, chat, text: alerteBudget ? etiquetteAction(alerteBudget) : "", actions: [], dernierSignal: Date.now() };
@@ -385,6 +386,7 @@ function surveillerSilence() {
 window.api.onChunk(({ id, text }) => {
     if (streaming?.id !== id) return;
     streaming.text += text.replace(/[]/g, ""); // le modèle ne peut pas écrire de marqueur d'action
+    streaming.el.classList.remove("attend-modele");
     afficherFlux();
 });
 
@@ -868,7 +870,12 @@ function demanderPrenom() {
 }
 $("#close-memory").onclick = () => ($("#memory-modal").hidden = true);
 $("#memory-modal").onclick = (e) => { if (e.target.id === "memory-modal") e.target.hidden = true; };
-window.api.onMemoryChanged((m) => { memory = m; renderMemory(); });
+// Un souvenir en train d'être modifié n'est pas effacé : seul le compteur change, la liste suivra à l'enregistrement
+window.api.onMemoryChanged((m) => {
+    memory = m;
+    if ($("#memory-list .memoire-edition")) $("#memory-count").textContent = memory.length;
+    else renderMemory();
+});
 
 // Ce que le chat vient de retenir tout seul : affiché un moment sous « Mémoire », avec un bouton pour l'annuler
 const memoireAjoutEl = $("#memoire-ajout");

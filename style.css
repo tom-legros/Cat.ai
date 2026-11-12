@@ -340,9 +340,10 @@ select {
 
 /* Pendant que le chat réfléchit (bulle encore vide) : « Miaou réfléchit » en police pixel, avec un curseur
    bloc qui clignote par à-coups, comme un vieux jeu. Une fois qu'il écrit : seulement le curseur, à la fin du texte. */
-.is-typing:empty::after { content: "Miaou réfléchit ▍"; color: var(--oeil); font: 500 14px var(--police-titre); letter-spacing: .04em; animation: clignote 1s steps(2, jump-none) infinite; }
-.is-typing > :last-child::after { content: "▍"; color: var(--oeil); animation: clignote 1s steps(1) infinite; }
-@keyframes clignote { 50% { opacity: .35; } }
+.is-typing > :last-child::after { content: "▍"; color: var(--oeil); animation: clignote-curseur 1s steps(1) infinite; }
+.is-typing:empty::after, .is-typing.attend-modele > :last-child::after { content: "Miaou réfléchit ▍"; color: var(--oeil); font: 500 14px var(--police-titre); letter-spacing: .04em; animation: clignote-curseur 1s steps(2, jump-none) infinite; }
+.is-typing.attend-modele > :last-child::after { display: block; margin-top: 8px; }
+@keyframes clignote-curseur { 50% { opacity: .35; } }
 
 /* ---------- 6. Saisie ---------- */
 .saisie { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 820px; margin: 0 auto; padding: 12px 32px 24px; }
