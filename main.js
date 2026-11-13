@@ -21,7 +21,7 @@ const DOSSIER_DOCUMENTS = () => path.join(app.getPath('userData'), 'documents');
 const { OLLAMA, GARDER_CHARGE, optionsOllama, sansReflexion, REFLEXION, envoyerOllama, envoyerOpenAI, vulkanUtile } = require('./principal/envoi');
 const {
   FOURNISSEURS_DE_BASE, lireReglagesFournisseurs, infosFournisseur, configFournisseur, versInterface,
-  etatChiffrement, chiffrer, formatDouteux, avertissementFormat, marquerModeleCasse, listerModeles,
+  etatChiffrement, chiffrer, messageCleIllisible, formatDouteux, avertissementFormat, marquerModeleCasse, listerModeles,
 } = require('./principal/fournisseurs');
 
 
@@ -178,7 +178,7 @@ async function envoyeurPour(fournisseurId) {
   if (!config) throw new Error('Fournisseur inconnu. Choisis-en un dans la liste.');
   if (config.type === 'ollama') return envoyerOllama;
   if (!config.baseUrl) throw new Error(`Aucune adresse pour ${config.nom} : remplis-la dans le panneau Fournisseurs.`);
-  if (!config.cle) throw new Error(`Aucune clé API pour ${config.nom} : ajoute-la dans le panneau Fournisseurs.`);
+  if (!config.cle) throw new Error(config.cleIllisible ? messageCleIllisible(config.nom) : `Aucune clé API pour ${config.nom} : ajoute-la dans le panneau Fournisseurs.`);
   return (...args) => envoyerOpenAI(config, ...args);
 }
 

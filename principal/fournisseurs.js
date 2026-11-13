@@ -39,7 +39,7 @@ async function listerModeles(config) {
   if (!config.baseUrl) return { ok: false, models: [], erreur: `Aucune adresse pour ${config.nom}.` };
   // Une adresse payante enregistrée avant cette règle : on ne la contacte même pas
   if (!fournisseurGratuit(config.baseUrl)) return { ok: false, models: [], erreur: conseilGratuit(config) };
-  if (!config.cle) return { ok: false, models: [], erreur: `Aucune clé API pour ${config.nom}.` };
+  if (!config.cle) return { ok: false, models: [], erreur: config.cleIllisible ? messageCleIllisible(config.nom) : `Aucune clé API pour ${config.nom}.` };
   try {
     const res = await fetch(`${config.baseUrl.replace(/\/+$/, '')}/models`, {
       headers: { Authorization: `Bearer ${config.cle}` },
@@ -171,13 +171,18 @@ function infosFournisseur(id = 'ollama') {
   return { id: f.id, type: 'openai', nom: f.nom, baseUrl: f.baseUrl };
 }
 
+// Une clé enregistrée mais qu'on ne peut plus déchiffrer : le coffre du système a changé (fichier « Local State » de
+// l'app recréé, autre compte, autre PC). Le dire, au lieu de « aucune clé », pour que l'utilisateur la remette.
+const messageCleIllisible = (nom) => `Ta clé ${nom} est enregistrée mais ne peut plus être lue (le coffre de ${protection()} a changé). Entre-la à nouveau dans Réglages.`;
+
 // Config complète d'un fournisseur, clé déchiffrée comprise : seulement quand il faut vraiment lui parler.
 // À n'utiliser que dans le processus principal : ce qui part vers l'interface passe par versInterface().
 async function configFournisseur(id = 'ollama') {
   const infos = infosFournisseur(id);
   if (!infos || infos.type === 'ollama') return infos;
   const { cleChiffree } = tousLesFournisseurs().find((x) => x.id === id);
-  return { ...infos, cle: await dechiffrer(cleChiffree, id) };
+  const cle = await dechiffrer(cleChiffree, id);
+  return { ...infos, cle, cleIllisible: !!cleChiffree && !cle };
 }
 
 // Ce que l'interface a le droit de voir : tout sauf la clé
@@ -193,5 +198,5 @@ async function versInterface() {
 
 module.exports = {
   FOURNISSEURS_DE_BASE, lireReglagesFournisseurs, infosFournisseur, configFournisseur, versInterface,
-  etatChiffrement, chiffrer, formatDouteux, avertissementFormat, modelesCasses, marquerModeleCasse, listerModeles,
+  etatChiffrement, chiffrer, messageCleIllisible, formatDouteux, avertissementFormat, modelesCasses, marquerModeleCasse, listerModeles,
 };
