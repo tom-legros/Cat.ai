@@ -44,3 +44,14 @@ test('catalogue : rapide dans la carte, lent si ça déborde dans la RAM, trop g
   // Sans carte graphique : seul le plus léger est rapide
   assert.deepEqual(catalogue({ vramGo: null, ramGo: 8 }).filter((m) => m.avis === 'ok').map((m) => m.modele), ['qwen3.5:2b']);
 });
+
+test('AUTRES_MODELES : chacun a un usage connu, un nom téléchargeable, et de la marge dans la mémoire demandée', () => {
+  const { AUTRES_MODELES } = require('../principal/materiel');
+  for (const m of AUTRES_MODELES) {
+    assert.match(m.modele, /^[\w.-]+:[\w.-]+$/, m.modele);
+    assert.ok(['general', 'code', 'images', 'reflexion'].includes(m.usage), m.modele);
+    assert.ok(m.vram > m.taille, m.modele);
+    assert.ok(m.raison.length <= 40, m.modele);
+  }
+  assert.equal(new Set(AUTRES_MODELES.map((m) => m.modele)).size, AUTRES_MODELES.length);
+});

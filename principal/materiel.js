@@ -18,6 +18,23 @@ const MODELES_QWEN = [
   { modele: 'qwen3.5:2b', taille: 2.7, vram: 0, raison: 'le plus léger, il tourne même sans carte graphique mais reste limité' },
 ];
 
+// Les autres modèles les plus utiles d'Ollama, proposés dans la page Modèles (jamais conseillés d'office : le chat
+// est réglé pour Qwen). Tous savent se servir des outils du chat. Tailles lues sur ollama.com (novembre 2026).
+// usage : ce pour quoi on le prend, affiché en filtre.
+const AUTRES_MODELES = [
+  { modele: 'gpt-oss:20b', taille: 14, vram: 16, usage: 'reflexion', raison: "le modèle ouvert d'OpenAI" },
+  { modele: 'gemma4:12b', taille: 8, vram: 11, usage: 'images', raison: 'Google, voit les images' },
+  { modele: 'mistral-nemo:12b', taille: 7.1, vram: 10, usage: 'general', raison: 'Mistral, très bon en français' },
+  { modele: 'gemma4:e4b', taille: 6.6, vram: 9, usage: 'images', raison: 'Google, voit les images' },
+  { modele: 'deepseek-r1:8b', taille: 5.2, vram: 7, usage: 'reflexion', raison: 'réfléchit avant de répondre' },
+  { modele: 'llama3.1:8b', taille: 4.9, vram: 7, usage: 'general', raison: 'Meta, le plus téléchargé' },
+  { modele: 'qwen2.5-coder:7b', taille: 4.7, vram: 7, usage: 'code', raison: 'spécialisé en code' },
+  { modele: 'gemma4:e2b', taille: 4.6, vram: 7, usage: 'images', raison: 'Google, léger, voit les images' },
+  { modele: 'llama3.2:3b', taille: 2, vram: 4, usage: 'general', raison: 'petit et rapide' },
+];
+// Ce pour quoi on prend chaque Qwen
+const USAGE_QWEN = { 'qwen3.6:27b': 'code', 'qwen3:14b': 'general', 'qwen3.5:9b': 'code', 'qwen3:8b': 'general', 'qwen3.5:4b': 'general', 'qwen3.5:2b': 'general' };
+
 // Le plus gros modèle qui tient dans la carte. Sans carte (ou petite), avec peu de RAM, Gemini est conseillé à côté.
 function modeleConseille({ vramGo, ramGo }) {
   const choix = MODELES_QWEN.find((m) => (vramGo || 0) >= m.vram);
@@ -33,10 +50,11 @@ function avisModele(m, { vramGo, ramGo }) {
   return m.vram <= (vramGo || 0) + (ramGo || 0) * 0.6 ? 'lent' : 'trop';
 }
 
-// Tous les modèles connus, avec leur avis ; le conseillé est le plus gros qui tient dans la carte
+// Tous les modèles connus, avec leur avis ; le conseillé est le plus gros Qwen qui tient dans la carte
 function catalogue(materiel) {
   const conseille = modeleConseille(materiel).modele;
-  return MODELES_QWEN.map((m) => ({ ...m, avis: avisModele(m, materiel), conseille: m.modele === conseille }));
+  return [...MODELES_QWEN.map((m) => ({ ...m, usage: USAGE_QWEN[m.modele] || 'general' })), ...AUTRES_MODELES]
+    .map((m) => ({ ...m, avis: avisModele(m, materiel), conseille: m.modele === conseille }));
 }
 
 // HardwareInformation.qwMemorySize : un nombre sur 8 octets, que reg.exe affiche en hexadécimal
@@ -91,4 +109,4 @@ async function catalogueMateriel() {
   return { ...materiel, modeles: catalogue(materiel) };
 }
 
-module.exports = { MODELES_QWEN, modeleConseille, avisModele, catalogue, vramDepuisRegistre, conseilMateriel, catalogueMateriel };
+module.exports = { MODELES_QWEN, AUTRES_MODELES, modeleConseille, avisModele, catalogue, vramDepuisRegistre, conseilMateriel, catalogueMateriel };
