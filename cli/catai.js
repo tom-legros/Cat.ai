@@ -152,15 +152,27 @@ function infosProjet(dossier, question) {
 }
 
 // ---------- Les questions dans le terminal ----------
+// Dans l'app installée, catai tourne avec le moteur d'Electron, un programme « fenêtré » sous Windows : son entrée
+// standard n'est pas reliée au clavier (la discussion se fermait aussitôt, et les o/n ne passaient pas). On lit
+// alors directement la console (CONIN$). Une entrée redirigée (echo o | catai, un fichier) reste lue telle quelle.
+function entreeClavier() {
+  if (!process.versions.electron || process.platform !== 'win32') return process.stdin;
+  try {
+    const s = fs.fstatSync(0);
+    if (s.isFIFO() || s.isFile()) return process.stdin;
+  } catch { /* pas d'entrée standard du tout : la console */ }
+  try { return fs.createReadStream(null, { fd: fs.openSync('CONIN$', 'r'), encoding: 'utf8' }); } catch { return process.stdin; }
+}
+
 // Lit une ligne après avoir écrit l'invite. Les lignes arrivées avant d'être demandées attendent leur tour :
 // avec des réponses envoyées d'un coup (echo o | catai …), readline les lisait avant la question et elles étaient
 // perdues. null quand l'entrée est fermée.
-function creerLecteur(rl) {
+function creerLecteur(rl, afficherReponses) {
   const enAvance = [];
   const enAttente = [];
   let fermee = false;
   // Sans vrai terminal, la réponse n'est pas affichée en la tapant : on l'écrit après l'invite, pour que ça se lise
-  const montrer = (l) => { if (!process.stdin.isTTY) process.stdout.write(`${l}\n`); return l; };
+  const montrer = (l) => { if (afficherReponses) process.stdout.write(`${l}\n`); return l; };
   rl.on('line', (l) => (enAttente.length ? enAttente.shift()(montrer(l)) : enAvance.push(l)));
   rl.on('close', () => { fermee = true; while (enAttente.length) enAttente.shift()(null); });
   return (invite) => {
@@ -314,14 +326,19 @@ async function principal() {
     process.stderr.write(rouge('Ollama ne répond pas.') + ' Ouvre Cat Ai (elle le démarre), ou lance « ollama serve ».\n');
     return 1;
   }
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  const lire = creerLecteur(rl);
+  const entree = entreeClavier();
+  const rl = readline.createInterface({ input: entree, output: process.stdout, terminal: entree === process.stdin ? undefined : false });
+  // Une entrée redirigée ne s'affiche pas : on écrit la réponse après la question (la console, elle, l'affiche déjà)
+  const lire = creerLecteur(rl, entree === process.stdin && !process.stdin.isTTY);
   const conversation = [];
-  // Ctrl+C pendant une réponse l'arrête ; deux fois de suite, ou à l'invite, on quitte
+  // Ctrl+C pendant une réponse l'arrête ; deux fois de suite, ou à l'invite, on quitte. Avec la console lue
+  // directement, Ctrl+C arrive comme un signal du processus, pas par readline : on écoute les deux.
   let enCours = null;
-  rl.on('SIGINT', () => {
+  const surCtrlC = () => {
     if (enCours && !enCours.signal.aborted) { enCours.abort(); process.stdout.write(gris('\n(arrêté)\n')); } else { rl.close(); process.exit(0); }
-  });
+  };
+  rl.on('SIGINT', surCtrlC);
+  process.on('SIGINT', surCtrlC);
   const unTour = async (question) => {
     enCours = new AbortController();
     try {
