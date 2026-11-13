@@ -5,7 +5,7 @@ const { spawn } = require('child_process');
 
 const { configurerStockage, readJson, writeJson, prendreAlertes } = require('./principal/stockage');
 const { IGNORED, MAX_FILE, MAX_FICHIER_OUTIL, extraitLignes, cheminSur, estSensible, listFiles, chercherDansProjet, fichiersCites, contenuJoint } = require('./principal/fichiers');
-const { OUTILS_ECRITURE, RIEN_N_A_CHANGE, REFUS_LECTURE, BOUCLE, appelRepete, ecritureRefusee, remplacerTexte, parseTextToolCalls, resumerAction } = require('./principal/outils');
+const { OUTILS_ECRITURE, RIEN_N_A_CHANGE, REFUS_LECTURE, BOUCLE, appelRepete, ecritureRefusee, remplacerTexte, parseTextToolCalls, resumerAction, outilsPour } = require('./principal/outils');
 const { hote, HOTES_LOCAUX, fournisseurGratuit, modeleGratuit, conseilGratuit, adresseValide } = require('./principal/gratuit');
 const { LIMITES_OLLAMA, MAX_JOINT, limitesTaille, raccourcir, compacter, listeCourte } = require('./principal/taille');
 const { ajouterFait, nettoyerPrenom, nettoyerMemoire } = require('./principal/memoire');
@@ -493,9 +493,19 @@ ipcMain.handle('etat-ollama', async () => {
 
 // Charge le modèle sur la carte graphique dès qu'il est choisi (ouverture de l'app, changement de modèle) :
 // le premier message n'attend plus ~20 s le chargement. Une demande sans texte charge le modèle sans rien générer.
-ipcMain.handle('ollama-prechauffer', async (_e, modele) => {
+//
+// Il lit aussi les consignes du chat et la description de ses outils (2 000 mots environ), exactement comme les enverra
+// le prochain message : Ollama garde ce début en mémoire, et le premier message n'a plus que la question à lire.
+// Mesuré sur une RX 6600 : ~12 s de lecture avant le premier mot sinon. Les outils sont choisis comme dans le handler
+// 'chat' (mêmes réglages, sans document joint) et les consignes coupées comme le fait compacter, sinon le début ne
+// correspondrait plus. Les rappels (mode prof, rôle) arrivent après la question : ils ne gênent pas.
+ipcMain.handle('ollama-prechauffer', async (_e, { modele, consignes, prof, role }) => {
   try {
-    const res = await fetch(`${OLLAMA}/api/generate`, { method: 'POST', body: JSON.stringify({ model: modele, prompt: '', keep_alive: GARDER_CHARGE, options: optionsOllama(modele) }) });
+    const outils = outilsPour({ prof, role, projet: !!projectDir, documents: false, connecteur: !!readJson('settings.json', {}).adresseMcp });
+    const res = await fetch(`${OLLAMA}/api/chat`, {
+      method: 'POST',
+      body: JSON.stringify({ model: modele, messages: [{ role: 'system', content: raccourcir(consignes, LIMITES_OLLAMA.total / 2) }], tools: outils, stream: false, think: sansReflexion(modele), keep_alive: GARDER_CHARGE, options: { ...optionsOllama(modele), num_predict: 1 } }),
+    });
     return res.ok;
   } catch {
     return false;

@@ -972,13 +972,23 @@ function renderFournisseurs() {
     fournisseurSel.value = reglages.actif;
 }
 
-// Avec Ollama, le modèle choisi est chargé sur la carte graphique tout de suite (main.js), une fois par modèle :
-// loadModels repasse toutes les 10 s, et un modèle déjà chargé y reste 30 min.
+// Avec Ollama, le modèle choisi est chargé sur la carte graphique tout de suite, avec les consignes du prochain
+// message déjà lues (main.js). loadModels repasse toutes les 10 s : on ne recommence que si le modèle ou les
+// consignes ont changé (mode prof, rôle, dossier, mémoire), et jamais pendant une réponse, qu'Ollama oublierait.
 let dejaPrechauffe = "";
-function prechauffer() {
-    if (fournisseurActif().type !== "ollama" || !modelSel.value || modelSel.value === dejaPrechauffe) return;
-    dejaPrechauffe = modelSel.value;
-    window.api.prechaufferOllama(modelSel.value);
+async function prechauffer() {
+    if (fournisseurActif().type !== "ollama" || !modelSel.value || streaming || envoiEnCours) return;
+    let infoProjet;
+    try {
+        infoProjet = await projectInfo("");
+    } catch {
+        return; // sans la liste du dossier, les consignes ne seraient pas celles du chat : rien à précharger
+    }
+    const consignes = systemPrompt() + infoProjet;
+    const cle = `${modelSel.value}\n${prof}\n${role}\n${consignes}`;
+    if (cle === dejaPrechauffe || streaming || envoiEnCours) return;
+    dejaPrechauffe = cle;
+    window.api.prechaufferOllama({ modele: modelSel.value, consignes, prof, role });
 }
 
 async function loadModels() {
@@ -986,6 +996,7 @@ async function loadModels() {
     renderAccueil(f);
     const { ok, models, erreur } = await window.api.models(f.id);
     if (f.id !== reglages.actif) return; // on a changé de fournisseur pendant la requête
+    if (!ok) dejaPrechauffe = ""; // Ollama arrêté : quand il reviendra, sa mémoire sera vide, on préchargera à nouveau
     const avant = modelSel.value;
     // Le conseillé en premier avec une étoile, les gourmands repérés par un ▲
     conseille = modeleConseille(models, f.id);
