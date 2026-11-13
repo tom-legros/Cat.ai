@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, nativeImage, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
@@ -16,6 +16,7 @@ const { urlsDans } = require('./principal/web');
 const { integrerMenu } = require('./principal/menu-linux');
 const { conseilMateriel, catalogueMateriel } = require('./principal/materiel');
 const { rolesDepuis, changerRole } = require('./principal/roles');
+const { LANGUES_CORRECTION, lignesMenu } = require('./principal/menu-saisie');
 const { BINAIRES, lireTexteDocument, texteJointDocument, idValide } = require('./principal/documents');
 // Textes extraits des PDF et longs fichiers glissés dans la discussion
 const DOSSIER_DOCUMENTS = () => path.join(app.getPath('userData'), 'documents');
@@ -97,6 +98,20 @@ function createWindow() {
   const ouvrirDehors = (url) => { if (/^https?:\/\//i.test(url)) shell.openExternal(url); };
   win.webContents.on('will-navigate', (e, url) => { e.preventDefault(); ouvrirDehors(url); });
   win.webContents.setWindowOpenHandler(({ url }) => { ouvrirDehors(url); return { action: 'deny' }; });
+
+  // Fautes soulignées dans la saisie, et clic droit pour les corriger (principal/menu-saisie.js)
+  try { win.webContents.session.setSpellCheckerLanguages(LANGUES_CORRECTION); } catch { /* langue absente sur ce système */ }
+  win.webContents.on('context-menu', (_e, p) => {
+    const actions = {
+      corriger: (mot) => win.webContents.replaceMisspelling(mot),
+      apprendre: (mot) => win.webContents.session.addWordToSpellCheckerDictionary(mot),
+      couper: () => win.webContents.cut(),
+      copier: () => win.webContents.copy(),
+      coller: () => win.webContents.paste(),
+    };
+    const lignes = lignesMenu(p).map((l) => (l.separateur ? { type: 'separator' } : { label: l.texte, enabled: l.action !== 'rien', click: () => actions[l.action]?.(l.valeur) }));
+    if (lignes.length) Menu.buildFromTemplate(lignes).popup({ window: win });
+  });
 }
 
 // ---------- Outils que le modèle peut utiliser (leur liste : principal/outils.js) ----------

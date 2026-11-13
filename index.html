@@ -80,7 +80,7 @@
     <form id="composer" class="saisie">
       <ul id="pieces" class="pieces" hidden></ul>
       <div class="saisie__ligne">
-        <textarea id="input" rows="1" placeholder="Écris au chat…"></textarea>
+        <textarea id="input" rows="1" placeholder="Écris au chat…" spellcheck="true" lang="fr"></textarea>
         <button id="send" type="submit" class="bouton-envoi" title="Envoyer (Entrée)" aria-label="Envoyer">
           <svg class="icone icone-px icone--envoi" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="3" y="0" width="2" height="1"/><rect x="2" y="1" width="4" height="1"/><rect x="1" y="2" width="6" height="1"/><rect x="0" y="3" width="2" height="1"/><rect x="3" y="3" width="2" height="1"/><rect x="6" y="3" width="2" height="1"/><rect x="3" y="4" width="2" height="1"/><rect x="3" y="5" width="2" height="1"/><rect x="3" y="6" width="2" height="1"/><rect x="3" y="7" width="2" height="1"/></svg>
           <svg class="icone icone-px icone--stop" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="1" y="1" width="6" height="1"/><rect x="1" y="2" width="6" height="1"/><rect x="1" y="3" width="6" height="1"/><rect x="1" y="4" width="6" height="1"/><rect x="1" y="5" width="6" height="1"/><rect x="1" y="6" width="6" height="1"/></svg>
@@ -260,6 +260,7 @@
   <script src="interface/markdown.js"></script>
   <script src="interface/modeles.js"></script>
   <script src="interface/difference.js"></script>
+  <script src="interface/saisie.js"></script>
   <script src="renderer.js"></script>
   <script src="interface/pages.js"></script>
 </body>

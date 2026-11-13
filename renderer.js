@@ -617,10 +617,25 @@ input.addEventListener("keydown", (e) => {
         e.preventDefault();
         if (streaming || envoiEnCours) return;
         $("#composer").requestSubmit();
+        return;
     }
+    // Flèche du haut au début de la saisie : le message d'avant. Flèche du bas à la fin : le suivant, puis le brouillon.
+    const haut = e.key === "ArrowUp" && input.selectionStart === 0 && input.selectionEnd === 0;
+    const bas = e.key === "ArrowDown" && anciens && input.selectionStart === input.value.length;
+    if (!haut && !bas) return;
+    const etat = parcourirAnciens(anciensMessages(current?.messages), anciens, haut ? -1 : 1, input.value);
+    if (!etat) return;
+    e.preventDefault();
+    input.value = etat.texte;
+    input.dispatchEvent(new Event("input"));
+    anciens = etat.position === anciensMessages(current?.messages).length ? null : etat; // l'évènement input l'a remis à zéro
+    const curseur = haut ? 0 : input.value.length;
+    input.setSelectionRange(curseur, curseur);
 });
+let anciens = null; // où on en est dans les anciens messages (interface/saisie.js) ; null : on tape un nouveau message
 
 input.addEventListener("input", () => {
+    anciens = null;
     input.style.height = "auto";
     input.style.height = input.scrollHeight + "px";
 });
