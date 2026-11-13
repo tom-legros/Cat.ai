@@ -113,7 +113,14 @@ const TOOLS = [
 // mode = { prof, role, fournisseurId }
 const OUTILS_ECRITURE = new Set(['ecrire_fichier', 'remplacer_texte']);
 const peutEcrire = ({ prof, role } = {}) => !prof && role !== 'relecteur';
-const outilsPour = (mode) => (peutEcrire(mode) ? TOOLS : TOOLS.filter((t) => !OUTILS_ECRITURE.has(t.function.name)));
+// Sans dossier ouvert (projet: false), les outils de fichiers ne servent à rien : leur description, plus de la moitié
+// de celle de tous les outils, n'est pas envoyée, et Ollama a environ 1 000 mots de moins à lire à chaque début de
+// discussion. ouvrir_dossier reste : dès qu'un dossier est ouvert, l'étape suivante du chat les retrouve.
+const OUTILS_PROJET = new Set(['lister_fichiers', 'lire_fichier', 'chercher', 'ecrire_fichier', 'remplacer_texte']);
+const outilsPour = (mode) => TOOLS.filter(({ function: { name } }) => {
+  if (mode?.projet === false && OUTILS_PROJET.has(name)) return false;
+  return peutEcrire(mode) || !OUTILS_ECRITURE.has(name);
+});
 
 // Les petits modèles annoncent parfois une modification qui n'a pas eu lieu : chaque refus le dit clairement
 const RIEN_N_A_CHANGE = " Le fichier n'a pas changé : ne dis pas à l'utilisateur qu'il est modifié.";

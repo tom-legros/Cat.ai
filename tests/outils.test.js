@@ -158,3 +158,12 @@ test('resumerAction : recherche sur internet, avec ou sans résultat', () => {
   assert.equal(resumerAction('chercher_web', { requete: 'pacman' }, r), 'a cherché « pacman » sur internet (2 résultats)');
   assert.equal(resumerAction('chercher_web', { requete: 'xyz' }, 'Aucun résultat pour « xyz ».'), "n'a rien trouvé en cherchant « xyz » sur internet");
 });
+
+test('outilsPour : sans dossier ouvert, pas d outils de fichiers (moins de texte à lire pour Ollama)', () => {
+  const noms = (mode) => outilsPour(mode).map((t) => t.function.name);
+  assert.ok(!noms({ projet: false }).some((n) => ['lister_fichiers', 'lire_fichier', 'chercher', 'ecrire_fichier', 'remplacer_texte'].includes(n)));
+  assert.ok(noms({ projet: false }).includes('ouvrir_dossier'));
+  assert.ok(noms({ projet: true }).includes('remplacer_texte'));
+  assert.ok(!noms({ projet: true, prof: true }).includes('remplacer_texte'));
+  assert.ok(JSON.stringify(outilsPour({ projet: false })).length < JSON.stringify(outilsPour({ projet: true })).length / 2);
+});

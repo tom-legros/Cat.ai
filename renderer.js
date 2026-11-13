@@ -991,6 +991,29 @@ async function prechauffer() {
     window.api.prechaufferOllama({ modele: modelSel.value, consignes, prof, role });
 }
 
+// Le réveil du chat (main.js) : pendant qu'Ollama charge le modèle et lit les consignes (~20 s la première fois
+// sur une petite carte graphique), un compteur remplace « Ollama connecté » ; ensuite, « Ollama prêt ».
+let reveil = null;
+let chatPret = false;
+let minuteurReveil = null;
+function majReveil({ enCours, debut, ok }) {
+    clearInterval(minuteurReveil);
+    if (enCours) {
+        reveil = { debut };
+        const maj = () => { statusEl.textContent = `Le chat se réveille… ${Math.max(0, Math.round((Date.now() - debut) / 1000))} s`; };
+        statusEl.title = "Ollama charge le modèle et lit les consignes du chat : ensuite, tes messages partent tout de suite.";
+        maj();
+        minuteurReveil = setInterval(maj, 1000);
+        return;
+    }
+    reveil = null;
+    chatPret = !!ok;
+    statusEl.title = "";
+    if (fournisseurActif().type === "ollama") statusEl.textContent = ok ? "Ollama prêt" : "Ollama connecté";
+}
+window.api.onPrechauffage(majReveil);
+window.api.etatPrechauffage().then((etat) => { if (etat.enCours) majReveil(etat); });
+
 async function loadModels() {
     const f = fournisseurActif();
     renderAccueil(f);
@@ -1015,8 +1038,11 @@ async function loadModels() {
     prechauffer();
     statusEl.className = "statut" + (ok && models.length ? " is-ok" : " is-erreur");
     statusEl.title = erreur || "";
-    if (f.type === "ollama") statusEl.textContent = !ok ? "Ollama ne répond pas" : models.length ? "Ollama connecté" : "Aucun modèle installé";
-    else statusEl.textContent = ok ? `${f.nom} connecté · en ligne` : (erreur || "").split("\n")[0] || `${f.nom} ne répond pas`;
+    if (!ok) chatPret = false;
+    // Pendant le réveil, c'est le compteur qui parle (majReveil)
+    if (f.type === "ollama") {
+        if (!(ok && reveil)) statusEl.textContent = !ok ? "Ollama ne répond pas" : models.length ? (chatPret ? "Ollama prêt" : "Ollama connecté") : "Aucun modèle installé";
+    } else statusEl.textContent = ok ? `${f.nom} connecté · en ligne` : (erreur || "").split("\n")[0] || `${f.nom} ne répond pas`;
     await renderDemarrage(f, ok ? models : []);
 }
 

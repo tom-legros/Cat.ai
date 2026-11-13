@@ -305,7 +305,7 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, role, fournisseurI
       const aEnvoyer = limites ? compacter(history, limites.total) : history;
       // onPause : affiche une étiquette pendant que l'app attend la fin de la limite par minute
       const onPause = (secondes) => event.sender.send('chat-tool', { id, name: 'pause', args: { secondes } });
-      let { content, toolCalls } = await envoyer(aEnvoyer, model, onMorceau, controller.signal, { prof, role, onPause });
+      let { content, toolCalls } = await envoyer(aEnvoyer, model, onMorceau, controller.signal, { prof, role, onPause, projet: !!projectDir });
       if (!toolCalls.length && content.includes('"name"')) {
         const parsed = parseTextToolCalls(content);
         if (parsed.length) {
@@ -499,18 +499,47 @@ ipcMain.handle('etat-ollama', async () => {
 // Mesuré sur une RX 6600 : ~12 s de lecture avant le premier mot sinon. Les outils sont choisis comme dans le handler
 // 'chat' (mêmes réglages, sans document joint) et les consignes coupées comme le fait compacter, sinon le début ne
 // correspondrait plus. Les rappels (mode prof, rôle) arrivent après la question : ils ne gênent pas.
-ipcMain.handle('ollama-prechauffer', async (_e, { modele, consignes, prof, role }) => {
-  try {
-    const outils = outilsPour({ prof, role, projet: !!projectDir, documents: false, connecteur: !!readJson('settings.json', {}).adresseMcp });
-    const res = await fetch(`${OLLAMA}/api/chat`, {
-      method: 'POST',
-      body: JSON.stringify({ model: modele, messages: [{ role: 'system', content: raccourcir(consignes, LIMITES_OLLAMA.total / 2) }], tools: outils, stream: false, think: sansReflexion(modele), keep_alive: GARDER_CHARGE, options: { ...optionsOllama(modele), num_predict: 1 } }),
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
-});
+//
+// Les consignes du dernier préchargement réussi sont retenues (prechauffe.json) : au démarrage suivant, main.js les
+// fait lire dès qu'Ollama répond, sans attendre la fenêtre. L'interface est prévenue du début et de la fin
+// (« Le chat se réveille… », avec un compteur) ; une demande identique pendant qu'une autre tourne la rejoint.
+const FICHIER_PRECHAUFFE = 'prechauffe.json';
+let prechauffage = null; // { corps, debut, promesse } pendant qu'Ollama lit
+
+function prechaufferOllama({ modele, consignes, prof, role }) {
+  const outils = outilsPour({ prof, role, projet: !!projectDir, documents: false, connecteur: !!readJson('settings.json', {}).adresseMcp });
+  const corps = JSON.stringify({ model: modele, messages: [{ role: 'system', content: raccourcir(consignes, LIMITES_OLLAMA.total / 2) }], tools: outils, stream: false, think: sansReflexion(modele), keep_alive: GARDER_CHARGE, options: { ...optionsOllama(modele), num_predict: 1 } });
+  if (prechauffage?.corps === corps) return prechauffage.promesse;
+  const debut = Date.now();
+  win?.webContents.send('prechauffage', { enCours: true, debut });
+  const promesse = (async () => {
+    let ok = false;
+    try {
+      ok = (await fetch(`${OLLAMA}/api/chat`, { method: 'POST', body: corps })).ok;
+    } catch {
+      ok = false;
+    }
+    if (ok) writeJson(FICHIER_PRECHAUFFE, { modele, consignes, prof, role });
+    if (prechauffage?.promesse === promesse) prechauffage = null;
+    win?.webContents.send('prechauffage', { enCours: false, ok, secondes: Math.round((Date.now() - debut) / 1000) });
+    return ok;
+  })();
+  prechauffage = { corps, debut, promesse };
+  return promesse;
+}
+
+ipcMain.handle('ollama-prechauffer', (_e, choix) => prechaufferOllama(choix));
+ipcMain.handle('etat-prechauffage', () => (prechauffage ? { enCours: true, debut: prechauffage.debut } : { enCours: false }));
+
+// Au démarrage : dès qu'Ollama répond (lancé par nous ou déjà là), on précharge avec les consignes de la dernière fois.
+// Elles changent rarement d'une ouverture à l'autre ; si elles ont changé, l'interface en enverra d'autres.
+async function prechaufferAuDemarrage() {
+  const dernier = readJson(FICHIER_PRECHAUFFE, null);
+  if (!dernier?.modele || typeof dernier.consignes !== 'string') return;
+  chargerProjetEnregistre();
+  for (let essai = 0; essai < 30 && !(await ollamaRepond()); essai++) await new Promise((ok) => setTimeout(ok, 1000));
+  if (await ollamaRepond()) prechaufferOllama(dernier);
+}
 
 // Télécharge un modèle dans Ollama depuis l'accueil (clic de l'utilisateur), en envoyant la progression
 // Le Qwen conseillé selon la mémoire de la carte graphique (principal/materiel.js), pour l'accueil
@@ -717,11 +746,16 @@ ipcMain.handle('set-prenom', (_e, prenom) => {
   return propre;
 });
 
-ipcMain.handle('get-project', () => {
+// Le dossier ouvert la dernière fois, retrouvé au démarrage (aussi par le préchargement, avant la fenêtre)
+function chargerProjetEnregistre() {
   if (projectDir === null) {
     const saved = readJson('settings.json', {}).projectDir;
     if (saved && fs.existsSync(saved)) projectDir = saved;
   }
+}
+
+ipcMain.handle('get-project', () => {
+  chargerProjetEnregistre();
   return projectDir;
 });
 
@@ -754,7 +788,7 @@ if (!app.requestSingleInstanceLock()) {
     win.focus();
   });
   app.whenReady().then(() => {
-    demarrerOllama();
+    demarrerOllama().then(prechaufferAuDemarrage);
     createWindow();
     // Une fois l'interface prête à écouter : elle affichera « Cat Ai x.y.z est sortie » s'il y a mieux sur GitHub
     win.webContents.once('did-finish-load', () => {

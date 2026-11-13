@@ -39,6 +39,8 @@ contextBridge.exposeInMainWorld('api', {
   etatOllama: () => ipcRenderer.invoke('etat-ollama'),
   telechargerModele: (modele) => ipcRenderer.invoke('ollama-telecharger', modele),
   prechaufferOllama: (choix) => ipcRenderer.invoke('ollama-prechauffer', choix),
+  etatPrechauffage: () => ipcRenderer.invoke('etat-prechauffage'),
+  onPrechauffage: (cb) => ipcRenderer.on('prechauffage', (_e, etat) => cb(etat)),
   conseilMateriel: () => ipcRenderer.invoke('conseil-materiel'),
   onProgressionOllama: (cb) => ipcRenderer.on('ollama-progression', (_e, p) => cb(p)),
   // Touches personnelles facultatives (perso.json dans le dossier des données)
