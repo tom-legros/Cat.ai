@@ -51,3 +51,20 @@ test('nettoyerMemoire : souvenirs modifiés à la main nettoyés, sans vide ni d
   assert.deepEqual(nettoyerMemoire('pas une liste'), []);
   assert.equal(nettoyerMemoire(Array.from({ length: 60 }, (_, i) => `fait ${i}`)).length, 40);
 });
+
+test('mémoriser : une photo ne déclenche jamais la mémoire', () => {
+  const { demandeMemoire } = require('../principal/memoire');
+  const { outilsPour } = require('../principal/outils');
+  assert.equal(demandeMemoire('regarde la photo'), '');
+  assert.equal(demandeMemoire('Ne mémorise pas cette photo'), '');
+  assert.equal(demandeMemoire('Souviens toi que je préfère le mode local'), 'je préfère le mode local');
+  assert.equal(demandeMemoire('Retiens qu’on préfère Ollama'), 'on préfère Ollama');
+  assert.equal(outilsPour().some((outil) => outil.function.name === 'memoriser'), false);
+});
+
+test('demandeMemoire : une question qui commence par « souviens-toi » ou « mémorise » va au modèle', () => {
+  const { demandeMemoire } = require('../principal/memoire');
+  assert.equal(demandeMemoire("Souviens-toi de ce qu'on a dit hier sur mon jeu ?"), '');
+  assert.equal(demandeMemoire('Mémorise ce code et explique-le : const a = 1'), '');
+  assert.equal(demandeMemoire('retiens que je préfère le python'), 'je préfère le python');
+});

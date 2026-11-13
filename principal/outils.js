@@ -98,14 +98,6 @@ const TOOLS = [
       parameters: { type: 'object', properties: { url: { type: 'string', description: "Adresse complète de la page, qui commence par https://" } }, required: ['url'] },
     },
   },
-  {
-    type: 'function',
-    function: {
-      name: 'memoriser',
-      description: "Enregistre un fait durable et important sur l'utilisateur ou ses projets (préférences, technos, objectifs) pour s'en souvenir dans les prochaines discussions. Un fait court, une seule fois : pas les détails d'une seule discussion.",
-      parameters: { type: 'object', properties: { fait: { type: 'string', description: 'Le fait à retenir, en une phrase' } }, required: ['fait'] },
-    },
-  },
 ];
 
 // En mode prof, le chat n'a pas le droit d'écrire : il explique, l'utilisateur code.

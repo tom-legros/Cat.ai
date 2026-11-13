@@ -542,7 +542,14 @@ $("#composer").addEventListener("submit", (e) => {
     e.preventDefault();
     if (streaming) { window.api.stop(streaming.id); return; }
     if (envoiEnCours) return; // envoi en préparation (résumé, projet) : on garde le texte tapé
-    send(input.value);
+    const texte = input.value;
+    if (!texte.trim() && !pieces.length) return;
+    envoiEnCours = true;
+    window.api.demandeMemoire(texte).then((resultat) => {
+        envoiEnCours = false;
+        if (resultat.traitee) addMessage('info', resultat.message);
+        else void send(texte);
+    }, () => { envoiEnCours = false; addMessage('error', 'Impossible de vérifier la demande de mémoire.'); });
     input.value = "";
     majEnvoi();
     input.style.height = "auto";

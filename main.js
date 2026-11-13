@@ -8,7 +8,7 @@ const { IGNORED, MAX_FILE, MAX_FICHIER_OUTIL, extraitLignes, cheminSur, estSensi
 const { OUTILS_ECRITURE, RIEN_N_A_CHANGE, REFUS_LECTURE, BOUCLE, appelRepete, ecritureRefusee, remplacerTexte, parseTextToolCalls, resumerAction, outilsPour } = require('./principal/outils');
 const { hote, HOTES_LOCAUX, fournisseurGratuit, modeleGratuit, conseilGratuit, adresseValide } = require('./principal/gratuit');
 const { LIMITES_OLLAMA, MAX_JOINT, limitesTaille, raccourcir, compacter, listeCourte } = require('./principal/taille');
-const { ajouterFait, nettoyerPrenom, nettoyerMemoire } = require('./principal/memoire');
+const { ajouterFait, nettoyerPrenom, nettoyerMemoire, demandeMemoire } = require('./principal/memoire');
 const { configurerMiseAJour } = require('./principal/miseajour');
 const { REFUS_PAGE, urlsDans, memePage, verifierUrl, lirePageWeb, chercherWeb } = require('./principal/web');
 const { integrerMenu } = require('./principal/menu-linux');
@@ -197,15 +197,6 @@ async function runTool(name, args, mode) {
         if (response !== 0) return `${REFUS_PAGE}${url}. Ne la lis pas autrement, et ne dis pas ce qu'elle contient.`;
       }
       return lirePageWeb(url, mode.signal);
-    }
-    case 'memoriser': {
-      const resultat = ajouterFait(readJson('memory.json', []), args.fait);
-      if (resultat.erreur) return resultat.erreur;
-      writeJson('memory.json', resultat.memoire);
-      win.webContents.send('memory-changed', resultat.memoire);
-      // L'interface montre discrètement ce qui vient d'être retenu, avec un bouton pour l'annuler
-      win.webContents.send('memoire-ajout', { fait: resultat.fait, remplace: resultat.remplace || null });
-      return resultat.remplace ? `Mémorisé (remplace « ${resultat.remplace} »).` : 'Mémorisé.';
     }
     default:
       return `Outil inconnu : ${name}`;
@@ -682,6 +673,24 @@ ipcMain.handle('perso', () => {
   return perso && typeof perso === 'object' && !Array.isArray(perso) ? perso : {};
 });
 // Depuis la fenêtre Mémoire (souvenir modifié ou oublié) : nettoyée, enregistrée, et renvoyée telle qu'enregistrée
+ipcMain.handle('memoire-demande', async (_e, texte) => {
+  const fait = demandeMemoire(texte);
+  if (!fait) return { traitee: false };
+  const proposition = ajouterFait(readJson('memory.json', []), fait);
+  if (proposition.erreur) return { traitee: true, message: proposition.erreur };
+  const { response } = await dialog.showMessageBox(win, {
+    type: 'question', title: 'Ajouter à la mémoire',
+    buttons: ['Refuser', 'Mémoriser'], defaultId: 0, cancelId: 0,
+    message: 'Enregistrer ce souvenir pour les prochaines discussions ?', detail: proposition.fait,
+  });
+  if (response !== 1) return { traitee: true, message: 'Souvenir refusé.' };
+  const ajout = ajouterFait(readJson('memory.json', []), proposition.fait);
+  if (ajout.erreur) return { traitee: true, message: ajout.erreur };
+  if (writeJson('memory.json', ajout.memoire) === false) return { traitee: true, message: 'Impossible d’enregistrer le souvenir.' };
+  win.webContents.send('memory-changed', ajout.memoire);
+  win.webContents.send('memoire-ajout', { fait: ajout.fait, remplace: ajout.remplace || null });
+  return { traitee: true, message: 'Souvenir enregistré : « ' + ajout.fait + ' ».' };
+});
 ipcMain.handle('save-memory', (_e, memory) => {
   const propre = nettoyerMemoire(memory);
   writeJson('memory.json', propre);

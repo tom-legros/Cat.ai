@@ -44,4 +44,13 @@ function nettoyerMemoire(memoire) {
     .slice(0, MAX_FAITS);
 }
 
-module.exports = { MAX_FAITS, MAX_LONGUEUR_FAIT, MAX_PRENOM, ajouterFait, nettoyerPrenom, nettoyerMemoire };
+function demandeMemoire(texte) {
+  if (typeof texte !== 'string') return '';
+  const demande = texte.trim().normalize('NFC');
+  // Une question (« souviens-toi de ce qu'on a dit ? », « mémorise ce code et explique-le ») va au modèle
+  if (/\?\s*$/.test(demande) || /\bde ce qu|\bexplique/i.test(demande)) return '';
+  const correspondance = demande.match(/^(?:s['’]il te pla[iî]t[ ,]+)?(?:retiens|m[ée]morise|souviens[- ]toi|garde en m[ée]moire)[ :]+(?:que\s+|qu['’])?(.+)$/isu);
+  return correspondance?.[1].trim() || '';
+}
+
+module.exports = { demandeMemoire, MAX_FAITS, MAX_LONGUEUR_FAIT, MAX_PRENOM, ajouterFait, nettoyerPrenom, nettoyerMemoire };
