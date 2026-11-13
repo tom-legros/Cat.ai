@@ -4,6 +4,7 @@ const fs = require('fs');
 const { spawn } = require('child_process');
 const { adresseMcp, avecConnecteur } = require('./principal/connecteur-mcp');
 const { lancerTestsNode, verifierProjetGodot } = require('./principal/tests-projet');
+const { creerFiltreCode, retirerCode } = require('./principal/prof');
 
 const { configurerStockage, readJson, writeJson, prendreAlertes } = require('./principal/stockage');
 const { IGNORED, MAX_FILE, MAX_FICHIER_OUTIL, extraitLignes, cheminSur, estSensible, listFiles, chercherDansProjet, fichiersCites, contenuJoint } = require('./principal/fichiers');
@@ -353,7 +354,7 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, documents = [], fo
   // Les liens écrits par l'utilisateur dans la discussion, puis ceux trouvés par chercher_web : lire_page_web les ouvre sans redemander
   const liensDonnes = messages.filter((m) => m.role === 'user').flatMap((m) => urlsDans(m.content));
   let nudged = false;
-  const onMorceau = (text) => event.sender.send('chat-chunk', { id, text });
+  const afficher = (text) => event.sender.send('chat-chunk', { id, text });
   try {
     verifierGratuit(fournisseurId, model);
     const envoyer = await envoyeurPour(fournisseurId);
@@ -366,11 +367,18 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, documents = [], fo
       const aEnvoyer = limites ? compacter(history, limites.total) : history;
       // onPause : affiche une étiquette pendant que l'app attend la fin de la limite par minute
       const onPause = (secondes) => event.sender.send('chat-tool', { id, name: 'pause', args: { secondes } });
+      // Mode prof : les blocs de code sont retirés pendant que la réponse arrive (principal/prof.js)
+      const filtre = prof ? creerFiltreCode(afficher) : null;
+      const onMorceau = filtre ? filtre.morceau : afficher;
       let { content, toolCalls } = await envoyer(aEnvoyer, model, onMorceau, controller.signal, { prof, onPause, projet: !!projectDir, documents: documentsJoints.size > 0, connecteur: !!readJson('settings.json', {}).adresseMcp });
-      if (!toolCalls.length && content.includes('"name"')) {
-        const parsed = parseTextToolCalls(content);
+      filtre?.fin();
+      // Un appel d'outil écrit en texte (souvent dans un bloc ```json) est cherché dans la réponse complète, avant le filtre
+      const brut = content;
+      if (filtre) content = retirerCode(content);
+      if (!toolCalls.length && brut.includes('"name"')) {
+        const parsed = parseTextToolCalls(brut);
         if (parsed.length) {
-          event.sender.send('chat-undo', { id, length: content.length });
+          event.sender.send('chat-undo', { id, length: filtre ? filtre.longueur() : content.length });
           toolCalls = parsed;
           content = '';
         }
