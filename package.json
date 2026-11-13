@@ -53,12 +53,19 @@
       "fonts/*.woff2",
       "interface/**",
       "principal/**",
+      "cli/**",
       "package.json",
       "!**/desktop.ini"
     ],
     "win": {
       "target": "nsis",
-      "icon": "build/icone.ico"
+      "icon": "build/icone.ico",
+      "extraResources": [
+        {
+          "from": "bin/catai.cmd",
+          "to": "bin/catai.cmd"
+        }
+      ]
     },
     "nsis": {
       "oneClick": false,

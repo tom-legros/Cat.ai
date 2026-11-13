@@ -1,6 +1,8 @@
 // Fournisseurs d'IA et clés API. Les clés sont chiffrées avec safeStorage et ne sortent jamais du processus
 // principal : ce qui part vers l'interface passe par versInterface(), sans les clés.
-const { safeStorage } = require('electron');
+// safeStorage n'est chargé qu'au moment de chiffrer ou de déchiffrer : la commande catai (Node, sans Electron) lit
+// ainsi la liste des fournisseurs et les modèles choisis, mais jamais les clés
+const coffre = () => require('electron').safeStorage;
 const { readJson, writeJson } = require('./stockage');
 const { OLLAMA, messageErreurOpenAI } = require('./envoi');
 const { NE_DISCUTE_PAS, fournisseurGratuit, modeleGratuit, conseilGratuit, peutDiscuter } = require('./gratuit');
@@ -126,23 +128,23 @@ const protection = () => PROTECTION[process.platform] || 'le système';
 // Peut-on chiffrer pour de vrai ? Sous Linux sans trousseau, Electron « chiffre » avec un mot de passe écrit
 // dans son propre code (backend basic_text) : la clé ne serait pas protégée, on refuse de l'enregistrer.
 async function etatChiffrement() {
-  if (!(await safeStorage.isAsyncEncryptionAvailable())) {
+  if (!(await coffre().isAsyncEncryptionAvailable())) {
     return { dispo: false, raison: `Le chiffrement par ${protection()} n'est pas disponible : la clé n'a pas été enregistrée.` };
   }
-  if (process.platform === 'linux' && safeStorage.getSelectedStorageBackend() === 'basic_text') {
+  if (process.platform === 'linux' && coffre().getSelectedStorageBackend() === 'basic_text') {
     return { dispo: false, raison: "Aucun trousseau (GNOME Keyring, KWallet…) n'est disponible sur ce Linux : la clé ne serait pas vraiment protégée, elle n'a pas été enregistrée. Installe ou déverrouille un trousseau, puis réessaie." };
   }
   return { dispo: true };
 }
 
 async function chiffrer(cle) {
-  return (await safeStorage.encryptStringAsync(cle)).toString('base64');
+  return (await coffre().encryptStringAsync(cle)).toString('base64');
 }
 
 async function dechiffrer(cleChiffree, id) {
   if (!cleChiffree) return '';
   try {
-    const { result, shouldReEncrypt } = await safeStorage.decryptStringAsync(Buffer.from(cleChiffree, 'base64'));
+    const { result, shouldReEncrypt } = await coffre().decryptStringAsync(Buffer.from(cleChiffree, 'base64'));
     // Le système a changé de clé de chiffrement : on rechiffre la clé API avec la nouvelle, une fois pour toutes
     if (shouldReEncrypt && result) await rechiffrer(id, result);
     return result;

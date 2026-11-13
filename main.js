@@ -666,7 +666,32 @@ ipcMain.handle('alertes-stockage', () => prendreAlertes());
 // Une seule app ouverte à la fois : deux fenêtres liraient et enregistreraient chacune leur version
 // des discussions et des réglages, et la dernière qui enregistre effacerait le travail de l'autre.
 // Relancer l'app ramène simplement la fenêtre déjà ouverte au premier plan.
-if (!app.requestSingleInstanceLock()) {
+// La commande catai (cli/catai.js) tourne sans Electron et ne peut pas lire les clés chiffrées. Pour un fournisseur
+// en ligne, elle relance l'app en mode « appel » : pas de fenêtre, pas de verrou, une seule demande au modèle.
+// La demande arrive dans un fichier temporaire (supprimé aussitôt lu), la réponse repart sur la sortie, une ligne
+// JSON par morceau. La clé reste dans ce processus, et le garde-fou « jamais de modèle payant » s'applique.
+const APPEL_CATAI = process.argv.indexOf('--catai-appel');
+async function appelPourCatai(fichier) {
+  const ecrire = (objet) => process.stdout.write(JSON.stringify(objet) + '\n');
+  try {
+    const { fournisseurId, modele, messages, options = {} } = JSON.parse(fs.readFileSync(fichier, 'utf8'));
+    fs.rmSync(fichier, { force: true });
+    verifierGratuit(fournisseurId, modele);
+    const envoyer = await envoyeurPour(fournisseurId);
+    const resultat = await envoyer(messages, modele, (morceau) => ecrire({ morceau }), undefined, { ...options, onPause: (secondes) => ecrire({ pause: secondes }) });
+    ecrire({ fin: resultat });
+  } catch (err) {
+    ecrire({ erreur: err.message });
+  } finally {
+    fs.rmSync(fichier, { force: true });
+    app.exit(0);
+  }
+}
+
+if (APPEL_CATAI >= 0) {
+  app.disableHardwareAcceleration();
+  app.whenReady().then(() => appelPourCatai(process.argv[APPEL_CATAI + 1]));
+} else if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
   app.on('second-instance', () => {
