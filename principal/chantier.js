@@ -99,11 +99,12 @@ Les modifications sont appliquées directement. Quand l'étape est faite, répon
 //   projet           dossier du projet (dépôt git)
 //   plan             texte du plan
 //   chef / ouvrier   { envoyer, modele, limites } (envoyer : même forme qu'envoyerOllama)
+//   verificateur     même forme : il relit chaque étape après les tests (le chef, s'il n'est pas donné)
 //   dossierCopies    où créer la copie de travail
 //   ev               { etape(i, n, titre), info(texte), morceau(texte) } pour suivre l'avancement
 //   signal           pour arrêter
 // Renvoie { branche, copie, etapes: [{ titre, ok, essais, raison? }], rapport }
-async function lancerChantier({ projet, plan, chef, ouvrier, dossierCopies, ev = {}, signal, nom = horodatage() }) {
+async function lancerChantier({ projet, plan, chef, ouvrier, verificateur = chef, dossierCopies, ev = {}, signal, nom = horodatage() }) {
   const racine = git(projet, 'rev-parse', '--show-toplevel');
   const branche = `catai/chantier-${nom}`;
   const copie = path.join(dossierCopies, `chantier-${nom}`);
@@ -161,7 +162,7 @@ async function lancerChantier({ projet, plan, chef, ouvrier, dossierCopies, ev =
         }
         ev.info?.('  tests : réussis');
       }
-      const avis = avisDepuis(await demander(chef.envoyer, chef.modele, [
+      const avis = avisDepuis(await demander(verificateur.envoyer, verificateur.modele, [
         { role: 'system', content: CONSIGNE_RELECTURE },
         { role: 'user', content: `Consigne de l'étape : ${etape.titre}\n${etape.consigne}\n\nLe changement :\n${diff.slice(0, 12000)}` },
       ], signal));

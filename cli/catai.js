@@ -29,6 +29,7 @@ const { LIMITES_OLLAMA, MAX_JOINT, raccourcir, listeCourte, limitesTaille } = re
 const { OLLAMA, envoyerOllama } = require(path.join(racine, 'principal/envoi'));
 const { discuter } = require(path.join(racine, 'principal/agent'));
 const { lireReglagesFournisseurs, infosFournisseur } = require(path.join(racine, 'principal/fournisseurs'));
+const { rolesDepuis } = require(path.join(racine, 'principal/roles'));
 const { hote, HOTES_LOCAUX } = require(path.join(racine, 'principal/gratuit'));
 
 // ---------- Couleurs (seulement dans un vrai terminal, et jamais avec NO_COLOR) ----------
@@ -62,7 +63,7 @@ Chaque modification de fichier est montrée avant d'être écrite, et attend ton
 
 Mode chantier (dans un projet git) : Cat Ai code seule, étape par étape, à partir d'un plan.
   catai chantier plan.md             le chef découpe le plan, l'ouvrier code, les tests et le chef vérifient
-  catai chantier plan.md --chef gemini   le chef (Gemini par défaut s'il a une clé, sinon le modèle local)
+  catai chantier plan.md --chef gemini   le chef (sinon celui choisi dans la page Agents de l'app)
   catai chantier plan.md -m qwen3:8b     l'ouvrier (un modèle Ollama)
   catai chantier --jeter <nom>       supprime la copie et la branche d'un chantier
 Tout se passe dans une copie (une branche à part) : tes fichiers ne bougent pas. À la fin, un rapport
@@ -274,30 +275,37 @@ async function chantier(argv) {
   }
   if (!o.plan || !fs.existsSync(o.plan)) { process.stderr.write(rouge('Donne le fichier du plan : catai chantier plan.md\n')); return 1; }
   const reglages = lireReglagesFournisseurs();
-  o.modele ||= reglages.modeles.ollama || 'qwen3:8b';
+  // Les agents choisis dans l'app (page Agents) ; --chef et -m passent devant
+  const roles = rolesDepuis(reglages);
+  o.modele ||= roles.ouvrier.modele || 'qwen3:8b';
   if (!(await ollamaRepond())) { process.stderr.write(rouge("Ollama ne répond pas : l'ouvrier du chantier en a besoin.\n")); return 1; }
   const ouvrier = { envoyer: envoyerOllama, modele: o.modele, limites: LIMITES_OLLAMA };
-  // Le chef : le fournisseur demandé, sinon Gemini s'il a une clé, sinon l'ouvrier lui-même.
-  // S'il ne répond pas (clé illisible, quota), l'ouvrier prend sa place, et on le dit.
-  const idChef = o.chef || (reglages.fournisseurs.gemini?.cleChiffree ? 'gemini' : 'ollama');
-  let chef = idChef === 'ollama' ? ouvrier : { envoyer: envoyeurParApp(idChef), modele: reglages.modeles[idChef] };
-  const chefSur = {
-    get modele() { return chef.modele; },
-    envoyer: async (...args) => {
-      try { return await chef.envoyer(...args); } catch (err) {
-        if (err.name === 'AbortError' || chef === ouvrier) throw err;
-        process.stdout.write(jaune(`Chef ${idChef} indisponible (${err.message}) : ${o.modele} le remplace.\n`));
-        chef = ouvrier;
-        return chef.envoyer(args[0], chef.modele, ...args.slice(2));
-      }
-    },
+  // Un agent qui relit (chef, vérificateur) : sur le PC ou en ligne. S'il ne répond pas (clé illisible, quota),
+  // l'ouvrier prend sa place, et on le dit.
+  const agentSur = (nom, choix) => {
+    const local = choix.fournisseur === 'ollama';
+    let agent = local ? { envoyer: envoyerOllama, modele: choix.modele || o.modele } : { envoyer: envoyeurParApp(choix.fournisseur), modele: choix.modele };
+    return {
+      get modele() { return agent.modele; },
+      nom: () => (local ? agent.modele : `${choix.fournisseur} ${agent.modele}`),
+      envoyer: async (...args) => {
+        try { return await agent.envoyer(args[0], agent.modele, ...args.slice(2)); } catch (err) {
+          if (err.name === 'AbortError' || agent === ouvrier) throw err;
+          process.stdout.write(jaune(`${nom} indisponible (${err.message}) : ${o.modele} le remplace.\n`));
+          agent = ouvrier;
+          return agent.envoyer(args[0], agent.modele, ...args.slice(2));
+        }
+      },
+    };
   };
+  const chef = agentSur('Chef', o.chef ? { fournisseur: o.chef, modele: reglages.modeles[o.chef] } : roles.chef);
+  const verificateur = o.chef || roles.verificateurCommeChef ? chef : agentSur('Vérificateur', roles.verificateur);
   const arret = new AbortController();
   process.on('SIGINT', () => { process.stdout.write(jaune('\nArrêt du chantier demandé…\n')); arret.abort(); });
-  process.stdout.write(`${gras('Chantier')} ${gris(`· chef ${idChef === 'ollama' ? o.modele : `${idChef} ${chef.modele}`} · ouvrier ${o.modele}`)}\n`);
+  process.stdout.write(`${gras('Chantier')} ${gris(`· chef ${chef.nom()} · ouvrier ${o.modele}${verificateur === chef ? '' : ` · vérificateur ${verificateur.nom()}`}`)}\n`);
   const debut = Date.now();
   const r = await lancerChantier({
-    projet: o.dossier, plan: fs.readFileSync(o.plan, 'utf8'), chef: chefSur, ouvrier,
+    projet: o.dossier, plan: fs.readFileSync(o.plan, 'utf8'), chef, ouvrier, verificateur,
     dossierCopies: path.join(dossierDonnees(), 'chantiers'), signal: arret.signal,
     ev: {
       etape: (i, n, titre) => process.stdout.write(`\n${gras(`Étape ${i}/${n}`)} ${titre}\n`),

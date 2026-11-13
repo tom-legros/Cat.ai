@@ -14,7 +14,8 @@ const { ajouterFait, nettoyerPrenom, nettoyerMemoire, demandeMemoire } = require
 const { configurerMiseAJour } = require('./principal/miseajour');
 const { urlsDans } = require('./principal/web');
 const { integrerMenu } = require('./principal/menu-linux');
-const { conseilMateriel } = require('./principal/materiel');
+const { conseilMateriel, catalogueMateriel } = require('./principal/materiel');
+const { rolesDepuis, changerRole } = require('./principal/roles');
 const { BINAIRES, lireTexteDocument, texteJointDocument, idValide } = require('./principal/documents');
 // Textes extraits des PDF et longs fichiers glissés dans la discussion
 const DOSSIER_DOCUMENTS = () => path.join(app.getPath('userData'), 'documents');
@@ -495,6 +496,17 @@ ipcMain.handle('modele-voit-images', async (_e, { fournisseurId, modele }) => {
 
 // Le Qwen conseillé selon la mémoire de la carte graphique (principal/materiel.js), pour l'accueil
 ipcMain.handle('conseil-materiel', () => conseilMateriel());
+// Page Modèles : le PC (carte graphique, RAM, disque) et chaque modèle connu avec son avis
+ipcMain.handle('modeles-catalogue', () => catalogueMateriel());
+
+// Page Agents : qui fait le chef, l'ouvrier et le vérificateur du mode chantier (principal/roles.js)
+ipcMain.handle('roles-lire', () => rolesDepuis(lireReglagesFournisseurs()));
+ipcMain.handle('roles-changer', (_e, { role, choix } = {}) => {
+  const r = changerRole(lireReglagesFournisseurs(), role, choix, infosFournisseur);
+  if (r.erreur) return { ok: false, erreur: r.erreur };
+  writeJson('fournisseurs.json', r.reglages);
+  return { ok: true, roles: rolesDepuis(r.reglages) };
+});
 
 ipcMain.handle('ollama-telecharger', async (event, modele) => {
   if (!/^[\w.-]+(:[\w.-]+)?$/.test(String(modele))) return { ok: false, erreur: 'Nom de modèle invalide.' };

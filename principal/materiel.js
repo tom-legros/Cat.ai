@@ -24,6 +24,21 @@ function modeleConseille({ vramGo, ramGo }) {
   return { ...choix, vramGo: vramGo || 0, geminiMieux: (vramGo || 0) < 5 && (ramGo || 0) < 16 };
 }
 
+// Avis sur un modèle pour ce PC, affiché dans la page Modèles :
+//   'ok'    il tient dans la carte graphique : rapide
+//   'lent'  il déborde dans la RAM : il marche, mais lentement (la RAM sert aussi à Windows, d'où les 60 %)
+//   'trop'  il ne tient pas du tout
+function avisModele(m, { vramGo, ramGo }) {
+  if ((vramGo || 0) >= m.vram) return 'ok';
+  return m.vram <= (vramGo || 0) + (ramGo || 0) * 0.6 ? 'lent' : 'trop';
+}
+
+// Tous les modèles connus, avec leur avis ; le conseillé est le plus gros qui tient dans la carte
+function catalogue(materiel) {
+  const conseille = modeleConseille(materiel).modele;
+  return MODELES_QWEN.map((m) => ({ ...m, avis: avisModele(m, materiel), conseille: m.modele === conseille }));
+}
+
 // HardwareInformation.qwMemorySize : un nombre sur 8 octets, que reg.exe affiche en hexadécimal
 function vramDepuisRegistre(sortie) {
   const valeurs = [...String(sortie).matchAll(/HardwareInformation\.qwMemorySize\s+REG_QWORD\s+0x([0-9a-f]+)/gi)].map((m) => parseInt(m[1], 16));
@@ -54,8 +69,26 @@ async function memoireVideo() {
   return null;
 }
 
+const ramGo = () => Math.round(os.totalmem() / 1024 ** 3);
+
 async function conseilMateriel() {
-  return modeleConseille({ vramGo: await memoireVideo(), ramGo: Math.round(os.totalmem() / 1024 ** 3) });
+  return modeleConseille({ vramGo: await memoireVideo(), ramGo: ramGo() });
 }
 
-module.exports = { MODELES_QWEN, modeleConseille, vramDepuisRegistre, conseilMateriel };
+// Place libre sur le disque du dossier donné, en Go, ou null si on ne sait pas
+function disqueLibre(dossier) {
+  try {
+    const s = fs.statfsSync(dossier);
+    return Math.round((s.bavail * s.bsize) / 1024 ** 3);
+  } catch {
+    return null;
+  }
+}
+
+// Pour la page Modèles : le PC, et chaque modèle avec son avis
+async function catalogueMateriel() {
+  const materiel = { vramGo: await memoireVideo(), ramGo: ramGo(), disqueGo: disqueLibre(os.homedir()) };
+  return { ...materiel, modeles: catalogue(materiel) };
+}
+
+module.exports = { MODELES_QWEN, modeleConseille, avisModele, catalogue, vramDepuisRegistre, conseilMateriel, catalogueMateriel };

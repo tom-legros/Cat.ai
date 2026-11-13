@@ -33,3 +33,14 @@ HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e968-e325-11
   assert.equal(vramDepuisRegistre(sortie), 8);
   assert.equal(vramDepuisRegistre('rien'), null);
 });
+
+test('catalogue : rapide dans la carte, lent si ça déborde dans la RAM, trop gros sinon', () => {
+  const { catalogue } = require('../principal/materiel');
+  const avis = Object.fromEntries(catalogue({ vramGo: 8, ramGo: 16 }).map((m) => [m.modele, m.avis]));
+  assert.equal(avis['qwen3:8b'], 'ok');
+  assert.equal(avis['qwen3:14b'], 'lent');
+  assert.equal(avis['qwen3.6:27b'], 'trop');
+  assert.deepEqual(catalogue({ vramGo: 8, ramGo: 16 }).filter((m) => m.conseille).map((m) => m.modele), ['qwen3:8b']);
+  // Sans carte graphique : seul le plus léger est rapide
+  assert.deepEqual(catalogue({ vramGo: null, ramGo: 8 }).filter((m) => m.avis === 'ok').map((m) => m.modele), ['qwen3.5:2b']);
+});
