@@ -1,7 +1,7 @@
 // Envoi au modèle : conversion des formats Ollama / OpenAI, reconnaissance des erreurs des fournisseurs
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { versOpenAI, finirAppels, attenteDemandee, estModeleCasse, messageErreurOpenAI, vulkanUtile, sansReflexion } = require('../principal/envoi');
+const { versOpenAI, finirAppels, attenteDemandee, estModeleCasse, messageErreurOpenAI, vulkanUtile, sansReflexion, rappelsPourOllama, NOTE_APP } = require('../principal/envoi');
 
 test('versOpenAI : arguments en texte JSON, et chaque résultat relié à son appel', () => {
   const ollama = [
@@ -216,4 +216,21 @@ test('envoyerOllama : pas de vérification quand l utilisateur demande de l angl
     await envoyerOllama(APRES_OUTIL, 'llama3.2:3b', () => {}, null, { projet: true });
     assert.equal(demandes.length, 4);
   } finally { global.fetch = vrai; }
+});
+
+test('Ollama : les rappels system après le début deviennent une note de l app, les consignes du début restent', () => {
+  const messages = [
+    { role: 'system', content: 'consignes' },
+    { role: 'system', content: 'résumé' },
+    { role: 'user', content: 'question' },
+    { role: 'system', content: 'Rappel : MODE PROF.' },
+    { role: 'assistant', content: '', tool_calls: [{ function: { name: 'lire_fichier', arguments: {} } }] },
+    { role: 'tool', content: 'contenu' },
+  ];
+  const envoyes = rappelsPourOllama(messages);
+  assert.deepEqual(envoyes.slice(0, 3), messages.slice(0, 3));
+  assert.deepEqual(envoyes[3], { role: 'user', content: NOTE_APP + 'Rappel : MODE PROF.' });
+  assert.deepEqual(envoyes.slice(4), messages.slice(4));
+  assert.equal(messages[3].role, 'system');
+  assert.deepEqual(rappelsPourOllama([{ role: 'system', content: 'seul' }]), [{ role: 'system', content: 'seul' }]);
 });

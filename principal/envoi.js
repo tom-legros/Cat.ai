@@ -55,6 +55,19 @@ const verifierLangue = (messages, modele) => !sansReflexionPossible.has(modele)
 // onMorceau(texte) est appelé pour chaque morceau de texte reçu ; signal permet le bouton stop.
 // options.prof : le mode prof, qui décide si l'outil d'écriture est proposé au modèle.
 // Renvoie { content, toolCalls } : le texte complet et les appels d'outils demandés.
+// Le modèle de discussion de qwen3 dans Ollama n'a pas de place pour un message system au milieu : Ollama les
+// rassemble tous dans le bloc system du haut, avant les outils. Les rappels de l'app (mode prof, recherche, actions
+// déjà faites) étaient donc loin de la question, et comme ils changent à chaque message, Ollama relisait tout depuis
+// le début (mesuré sur 5 messages : 3,5 puis 4,4, 5,3 et 6,3 s de relecture, contre 1,3 à 1,5 s en note).
+// Les messages system du début (consignes, résumé) restent ; ceux d'après deviennent une note dans le tour de
+// l'utilisateur, juste avant la réponse, et seule la fin est relue.
+const NOTE_APP = "(Note de l'app, pas un message de l'utilisateur) ";
+function rappelsPourOllama(messages) {
+  const debut = messages.findIndex((m) => m.role !== 'system');
+  if (debut < 0) return messages;
+  return messages.map((m, i) => (i > debut && m.role === 'system' ? { role: 'user', content: NOTE_APP + m.content } : m));
+}
+
 async function envoyerOllama(messages, modele, onMorceau, signal, options = {}) {
   if (messages.at(-1)?.role !== 'tool' || !verifierLangue(messages, modele)) return lireOllama(messages, modele, onMorceau, signal, options, sansReflexion(modele), false);
   const premier = await lireOllama(messages, modele, onMorceau, signal, options, sansReflexion(modele), true);
@@ -78,7 +91,7 @@ async function lireOllama(messages, modele, onMorceau, signal, options, reflexio
   const res = await fetch(`${OLLAMA}/api/chat`, {
     method: 'POST',
     // think: false : qwen3 répond direct au lieu d'écrire une longue réflexion avant
-    body: JSON.stringify({ model: modele, messages, tools: outilsPour(options), stream: true, think: reflexion, keep_alive: GARDER_CHARGE, options: optionsOllama(modele) }),
+    body: JSON.stringify({ model: modele, messages: rappelsPourOllama(messages), tools: outilsPour(options), stream: true, think: reflexion, keep_alive: GARDER_CHARGE, options: optionsOllama(modele) }),
     signal,
   });
   if (!res.ok) throw new Error(`Ollama a répondu ${res.status}`);
@@ -330,4 +343,4 @@ function vulkanUtile(plateforme, env, cartes = []) {
   return vendeurs.includes(AMD) && !vendeurs.includes(NVIDIA);
 }
 
-module.exports = { OLLAMA, GARDER_CHARGE, optionsOllama, sansReflexion, langueProbable, DEBUT_A_VERIFIER, REFLEXION, vulkanUtile, envoyerOllama, envoyerOpenAI, versOpenAI, finirAppels, attenteDemandee, estModeleCasse, messageErreurOpenAI };
+module.exports = { OLLAMA, GARDER_CHARGE, optionsOllama, sansReflexion, rappelsPourOllama, NOTE_APP, langueProbable, DEBUT_A_VERIFIER, REFLEXION, vulkanUtile, envoyerOllama, envoyerOpenAI, versOpenAI, finirAppels, attenteDemandee, estModeleCasse, messageErreurOpenAI };
