@@ -13,9 +13,6 @@ const { configurerMiseAJour } = require('./principal/miseajour');
 const { REFUS_PAGE, urlsDans, memePage, verifierUrl, lirePageWeb, chercherWeb } = require('./principal/web');
 const { integrerMenu } = require('./principal/menu-linux');
 const { conseilMateriel } = require('./principal/materiel');
-const {
-  MAX_FICHIER_ROLE, URL_MARCHE, nettoyerRoles, roleVersFichier, roleDepuisFichier, nomFichierRole, ajouterRole, catalogueDepuisJson, lienProposition,
-} = require('./principal/roles');
 const { OLLAMA, GARDER_CHARGE, optionsOllama, sansReflexion, REFLEXION, envoyerOllama, envoyerOpenAI, vulkanUtile } = require('./principal/envoi');
 const {
   FOURNISSEURS_DE_BASE, lireReglagesFournisseurs, infosFournisseur, configFournisseur, versInterface,
@@ -284,7 +281,7 @@ function verifierGratuit(fournisseurId, modele) {
   }
 }
 
-ipcMain.on('chat', async (event, { id, model, messages, prof, role, fournisseurId = 'ollama' }) => {
+ipcMain.on('chat', async (event, { id, model, messages, prof, fournisseurId = 'ollama' }) => {
   const controller = new AbortController();
   controllers.set(id, controller);
   const history = [...messages];
@@ -305,7 +302,7 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, role, fournisseurI
       const aEnvoyer = limites ? compacter(history, limites.total) : history;
       // onPause : affiche une étiquette pendant que l'app attend la fin de la limite par minute
       const onPause = (secondes) => event.sender.send('chat-tool', { id, name: 'pause', args: { secondes } });
-      let { content, toolCalls } = await envoyer(aEnvoyer, model, onMorceau, controller.signal, { prof, role, onPause, projet: !!projectDir });
+      let { content, toolCalls } = await envoyer(aEnvoyer, model, onMorceau, controller.signal, { prof, onPause, projet: !!projectDir });
       if (!toolCalls.length && content.includes('"name"')) {
         const parsed = parseTextToolCalls(content);
         if (parsed.length) {
@@ -330,15 +327,15 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, role, fournisseurI
         const { name, arguments: args } = call.function;
         // Les étiquettes montrent seulement le chemin, pas les gros textes
         event.sender.send('chat-tool', { id, name, args: { ...args, contenu: undefined, ancien_texte: undefined, nouveau_texte: undefined } });
-        // Écriture refusée par le mode prof ou le rôle : l'utilisateur le voit, même si le modèle prétend le contraire
-        if (OUTILS_ECRITURE.has(name) && ecritureRefusee({ prof, role }, args?.chemin)) {
+        // Écriture refusée par le mode prof : l'utilisateur le voit, même si le modèle prétend le contraire
+        if (OUTILS_ECRITURE.has(name) && ecritureRefusee({ prof }, args?.chemin)) {
           event.sender.send('chat-tool', { id, name: 'refus', args: { chemin: args.chemin } });
         }
         let result;
         try {
           result = appelRepete(appelsFaits, name, args)
             ? BOUCLE
-            : await runTool(name, args || {}, { prof, role, fournisseurId, liensDonnes, signal: controller.signal, maxExtrait: limites ? limites.resultatOutil - 500 : 20000 });
+            : await runTool(name, args || {}, { prof, fournisseurId, liensDonnes, signal: controller.signal, maxExtrait: limites ? limites.resultatOutil - 500 : 20000 });
         } catch (err) {
           result = `Erreur : ${err.message}`;
         }
@@ -498,7 +495,7 @@ ipcMain.handle('etat-ollama', async () => {
 // le prochain message : Ollama garde ce début en mémoire, et le premier message n'a plus que la question à lire.
 // Mesuré sur une RX 6600 : ~12 s de lecture avant le premier mot sinon. Les outils sont choisis comme dans le handler
 // 'chat' (mêmes réglages, sans document joint) et les consignes coupées comme le fait compacter, sinon le début ne
-// correspondrait plus. Les rappels (mode prof, rôle) arrivent après la question : ils ne gênent pas.
+// correspondrait plus. Les rappels (mode prof) arrivent après la question : ils ne gênent pas.
 //
 // Les consignes du dernier préchargement réussi sont retenues (prechauffe.json) : au démarrage suivant, main.js les
 // fait lire dès qu'Ollama répond, sans attendre la fenêtre. L'interface est prévenue du début et de la fin
@@ -506,8 +503,8 @@ ipcMain.handle('etat-ollama', async () => {
 const FICHIER_PRECHAUFFE = 'prechauffe.json';
 let prechauffage = null; // { corps, debut, promesse } pendant qu'Ollama lit
 
-function prechaufferOllama({ modele, consignes, prof, role }) {
-  const outils = outilsPour({ prof, role, projet: !!projectDir, documents: false, connecteur: !!readJson('settings.json', {}).adresseMcp });
+function prechaufferOllama({ modele, consignes, prof }) {
+  const outils = outilsPour({ prof, projet: !!projectDir, documents: false, connecteur: !!readJson('settings.json', {}).adresseMcp });
   const corps = JSON.stringify({ model: modele, messages: [{ role: 'system', content: raccourcir(consignes, LIMITES_OLLAMA.total / 2) }], tools: outils, stream: false, think: sansReflexion(modele), keep_alive: GARDER_CHARGE, options: { ...optionsOllama(modele), num_predict: 1 } });
   if (prechauffage?.corps === corps) return prechauffage.promesse;
   const debut = Date.now();
@@ -519,7 +516,7 @@ function prechaufferOllama({ modele, consignes, prof, role }) {
     } catch {
       ok = false;
     }
-    if (ok) writeJson(FICHIER_PRECHAUFFE, { modele, consignes, prof, role });
+    if (ok) writeJson(FICHIER_PRECHAUFFE, { modele, consignes, prof });
     if (prechauffage?.promesse === promesse) prechauffage = null;
     win?.webContents.send('prechauffage', { enCours: false, ok, secondes: Math.round((Date.now() - debut) / 1000) });
     return ok;
@@ -656,88 +653,6 @@ ipcMain.handle('dir-exists', (_e, dir) => {
 const lirePrenom = () => String(readJson('settings.json', {}).prenom || '');
 
 ipcMain.handle('get-prenom', () => lirePrenom());
-
-// Rôles créés par l'utilisateur : ils finissent dans les consignes du modèle, donc textes courts et sans contrôle
-// (nettoyés dans principal/roles.js). Ils n'ouvrent aucun droit : écrire un fichier passe toujours par la fenêtre avant / après.
-const lireRoles = () => nettoyerRoles(readJson('settings.json', {}).roles);
-const enregistrerRoles = (roles) => {
-  const propres = nettoyerRoles(roles);
-  writeJson('settings.json', { ...readJson('settings.json', {}), roles: propres });
-  return propres;
-};
-ipcMain.handle('roles-perso', () => lireRoles());
-ipcMain.handle('roles-perso-enregistrer', (_e, roles) => enregistrerRoles(roles));
-
-// Partager un rôle avec un ami : il est enregistré dans un petit fichier .catai, là où l'utilisateur choisit
-ipcMain.handle('role-exporter', async (_e, index) => {
-  const role = lireRoles()[index];
-  if (!role) return { ok: false };
-  const { canceled, filePath } = await dialog.showSaveDialog(win, {
-    title: 'Partager le rôle',
-    defaultPath: path.join(app.getPath('documents'), nomFichierRole(role.nom)),
-    filters: [{ name: 'Rôle Cat Ai', extensions: ['catai'] }],
-  });
-  if (canceled || !filePath) return { ok: false };
-  fs.writeFileSync(filePath, roleVersFichier(role), 'utf8');
-  return { ok: true, chemin: filePath };
-});
-
-// Importer un rôle reçu : le fichier vient de quelqu'un d'autre, donc l'utilisateur lit la consigne avant de l'ajouter
-ipcMain.handle('role-importer', async () => {
-  const { canceled, filePaths } = await dialog.showOpenDialog(win, {
-    title: 'Importer un rôle reçu',
-    properties: ['openFile'],
-    filters: [{ name: 'Rôle Cat Ai', extensions: ['catai'] }],
-  });
-  if (canceled || !filePaths[0]) return { ok: false };
-  if (fs.statSync(filePaths[0]).size > MAX_FICHIER_ROLE) return { ok: false, erreur: 'Ce fichier est trop gros pour être un rôle Cat Ai.' };
-  const { role, erreur } = roleDepuisFichier(fs.readFileSync(filePaths[0], 'utf8'));
-  if (erreur) return { ok: false, erreur };
-  const { response } = await dialog.showMessageBox(win, {
-    type: 'question',
-    buttons: ['Ajouter', 'Annuler'],
-    defaultId: 0,
-    cancelId: 1,
-    title: 'Importer un rôle',
-    message: `Ajouter le rôle « ${role.nom} » ?`,
-    detail: `Ce que le chat devra faire :\n\n${role.consigne}`,
-  });
-  if (response !== 0) return { ok: false };
-  const ajout = ajouterRole(lireRoles(), role);
-  if (ajout.deja) return { ok: false, erreur: `Tu as déjà le rôle « ${role.nom} ».` };
-  if (ajout.erreur) return { ok: false, erreur: ajout.erreur };
-  return { ok: true, roles: enregistrerRoles(ajout.roles) };
-});
-
-// Marché des rôles : le catalogue marche/roles.json du dépôt GitHub, lu seulement quand l'utilisateur ouvre le marché.
-// Avec npm start, c'est le fichier du dossier qui est lu : on voit ses modifications avant de les publier.
-ipcMain.handle('marche-lire', async () => {
-  try {
-    if (!app.isPackaged) return catalogueDepuisJson(fs.readFileSync(path.join(__dirname, 'marche', 'roles.json'), 'utf8'));
-    const res = await fetch(URL_MARCHE, { signal: AbortSignal.timeout(10000), cache: 'no-store' });
-    if (!res.ok) return { erreur: 'Le marché des rôles ne répond pas pour le moment : réessaie plus tard.' };
-    return catalogueDepuisJson(await res.text());
-  } catch {
-    return { erreur: 'Impossible de joindre le marché des rôles : il faut une connexion internet.' };
-  }
-});
-
-// Ajouter un rôle du marché : l'utilisateur a lu sa consigne dans la liste avant de cliquer
-ipcMain.handle('role-ajouter', (_e, role) => {
-  const propre = nettoyerRoles([role])[0];
-  if (!propre) return { ok: false, erreur: 'Ce rôle est incomplet.' };
-  const ajout = ajouterRole(lireRoles(), propre);
-  if (ajout.deja) return { ok: false, erreur: `Tu as déjà le rôle « ${propre.nom} ».` };
-  if (ajout.erreur) return { ok: false, erreur: ajout.erreur };
-  return { ok: true, roles: enregistrerRoles(ajout.roles) };
-});
-
-// Proposer un de ses rôles au marché : une demande GitHub pré-remplie s'ouvre dans le navigateur
-ipcMain.handle('role-proposer', (_e, index) => {
-  const role = lireRoles()[index];
-  if (role) shell.openExternal(lienProposition(role));
-  return !!role;
-});
 
 ipcMain.handle('set-prenom', (_e, prenom) => {
   const propre = nettoyerPrenom(prenom);

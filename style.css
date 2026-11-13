@@ -546,7 +546,7 @@ select {
 .lien--bloc .icone { width: 16px; height: 16px; }
 .icone { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
 
-/* Pastilles sous la saisie : dossier, mode prof, rôle */
+/* Pastilles sous la saisie : dossier, mode prof */
 .saisie__outils { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 0 4px; }
 .pastille-groupe { display: inline-flex; }
 .pastille {
@@ -570,19 +570,6 @@ select.pastille option { background: var(--surface); color: var(--texte); }
 .maj-notes { max-height: 260px; overflow-y: auto; margin-top: 14px; padding: 4px 14px; border: 1px solid var(--ligne); font-size: 13px; line-height: 1.5; color: var(--texte-2); }
 .maj-notes h1, .maj-notes h2, .maj-notes h3 { font-size: 14px; margin: 12px 0 4px; }
 .maj-notes ul { padding-left: 18px; margin: 4px 0; }
-/* Marché des rôles : une liste qui défile, un rôle par ligne avec son bouton Ajouter */
-#marche-recherche { width: 100%; margin-top: 14px; padding: 9px 12px; background: var(--surface); border: 1px solid var(--ligne-2); border-radius: var(--rayon-petit); }
-.marche { list-style: none; margin: 0; padding: 0; max-height: 50vh; overflow-y: auto; }
-.marche li { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--ligne); }
-.marche li > .bouton, .marche li > .lien { flex: none; }
-.marche__nom { margin: 0; color: var(--texte); font-size: 15px; }
-.marche__description { margin: 2px 0 0; font-size: 13px; color: var(--texte-3); }
-.marche details { margin-top: 6px; font-size: 13px; color: var(--texte-2); }
-.marche summary { cursor: pointer; font-size: 12px; color: var(--texte-3); }
-.marche details p { margin: 6px 0 0; line-height: 1.5; }
-.role-form { display: flex; flex-direction: column; gap: 8px; }
-.role-form input, .role-form textarea { padding: 9px 12px; background: var(--surface); border: 1px solid var(--ligne-2); border-radius: var(--rayon-petit); resize: vertical; }
-.role-form .bouton { align-self: flex-start; }
 .pastille[hidden] { display: none; }
 select.pastille { width: auto; font-family: inherit; font-size: 13px; background-color: transparent; color: var(--texte-3); }
 select.pastille.is-on { color: var(--oeil); }
@@ -691,7 +678,6 @@ optgroup { background: var(--surface); color: var(--texte-3); font-style: normal
 .pastille--discrete { border-color: transparent; }
 .pastille--discrete:hover { border-color: var(--ligne-2); background: var(--surface); }
 .pastille__terme { font-size: 11px; letter-spacing: .04em; text-transform: uppercase; margin-right: 2px; }
-.menu-modeles--gauche { left: 0; right: auto; }
 
 /* Menus : icône en couleur + nom + petit conseil */
 .menu-modeles { min-width: 280px; }
@@ -747,7 +733,7 @@ optgroup { background: var(--surface); color: var(--texte-3); font-style: normal
 /* Coins carrés partout, et coins « pixel » sur les cartes */
 .pastille, .pastille-groupe .pastille, .saisie__ligne, .bouton-envoi, .bouton-envoi.is-pret, .saisie__ligne .bouton,
 .fenetre__boite, .menu-modeles, .menu-modeles__choix, .bulle, .discussions li, .lien--bloc, select, .demarrage input,
-#memory-input, #prenom-input, .role-form input, .role-form textarea { border-radius: var(--rayon); }
+#memory-input, #prenom-input { border-radius: var(--rayon); }
 .pastille-groupe .pastille:has(+ .pastille--x:not([hidden])) { border-radius: var(--rayon) 0 0 var(--rayon); }
 .pastille-groupe .pastille:not([hidden]) + .pastille--x { border-radius: 0 var(--rayon) var(--rayon) 0; }
 .msg.user .bulle-msg { border-radius: var(--rayon) var(--rayon) 0 var(--rayon); }
@@ -789,7 +775,7 @@ optgroup { background: var(--surface); color: var(--texte-3); font-style: normal
 .outils__groupe { flex-wrap: nowrap; min-width: 0; }
 .outils__groupe:last-child { flex-shrink: 1; justify-content: flex-end; }
 .outils__groupe:last-child .raccourci { min-width: 0; }
-#fournisseur-nom, #modele-nom, #project-name, #role-libelle { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+#fournisseur-nom, #modele-nom, #project-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 #fournisseur-raccourci, #modele-raccourci { max-width: 100%; }
 @media (max-width: 1300px) { .pastille__terme { display: none; } }
 @media (max-width: 1050px) { #mode-prof span, #project-name { display: none; } }

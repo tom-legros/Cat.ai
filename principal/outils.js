@@ -1,4 +1,4 @@
-// Les outils proposés au modèle, ce que chaque mode ou rôle a le droit d'écrire,
+// Les outils proposés au modèle, ce que le mode prof a le droit d'écrire,
 // et les petites fonctions qui travaillent sur leurs arguments. Que des fonctions pures.
 
 // ---------- Outils que le modèle peut utiliser ----------
@@ -109,10 +109,9 @@ const TOOLS = [
 ];
 
 // En mode prof, le chat n'a pas le droit d'écrire : il explique, l'utilisateur code.
-// Les rôles (consignes dans renderer.js) : le relecteur n'écrit rien, le rédacteur README n'écrit que des .md.
-// mode = { prof, role, fournisseurId }
+// mode = { prof, projet, fournisseurId }
 const OUTILS_ECRITURE = new Set(['ecrire_fichier', 'remplacer_texte']);
-const peutEcrire = ({ prof, role } = {}) => !prof && role !== 'relecteur';
+const peutEcrire = ({ prof } = {}) => !prof;
 // Sans dossier ouvert (projet: false), les outils de fichiers ne servent à rien : leur description, plus de la moitié
 // de celle de tous les outils, n'est pas envoyée, et Ollama a environ 1 000 mots de moins à lire à chaque début de
 // discussion. ouvrir_dossier reste : dès qu'un dossier est ouvert, l'étape suivante du chat les retrouve.
@@ -140,10 +139,8 @@ function appelRepete(deja, nom, args) {
 }
 
 // Renvoie la raison du refus, ou rien si l'écriture est permise
-function ecritureRefusee({ prof, role } = {}, chemin) {
+function ecritureRefusee({ prof } = {}) {
   if (prof) return "Mode prof activé : tu n'as pas le droit d'écrire de fichier. Explique à l'utilisateur ce qu'il doit faire et laisse-le coder." + RIEN_N_A_CHANGE;
-  if (role === 'relecteur') return "Rôle relecteur : tu ne modifies aucun fichier. Liste les problèmes à l'utilisateur, il choisira quoi corriger." + RIEN_N_A_CHANGE;
-  if (role === 'readme' && !/\.md$/i.test(String(chemin || ''))) return "Rôle rédacteur README : tu n'écris que des fichiers Markdown (.md), jamais de code. Dis à l'utilisateur que modifier ce fichier n'est pas ton rôle, et qu'il peut passer en Généraliste ou en Débogueur pour ça. Ne fais rien d'autre à la place." + RIEN_N_A_CHANGE;
 }
 
 // Remplace le passage `ancien` de `contenu` par `nouveau`. Renvoie { contenu, fois } ou { erreur } pour le modèle.

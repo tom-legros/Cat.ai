@@ -19,7 +19,7 @@ const sansReflexion = () => false;
 // ---------- Discussion avec Ollama ----------
 // Envoie la discussion à Ollama et lit la réponse en streaming (JSON ligne par ligne).
 // onMorceau(texte) est appelé pour chaque morceau de texte reçu ; signal permet le bouton stop.
-// options.prof / options.role : mode prof et rôle, qui décident si l'outil d'écriture est proposé au modèle.
+// options.prof : le mode prof, qui décide si l'outil d'écriture est proposé au modèle.
 // Renvoie { content, toolCalls } : le texte complet et les appels d'outils demandés.
 async function envoyerOllama(messages, modele, onMorceau, signal, options = {}) {
   const res = await fetch(`${OLLAMA}/api/chat`, {

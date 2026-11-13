@@ -46,13 +46,6 @@ contextBridge.exposeInMainWorld('api', {
   // Touches personnelles facultatives (perso.json dans le dossier des données)
   perso: () => ipcRenderer.invoke('perso'),
   // Rôles créés dans Réglages : [{ nom, consigne }]
-  getRolesPerso: () => ipcRenderer.invoke('roles-perso'),
-  setRolesPerso: (roles) => ipcRenderer.invoke('roles-perso-enregistrer', roles),
-  exporterRole: (index) => ipcRenderer.invoke('role-exporter', index),
-  importerRole: () => ipcRenderer.invoke('role-importer'),
-  lireMarche: () => ipcRenderer.invoke('marche-lire'),
-  ajouterRole: (role) => ipcRenderer.invoke('role-ajouter', role),
-  proposerRole: (index) => ipcRenderer.invoke('role-proposer', index),
   onMiseAJour: (cb) => ipcRenderer.on('mise-a-jour', (_e, etat) => cb(etat)),
   telechargerMiseAJour: () => ipcRenderer.invoke('maj-telecharger'),
   installerMiseAJour: () => ipcRenderer.invoke('maj-installer'),

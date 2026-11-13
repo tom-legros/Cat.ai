@@ -1,36 +1,27 @@
-// Outils du modèle : règles d'écriture par mode et par rôle, remplacer_texte, appels d'outils écrits en texte
+// Outils du modèle : règles d'écriture du mode prof, remplacer_texte, appels d'outils écrits en texte
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { outilsPour, ecritureRefusee, remplacerTexte, parseTextToolCalls, matchingBrace, resumerAction, REFUS_LECTURE, appelRepete } = require('../principal/outils');
 
 const noms = (mode) => outilsPour(mode).map((t) => t.function.name);
 
-test('outils d écriture proposés en généraliste, débogueur et rédacteur README', () => {
-  for (const mode of [{}, { role: 'debogueur' }, { role: 'readme' }]) {
-    assert.ok(noms(mode).includes('ecrire_fichier') && noms(mode).includes('remplacer_texte'), JSON.stringify(mode));
-  }
+test('outils d écriture proposés en mode normal', () => {
+  assert.ok(noms({}).includes('ecrire_fichier') && noms({}).includes('remplacer_texte'));
 });
 
-test('outils d écriture retirés en mode prof et pour le relecteur, lecture et recherche gardées', () => {
-  for (const mode of [{ prof: true }, { role: 'relecteur' }, { prof: true, role: 'debogueur' }]) {
-    assert.ok(!noms(mode).includes('ecrire_fichier') && !noms(mode).includes('remplacer_texte'), JSON.stringify(mode));
-    assert.ok(noms(mode).includes('lire_fichier') && noms(mode).includes('chercher'));
-  }
+test('outils d écriture retirés en mode prof, lecture et recherche gardées', () => {
+  const mode = { prof: true };
+  assert.ok(!noms(mode).includes('ecrire_fichier') && !noms(mode).includes('remplacer_texte'));
+  assert.ok(noms(mode).includes('lire_fichier') && noms(mode).includes('chercher'));
 });
 
-test('ecritureRefusee : mode prof prioritaire, relecteur, rédacteur README limité aux .md', () => {
+test('ecritureRefusee : rien en mode normal, refus en mode prof', () => {
   assert.equal(ecritureRefusee({}, 'main.js'), undefined);
-  assert.equal(ecritureRefusee({ role: 'readme' }, 'README.md'), undefined);
-  assert.equal(ecritureRefusee({ role: 'readme' }, 'docs/guide.MD'), undefined);
-  assert.match(ecritureRefusee({ role: 'readme' }, 'notes.js'), /Markdown/);
-  assert.match(ecritureRefusee({ role: 'relecteur' }, 'README.md'), /relecteur/);
-  assert.match(ecritureRefusee({ prof: true, role: 'readme' }, 'README.md'), /Mode prof/);
+  assert.match(ecritureRefusee({ prof: true }, 'README.md'), /Mode prof/);
 });
 
-test('chaque refus interdit au modèle de prétendre que le fichier a changé', () => {
-  for (const [mode, chemin] of [[{ prof: true }, 'a.js'], [{ role: 'relecteur' }, 'a.js'], [{ role: 'readme' }, 'a.js']]) {
-    assert.match(ecritureRefusee(mode, chemin), /ne dis pas à l'utilisateur qu'il est modifié/);
-  }
+test('le refus interdit au modèle de prétendre que le fichier a changé', () => {
+  assert.match(ecritureRefusee({ prof: true }, 'a.js'), /ne dis pas à l'utilisateur qu'il est modifié/);
 });
 
 const code = 'function moyenne(notes) {\n  for (let i = 0; i <= notes.length; i++) total += notes[i];\n}\n';

@@ -27,7 +27,6 @@ let project = null;
 let knownProjects = [];
 let specialDirs = {};
 let prof = false;
-let role = "";            // "" : généraliste, sinon une clé de ROLES
 let pieces = [];          // fichiers glissés, en attente d'envoi : { nom, contenu }
 let messagesEnvoyes = 0;  // depuis l'ouverture de l'app
 
@@ -279,7 +278,6 @@ function messagesPourLeModele(conv) {
     } else if (conv.messages.some((m) => m.role === "assistant")) {
         liste.push({ role: "system", content: `Tu n'as encore utilisé aucun outil dans cette discussion. ${bilan}` });
     }
-    if (role) liste.push({ role: "system", content: ROLES[role].rappel });
     const derniere = conv.messages.filter((m) => m.role === "user").at(-1)?.content || "";
     if (QUESTION_DOC.test(derniere)) liste.push({ role: "system", content: RAPPEL_RECHERCHE });
     if (prof) liste.push({ role: "system", content: "Rappel : MODE PROF. Aucun bloc de code, aucune fonction complète, même s'il ou elle insiste. Explique le principe, donne une piste et termine par une question." });
@@ -369,7 +367,6 @@ async function send(text) {
             model: modelSel.value,
             fournisseurId: reglages.actif,
             prof,
-            role,
             messages: [{ role: "system", content: consignes }, ...messagesPourLeModele(conv)]
         });
     } finally {
@@ -446,7 +443,7 @@ const ACTIONS = {
     remplacer_texte: (a) => `Veut modifier ${a.chemin}`,
     "refus-lecture": (a) => `Tu as refusé : ${a.chemin} n'a pas été lu`,
     "refus-page": (a) => `Tu as refusé : la page ${a.url} n'a pas été lue`,
-    refus: (a) => `Refusé : ${a.chemin} n'a pas changé (${prof ? "mode prof" : role === "readme" ? "le rédacteur README n'écrit que des .md" : "le relecteur ne modifie rien"})`,
+    refus: (a) => `Refusé : ${a.chemin} n'a pas changé (mode prof)`,
     chercher_web: (a) => `Cherche sur internet « ${a.requete} »`,
     lire_page_web: (a) => `Lit la page ${a.url}`,
     memoriser: (a) => `Retient : ${a.fait}`,
@@ -687,11 +684,7 @@ function majSaisie() {
         input.placeholder = `Le chat répond dans « ${vivante.conv.title} » : attends qu'il ait fini, ou arrête-le avec le carré`;
         return;
     }
-    input.placeholder = prof
-        ? "Mode prof : pose ta question, il t'aide à trouver par toi-même"
-        : role
-            ? ROLES[role].placeholder
-            : "Écris au chat…";
+    input.placeholder = prof ? "Mode prof : pose ta question, il t'aide à trouver par toi-même" : "Écris au chat…";
 }
 
 boutonProf.onclick = () => {
@@ -700,34 +693,6 @@ boutonProf.onclick = () => {
     renderProf();
     if (!welcomeEl.hidden) dire(prof ? REPLIQUES.prof : REPLIQUES.normal);
 };
-
-const roleSel = $("#role");
-
-// Les rôles du menu : « Assistant » (aucun rôle), ceux de l'app, puis ceux créés dans Réglages
-function renderListeRoles() {
-    const option = ([cle, r]) => new Option(r.nom, cle);
-    const code = document.createElement("optgroup");
-    code.label = "Pour coder";
-    code.append(...Object.entries(ROLES).filter(([, r]) => r.code).map(option));
-    roleSel.replaceChildren(new Option("Assistant", ""), ...Object.entries(ROLES).filter(([, r]) => !r.code).map(option), code);
-}
-
-function renderRole() {
-    if (!ROLES[role]) role = "";
-    roleSel.value = role;
-    $("#role-libelle").textContent = role ? ROLES[role].nom : "Assistant";
-    $("#role-raccourci").title = role ? `Rôle : ${ROLES[role].detail}` : "Rôle : la mission du chat";
-    $("#role-raccourci").classList.toggle("is-on", !!role);
-    renderProf(); // pour le texte d'aide de la zone de saisie
-}
-
-roleSel.onchange = () => {
-    role = ROLES[roleSel.value] ? roleSel.value : "";
-    try { localStorage.setItem("role", role); } catch {}
-    renderRole();
-    if (!welcomeEl.hidden) dire(role ? REPLIQUES.roles[role] || REPLIQUES.rolePerso(ROLES[role].nom) : REPLIQUES.assistant);
-};
-
 
 /* ---------- 7c. Fichiers glissés dans la fenêtre ---------- */
 const depot = $("#depot");
@@ -985,10 +950,10 @@ async function prechauffer() {
         return; // sans la liste du dossier, les consignes ne seraient pas celles du chat : rien à précharger
     }
     const consignes = systemPrompt() + infoProjet;
-    const cle = `${modelSel.value}\n${prof}\n${role}\n${consignes}`;
+    const cle = `${modelSel.value}\n${prof}\n${consignes}`;
     if (cle === dejaPrechauffe || streaming || envoiEnCours) return;
     dejaPrechauffe = cle;
-    window.api.prechaufferOllama({ modele: modelSel.value, consignes, prof, role });
+    window.api.prechaufferOllama({ modele: modelSel.value, consignes, prof });
 }
 
 // Le réveil du chat (main.js) : pendant qu'Ollama charge le modèle et lit les consignes (~20 s la première fois
@@ -1293,7 +1258,6 @@ const basculer = (id, ouvrir) => (e) => {
 };
 $("#fournisseur-raccourci").onclick = basculer("menu-fournisseurs", ouvrirMenuFournisseurs);
 $("#modele-raccourci").onclick = basculer("menu-modeles", ouvrirMenuModeles);
-$("#role-raccourci").onclick = basculer("menu-roles", ouvrirMenuRoles);
 document.addEventListener("click", (e) => { if (!e.target.closest(".raccourci")) document.querySelectorAll(".menu-modeles").forEach((m) => (m.hidden = true)); });
 
 // Le modèle choisi est retenu pour chaque fournisseur
@@ -1473,185 +1437,10 @@ function appliquerPerso() {
     for (const [cle, replique] of Object.entries(repliques)) if (texte(replique)) REPLIQUES.projets[cle.toLowerCase()] = texte(replique);
 }
 
-// Fenêtre Réglages : fournisseur, modèle, clés et rôles perso
+// Fenêtre Réglages : fournisseur, modèle et clés
 $("#open-reglages").onclick = ouvrirFournisseurs;
-function ouvrirRoles() { renderRolesPerso(); messageRoles(""); $("#roles-modal").hidden = false; $("#role-nom").focus(); }
-
-// Menu Rôle : ceux de tous les jours, ceux pour coder, puis « créer un rôle »
-function ouvrirMenuRoles() {
-    const menu = $("#menu-roles");
-    menu.replaceChildren();
-    const choisir = (cle) => () => { roleSel.value = cle; roleSel.onchange(); };
-    for (const enfant of roleSel.children) {
-        if (enfant.tagName === "OPTGROUP") {
-            const t = document.createElement("p");
-            t.className = "menu-modeles__titre";
-            t.textContent = enfant.label;
-            menu.append(t);
-            for (const o of enfant.children) choixMenu(menu, o.textContent, o.value === role, choisir(o.value), "", { icone: "code", couleur: "vert", conseil: ROLES[o.value].detail });
-        } else {
-            const r = ROLES[enfant.value];
-            const deco = !r ? { icone: "bulle", couleur: "jaune", conseil: "Aide pour tout" }
-                : enfant.value === "redacteur" ? { icone: "stylo", couleur: "rose", conseil: r.detail }
-                : { icone: "etoile", couleur: "bleu", conseil: r.detail };
-            choixMenu(menu, enfant.textContent, enfant.value === role, choisir(enfant.value), "", deco);
-        }
-    }
-    choixMenu(menu, "Créer un rôle", false, ouvrirRoles, "menu-modeles__autre", { icone: "plus", couleur: "gris", conseil: "Ta propre mission pour le chat" });
-    choixMenu(menu, "Marché des rôles", false, ouvrirMarche, "menu-modeles__autre", { icone: "etoile", couleur: "gris", conseil: "Des rôles prêts à l'emploi, en un clic" });
-    menu.hidden = false;
-}
-$("#close-roles").onclick = () => ($("#roles-modal").hidden = true);
-$("#roles-modal").onclick = (e) => { if (e.target.id === "roles-modal") e.target.hidden = true; };
 $("#close-reglages").onclick = () => ($("#reglages-modal").hidden = true);
 $("#reglages-modal").onclick = (e) => { if (e.target.id === "reglages-modal") e.target.hidden = true; };
-
-// Rôles créés par l'utilisateur (settings.json) : ajoutés à ROLES avec une clé « perso-… »
-let rolesPerso = [];
-
-function appliquerRolesPerso() {
-    Object.keys(ROLES).filter((k) => k.startsWith("perso-")).forEach((k) => delete ROLES[k]);
-    rolesPerso.forEach(({ nom, consigne }, i) => {
-        ROLES[`perso-${i}`] = {
-            nom,
-            detail: consigne,
-            placeholder: `${nom} : dis-lui ce qu'il te faut`,
-            consigne: `RÔLE : ${nom.toUpperCase()}. Ta mission, donnée par {prenom} :\n${consigne}`,
-            rappel: `Rappel : RÔLE ${nom.toUpperCase()}. ${consigne}`
-        };
-    });
-    renderListeRoles();
-    renderRole();
-}
-
-function renderRolesPerso() {
-    const liste = $("#roles-liste");
-    liste.replaceChildren();
-    if (!rolesPerso.length) liste.innerHTML = '<li class="discret">Aucun rôle perso pour l\'instant.</li>';
-    rolesPerso.forEach((r, i) => {
-        const li = document.createElement("li");
-        const texte = document.createElement("span");
-        texte.textContent = r.nom;
-        texte.title = r.consigne;
-        // Partager : le rôle part dans un petit fichier .catai, à envoyer à un ami qui l'importera
-        const partager = document.createElement("button");
-        partager.textContent = "Partager";
-        partager.onclick = async () => {
-            try {
-                const { ok, chemin } = await window.api.exporterRole(i);
-                if (ok) messageRoles(`Rôle enregistré dans ${chemin}. Envoie ce fichier à un ami : il l'ajoute avec « Importer un rôle reçu ».`);
-            } catch {
-                messageRoles("Impossible d'enregistrer le fichier ici : choisis un autre dossier.");
-            }
-        };
-        // Proposer : une demande GitHub pré-remplie pour mettre ce rôle au marché
-        const proposer = document.createElement("button");
-        proposer.textContent = "Proposer";
-        proposer.title = "Proposer ce rôle au marché des rôles (ouvre GitHub)";
-        proposer.onclick = () => {
-            window.api.proposerRole(i);
-            messageRoles("Ta proposition s'ouvre sur GitHub : complète-la et envoie-la (il faut un compte GitHub). Elle sera relue avant d'arriver au marché.");
-        };
-        const suppr = document.createElement("button");
-        suppr.textContent = "Supprimer";
-        suppr.onclick = async () => { rolesPerso = await window.api.setRolesPerso(rolesPerso.filter((_, j) => j !== i)); appliquerRolesPerso(); renderRolesPerso(); };
-        li.append(texte, partager, proposer, suppr);
-        liste.append(li);
-    });
-}
-
-function messageRoles(texte) {
-    $("#roles-message").textContent = texte;
-}
-
-$("#importer-role").onclick = async () => {
-    const { ok, roles, erreur } = await window.api.importerRole();
-    if (erreur) return messageRoles(erreur);
-    if (!ok) return;
-    rolesPerso = roles;
-    appliquerRolesPerso();
-    renderRolesPerso();
-    messageRoles(`Rôle « ${rolesPerso.at(-1).nom} » ajouté : choisis-le dans la pastille du rôle.`);
-};
-
-// Marché des rôles : le catalogue marche/roles.json du dépôt GitHub, lu par main.js quand on ouvre la fenêtre.
-// Chaque rôle montre ce que le chat fera avant d'être ajouté. « Proposer » (dans Mes rôles) ouvre une demande
-// GitHub : le créateur de l'app relit les propositions avant de les mettre au marché.
-let catalogue = [];
-
-async function ouvrirMarche() {
-    $("#marche-modal").hidden = false;
-    $("#marche-recherche").value = "";
-    $("#marche-liste").replaceChildren();
-    $("#marche-message").textContent = "Chargement du marché…";
-    const { roles, erreur } = await window.api.lireMarche();
-    catalogue = roles || [];
-    $("#marche-message").textContent = erreur || "";
-    renderMarche();
-    $("#marche-recherche").focus();
-}
-
-function renderMarche() {
-    const filtre = $("#marche-recherche").value.trim().toLowerCase();
-    const liste = $("#marche-liste");
-    liste.replaceChildren();
-    const visibles = catalogue.filter((r) => !filtre || `${r.nom} ${r.description} ${r.consigne}`.toLowerCase().includes(filtre));
-    if (catalogue.length && !visibles.length) liste.innerHTML = '<li class="discret">Aucun rôle ne correspond.</li>';
-    for (const r of visibles) {
-        const li = document.createElement("li");
-        const infos = document.createElement("div");
-        const nom = document.createElement("p");
-        nom.className = "marche__nom";
-        nom.textContent = r.nom;
-        const description = document.createElement("p");
-        description.className = "marche__description";
-        description.textContent = r.auteur ? `${r.description} · par ${r.auteur}` : r.description;
-        const details = document.createElement("details");
-        const resume = document.createElement("summary");
-        resume.textContent = "Ce que le chat fera";
-        const consigne = document.createElement("p");
-        consigne.textContent = r.consigne;
-        details.append(resume, consigne);
-        infos.append(nom, description, details);
-        const deja = rolesPerso.some((p) => p.nom === r.nom && p.consigne === r.consigne);
-        const bouton = document.createElement("button");
-        bouton.type = "button";
-        bouton.className = deja ? "lien" : "bouton";
-        bouton.textContent = deja ? "Ajouté" : "Ajouter";
-        bouton.disabled = deja;
-        bouton.onclick = async () => {
-            const resultat = await window.api.ajouterRole({ nom: r.nom, consigne: r.consigne });
-            if (resultat.erreur) return ($("#marche-message").textContent = resultat.erreur);
-            rolesPerso = resultat.roles;
-            appliquerRolesPerso();
-            renderRolesPerso();
-            $("#marche-message").textContent = `« ${r.nom} » ajouté : choisis-le dans la pastille du rôle.`;
-            renderMarche();
-        };
-        li.append(infos, bouton);
-        liste.append(li);
-    }
-}
-
-$("#marche-recherche").oninput = renderMarche;
-$("#ouvrir-marche").onclick = ouvrirMarche;
-$("#close-marche").onclick = () => ($("#marche-modal").hidden = true);
-$("#marche-modal").onclick = (e) => { if (e.target.id === "marche-modal") e.target.hidden = true; };
-
-$("#role-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const nom = $("#role-nom").value.trim();
-    const consigne = $("#role-consigne").value.trim();
-    if (!nom || !consigne) return;
-    rolesPerso = await window.api.setRolesPerso([...rolesPerso, { nom, consigne }]);
-    $("#role-nom").value = "";
-    $("#role-consigne").value = "";
-    appliquerRolesPerso();
-    renderRolesPerso();
-    roleSel.value = `perso-${rolesPerso.length - 1}`;
-    roleSel.onchange();
-    $("#roles-modal").hidden = true;
-});
 
 // Mise à jour : main.js prévient quand une version plus récente existe sur GitHub (principal/miseajour.js).
 // Une fenêtre l'annonce avec ses nouveautés ; rien ne se télécharge sans un clic, et « Redémarrer » installe
@@ -1700,12 +1489,9 @@ window.api.onMiseAJour(({ etat, version, pourcent, notes }) => {
     knownProjects = await window.api.knownProjects();
     specialDirs = await window.api.specialDirs();
     try { prof = localStorage.getItem("modeProf") === "1"; } catch {}
-    rolesPerso = await window.api.getRolesPerso();
-    appliquerRolesPerso();
-    try { const r = localStorage.getItem("role"); if (ROLES[r]) role = r; } catch {}
     renderMemory();
     renderProject();
-    renderRole();
+    renderProf();
     convs = await window.api.loadConvs();
     current = null; // on arrive toujours sur l'accueil, avec le chat
     renderConv();

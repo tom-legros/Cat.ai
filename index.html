@@ -79,7 +79,7 @@
           <svg class="icone icone-px icone--stop" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="1" y="1" width="6" height="1"/><rect x="1" y="2" width="6" height="1"/><rect x="1" y="3" width="6" height="1"/><rect x="1" y="4" width="6" height="1"/><rect x="1" y="5" width="6" height="1"/><rect x="1" y="6" width="6" height="1"/></svg>
         </button>
       </div>
-      <!-- Sous la saisie, ce qui change la façon de répondre : dossier, mode prof, rôle -->
+      <!-- Sous la saisie, ce qui change la façon de répondre : dossier, mode prof -->
       <div class="saisie__outils">
         <!-- À gauche : ce qui change la façon de répondre -->
         <div class="outils__groupe">
@@ -94,14 +94,6 @@
             <svg class="icone icone-px" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="0" y="1" width="1" height="1"/><rect x="7" y="1" width="1" height="1"/><rect x="0" y="2" width="3" height="1"/><rect x="5" y="2" width="3" height="1"/><rect x="0" y="3" width="1" height="1"/><rect x="2" y="3" width="4" height="1"/><rect x="7" y="3" width="1" height="1"/><rect x="0" y="4" width="1" height="1"/><rect x="2" y="4" width="1" height="1"/><rect x="5" y="4" width="1" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="0" y="5" width="3" height="1"/><rect x="5" y="5" width="3" height="1"/></svg>
             <span>Mode prof</span>
           </button>
-          <span class="raccourci">
-            <button id="role-raccourci" class="pastille" type="button" aria-haspopup="true" title="Rôle : la mission du chat">
-              <svg class="icone icone-px" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="3" y="0" width="2" height="1"/><rect x="3" y="1" width="2" height="1"/><rect x="0" y="2" width="8" height="1"/><rect x="1" y="3" width="6" height="1"/><rect x="2" y="4" width="4" height="1"/><rect x="1" y="5" width="2" height="1"/><rect x="5" y="5" width="2" height="1"/><rect x="1" y="6" width="1" height="1"/><rect x="6" y="6" width="1" height="1"/></svg>
-              <span id="role-libelle">Assistant</span><svg class="icone icone-px icone--chevron" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="0" y="2" width="2" height="1"/><rect x="6" y="2" width="2" height="1"/><rect x="1" y="3" width="2" height="1"/><rect x="5" y="3" width="2" height="1"/><rect x="2" y="4" width="4" height="1"/><rect x="3" y="5" width="2" height="1"/></svg>
-            </button>
-            <div id="menu-roles" class="menu-modeles menu-modeles--gauche" hidden></div>
-            <select id="role" hidden></select>
-          </span>
         </div>
         <!-- À droite : qui répond (fournisseur et modèle) ; le petit rond = quota du jour -->
         <div class="outils__groupe">
@@ -144,37 +136,6 @@
       <p class="discret">Pour les cerveaux en ligne, il faut une clé gratuite : clique sur « Obtenir une clé », copie-la, colle-la ici. <span id="protection-cles">Elle reste secrète sur ton PC.</span></p>
       <div id="fournisseurs-liste" class="fournisseurs"></div>
       <div class="rangee rangee--fin"><button id="close-reglages" class="lien" type="button">Fermer</button></div>
-    </div>
-  </div>
-
-  <!-- Mes rôles : ouvert par le « + » à côté de la pastille du rôle -->
-  <div id="roles-modal" class="fenetre" hidden>
-    <div class="fenetre__boite">
-      <p class="etiquette">Rôles</p>
-      <h2 class="fenetre__titre">Créer un rôle</h2>
-      <p class="discret">Un rôle, c'est une mission que le chat garde en tête. Exemples : « Rédacteur de mails », « Coach de révisions », « Cuisinier ».</p>
-      <form id="role-form" class="role-form">
-        <input id="role-nom" maxlength="40" placeholder="Son nom (ex : Coach de révisions)">
-        <textarea id="role-consigne" rows="3" maxlength="1000" placeholder="Ce qu'il doit faire (ex : me poser des questions sur mon cours, une par une)"></textarea>
-        <button class="bouton">Créer le rôle</button>
-      </form>
-      <p class="etiquette etiquette--suite">Mes rôles</p>
-      <ul id="roles-liste" class="souvenirs"></ul>
-      <p id="roles-message" class="conseil" aria-live="polite"></p>
-      <div class="rangee rangee--fin"><button id="ouvrir-marche" class="lien" type="button">Marché des rôles</button><button id="importer-role" class="lien" type="button">Importer un rôle reçu</button><button id="close-roles" class="lien" type="button">Fermer</button></div>
-    </div>
-  </div>
-
-  <!-- Marché des rôles : ouvert depuis la pastille du rôle ou la fenêtre des rôles -->
-  <div id="marche-modal" class="fenetre" hidden>
-    <div class="fenetre__boite fenetre__boite--large">
-      <p class="etiquette">Rôles</p>
-      <h2 class="fenetre__titre">Le marché des rôles</h2>
-      <p class="discret">Des rôles prêts à l'emploi, choisis et relus. Lis ce que le chat fera, puis ajoute-le en un clic. Tu as créé un bon rôle ? Clique sur « Proposer » à côté de lui dans tes rôles.</p>
-      <input id="marche-recherche" type="search" placeholder="Chercher un rôle : révisions, cuisine, anglais…">
-      <p id="marche-message" class="conseil" aria-live="polite"></p>
-      <ul id="marche-liste" class="marche"></ul>
-      <div class="rangee rangee--fin"><button id="close-marche" class="lien" type="button">Fermer</button></div>
     </div>
   </div>
 

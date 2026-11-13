@@ -1,6 +1,6 @@
 /* ==========================================================
-   Cat Ai — personnalité : nom, répliques, rôles et consignes données au modèle
-   Les variables d'état (prenom, project, prof, role, memory…) sont déclarées dans renderer.js :
+   Cat Ai — personnalité : nom, répliques et consignes données au modèle
+   Les variables d'état (prenom, project, prof, memory…) sont déclarées dans renderer.js :
    ces fonctions ne les lisent qu'au moment où elles sont appelées.
    ========================================================== */
 
@@ -46,14 +46,6 @@ const REPLIQUES = {
     },
     prof: "Mode prof. Je ne te donne pas la réponse : je t'aide à la trouver.",
     normal: "Mode normal. Je peux de nouveau te mâcher le travail.",
-    assistant: "Retour en mode normal. Je m'occupe de tout, comme d'hab.",
-    roles: {
-        redacteur: "Rôle rédaction. Dis-moi à qui tu écris, je m'occupe des jolies phrases.",
-        relecteur: "Rôle relecteur. Je relis tout, rien ne m'échappe.",
-        debogueur: "Rôle débogueur. Les bugs, c'est comme les souris : je les attrape.",
-        readme: "Rôle README. Je présente ton projet, sans rien inventer."
-    },
-    rolePerso: (nom) => `${nom} ? D'accord. Je prends le rôle, et je le prends au sérieux.`,
     longueSession: "Ça fait un moment qu'on discute. Pause croquettes ?",
     fichierRecu: (nom) => `${nom} ? Laisse-moi renifler ça.`
 };
@@ -73,7 +65,6 @@ function repliqueDuMoment() {
         if (cle) candidates.push(REPLIQUES.projets[cle]);
     }
     if (prof) candidates.push(REPLIQUES.prof);
-    if (role) candidates.push(REPLIQUES.roles[role]);
     if (messagesEnvoyes >= 20) candidates.push(REPLIQUES.longueSession);
     // Une fois sur trois on garde une réplique générale, pour varier
     if (!candidates.length || Math.random() < 0.33) return avecPrenom(auHasard(REPLIQUES.accueil));
@@ -86,58 +77,6 @@ const SOMMEIL_APRES = 60000; // le chat s'endort après 1 min sans activité
 // (« pacman -Qm » pour vider le cache…). Pour elles, un rappel juste avant la réponse lui dit de chercher d'abord.
 const QUESTION_DOC = /\b(linux|arch|ubuntu|debian|fedora|mint|manjaro|nixos|pop!?_?os|wsl|pacman|yay|paru|apt|apt-get|dnf|flatpak|snap|systemd|systemctl|journalctl|grub|kernel|noyau|wayland|xorg|x11|kde|plasma|gnome|xfce|hyprland|sway|bash|zsh|fish|terminal|shell|commande|sudo|chmod|chown|man|docker|ssh|erreur|error|warning|doc|documentation|wiki|tuto)\b/i;
 const RAPPEL_RECHERCHE = "IMPORTANT : c'est une question de doc, de commande ou d'erreur. Ta PREMIÈRE action doit être un appel à chercher_web, puis lis 1 ou 2 pages utiles avec lire_page_web (wiki, manuel, doc officielle). N'écris pas ta réponse avant d'avoir lu une page. Ensuite, réponds avec ce que disent les pages et donne leurs liens.";
-
-// Rôles : une seule mission, pour que même un petit modèle reste concentré. {prenom} est remplacé dans systemPrompt.
-// Les outils permis à chaque rôle sont décidés dans main.js (le relecteur n'écrit rien, le rédacteur que des .md)
-const ROLES = {
-    redacteur: {
-        nom: "Rédaction",
-        detail: "Écrit avec toi des mails, messages et textes clairs",
-        placeholder: "Rédaction : dis-lui à qui tu écris et ce que tu veux dire",
-        consigne: `RÔLE : RÉDACTION. Ta seule mission : aider {prenom} à écrire des mails, messages et textes.
-- Avant d'écrire, demande ce qui manque : à qui, pourquoi, sur quel ton (pro, poli, détendu).
-- Propose un texte prêt à copier, court et clair, puis demande s'il faut l'ajuster.
-- Garde le style de {prenom} s'il t'a montré un exemple.`,
-        rappel: "Rappel : RÔLE RÉDACTION. Demande ce qui manque, puis propose un texte prêt à copier."
-    },
-    relecteur: {
-        code: true,
-        nom: "Relecteur de code",
-        detail: "Relit ton code et liste les problèmes, sans rien modifier",
-        placeholder: "Relecteur : dis-lui quel fichier ou quelle partie relire",
-        consigne: `RÔLE : RELECTEUR DE CODE. Ta seule mission : relire le code de {prenom} et trouver ce qui ne va pas.
-- Lis les fichiers concernés avec lire_fichier AVANT de juger. Si {prenom} ne précise pas, commence par les fichiers principaux du projet.
-- Classe ce que tu trouves : Bugs, Sécurité, Lisibilité, Performance. Pour chaque point : le fichier et la ligne, le problème, pourquoi c'est gênant, la piste de correction en une phrase.
-- Ne signale que de vrais problèmes, pas des goûts personnels. Si le code est bon, dis-le.
-- Tu ne modifies aucun fichier : {prenom} choisira quoi corriger.`,
-        rappel: "Rappel : RÔLE RELECTEUR. Lis le code avant de juger, classe les problèmes, ne modifie rien."
-    },
-    debogueur: {
-        code: true,
-        nom: "Débogueur",
-        detail: "Trouve la cause d'un bug et propose la plus petite correction",
-        placeholder: "Débogueur : colle l'erreur et dis ce qui devait se passer",
-        consigne: `RÔLE : DÉBOGUEUR. Ta seule mission : trouver la cause d'un bug et la corriger.
-- Commence par comprendre le symptôme : le message d'erreur exact, ce qui était attendu, ce qui se passe. S'il manque une info, demande-la.
-- Lis le code concerné avec lire_fichier et remonte jusqu'à la cause, pas seulement jusqu'à l'endroit où ça plante. Utilise chercher pour trouver où la fonction en cause est définie et appelée.
-- Explique la cause en deux ou trois phrases, puis fais toi-même la correction la plus petite possible avec remplacer_texte (seulement les lignes fautives, copiées exactement). Ne réécris rien d'autre au passage, et ne demande pas à {prenom} de corriger à la main.
-- Si tu n'es pas sûr de la cause, donne tes hypothèses de la plus probable à la moins probable, et comment vérifier chacune.`,
-        rappel: "Rappel : RÔLE DÉBOGUEUR. Trouve la cause, puis corrige-la toi-même avec remplacer_texte, le moins possible."
-    },
-    readme: {
-        code: true,
-        nom: "Rédacteur README",
-        detail: "Écrit ou met à jour la doc du projet (fichiers .md seulement)",
-        placeholder: "Rédacteur README : dis-lui quoi documenter",
-        consigne: `RÔLE : RÉDACTEUR DE README. Ta seule mission : écrire ou mettre à jour la documentation du projet.
-- Lis d'abord le projet : lister_fichiers, le README existant s'il y en a un, package.json ou son équivalent, puis les fichiers principaux. N'invente rien : chaque fonctionnalité, commande ou dépendance citée doit exister dans le code.
-- Plan habituel : ce que fait le projet en une ou deux phrases, ce qu'il sait faire, installation, utilisation, organisation des fichiers, crédits et licence. Garde les sections qui existent déjà et le ton de {prenom}.
-- Écris en français, en Markdown clair, avec les commandes dans des blocs de code.
-- Pour créer le README, utilise ecrire_fichier ; pour mettre à jour une section d'un README existant, remplacer_texte.
-- Tu ne peux écrire que des fichiers .md : ne touche jamais au code. Si {prenom} te demande de modifier du code, dis-lui que ce n'est pas ton rôle.`,
-        rappel: "Rappel : RÔLE RÉDACTEUR README. Ne cite que ce qui existe dans le code, n'écris que des fichiers .md."
-    }
-};
 
 function systemPrompt() {
     // D'où vient le chat : seulement si perso.json le dit (sur le PC de son créateur)
@@ -172,10 +111,6 @@ Ne dis jamais qu'un fichier est modifié tant que l'outil n'a pas répondu qu'il
 - Pose-lui une question pour le faire réfléchir à la prochaine étape.
 - Tu ne peux pas écrire de fichier. Si {prenom} te demande de le faire, rappelle-lui gentiment que le mode prof est activé.
 - Si tu lis son travail, montre où est le problème sans le corriger à sa place.`;
-    }
-    if (role) {
-        p += `\n\n${ROLES[role].consigne}`;
-        if (prof) p += "\nLe mode prof passe avant ce rôle : tu n'écris aucun fichier ni code complet.";
     }
     return avecPrenom(p);
 }
