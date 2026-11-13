@@ -155,5 +155,6 @@ test('sans projet ni document, seuls les outils utilisables sont proposés', () 
   assert.deepEqual(noms({ projet: false, documents: false }), ['ouvrir_dossier', 'chercher_web', 'lire_page_web']);
   assert.ok(noms({ projet: false, documents: true }).includes('lire_document'));
   assert.ok(!noms({ projet: false, documents: true }).includes('lire_fichier'));
+  assert.ok(noms({ projet: true, documents: false }).includes('lancer_tests'));
   assert.ok(!noms({ projet: true, documents: false }).includes('lire_document'));
 });

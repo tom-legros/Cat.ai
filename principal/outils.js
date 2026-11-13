@@ -85,6 +85,22 @@ const TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'verifier_godot',
+      description: "Vérifie l’import d’un projet Godot 4 ouvert. L’utilisateur choisit son exécutable Godot et confirme l’opération. Renvoie les erreurs d’import ou de script. À utiliser quand l’utilisateur demande de vérifier un projet Godot.",
+      parameters: { type: 'object', properties: {}, additionalProperties: false },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'lancer_tests',
+      description: "Lance les tests Node du projet ouvert après l'accord de l'utilisateur et renvoie le résultat. À utiliser quand il demande de tester le projet. Cet outil ne lance que node --test.",
+      parameters: { type: 'object', properties: {}, additionalProperties: false },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'lire_document',
       description: "Lit un document joint par l'utilisateur (PDF, cours, long texte) : un morceau à partir d'une ligne, ou les passages qui contiennent un texte. L'identifiant du document est écrit dans le message où il a été joint.",
       parameters: {
@@ -120,13 +136,12 @@ const TOOLS = [
 // mode = { prof, projet, fournisseurId }
 const OUTILS_ECRITURE = new Set(['ecrire_fichier', 'remplacer_texte']);
 const peutEcrire = ({ prof } = {}) => !prof;
-// Sans dossier ouvert (projet: false), les outils de fichiers ne servent à rien : leur description, plus de la moitié
-// de celle de tous les outils, n'est pas envoyée, et Ollama a environ 1 000 mots de moins à lire à chaque début de
-// discussion. ouvrir_dossier reste : dès qu'un dossier est ouvert, l'étape suivante du chat les retrouve.
-const OUTILS_PROJET = new Set(['lister_fichiers', 'lire_fichier', 'chercher', 'ecrire_fichier', 'remplacer_texte']);
+// Un outil impossible à utiliser alourdit le contexte et ralentit les modèles locaux.
+const OUTILS_PROJET = new Set(['lister_fichiers', 'lire_fichier', 'chercher', 'ecrire_fichier', 'remplacer_texte', 'verifier_godot', 'lancer_tests']);
 const outilsPour = (mode) => TOOLS.filter(({ function: { name } }) => {
   if (mode?.projet === false && OUTILS_PROJET.has(name)) return false;
   if (mode?.documents === false && name === 'lire_document') return false;
+  if ((name === 'lancer_tests' || name === 'verifier_godot')) return peutEcrire(mode);
   return peutEcrire(mode) || !OUTILS_ECRITURE.has(name);
 });
 

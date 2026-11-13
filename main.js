@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, dialog, shell, nativeImage } = require('ele
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
+const { lancerTestsNode, verifierProjetGodot } = require('./principal/tests-projet');
 
 const { configurerStockage, readJson, writeJson, prendreAlertes } = require('./principal/stockage');
 const { IGNORED, MAX_FILE, MAX_FICHIER_OUTIL, extraitLignes, cheminSur, estSensible, listFiles, chercherDansProjet, fichiersCites, contenuJoint } = require('./principal/fichiers');
@@ -157,6 +158,43 @@ async function runTool(name, args, mode) {
       }
       // Un long fichier arrive par morceaux qui tiennent dans la limite du modèle (8 192 tokens avec Ollama)
       return extraitLignes(fs.readFileSync(full, 'utf8'), args.chemin, args.ligne, mode.maxExtrait);
+    }
+    case 'verifier_godot': {
+      if (mode.prof) return 'Ce mode ne permet pas de lancer Godot.';
+      if (!projectDir) return "Ouvre d'abord le dossier du projet Godot.";
+      const dossier = fs.realpathSync(safePath('.'));
+      const fichierProjet = safePath('project.godot');
+      if (!fs.existsSync(fichierProjet) || !fs.statSync(fichierProjet).isFile()) return "Le dossier ouvert ne contient pas de fichier project.godot.";
+      const choix = await dialog.showOpenDialog(win, {
+        title: 'Choisis ton exécutable Godot 4', properties: ['openFile'],
+        ...(process.platform === 'win32' ? { filters: [{ name: 'Programme Windows', extensions: ['exe'] }] } : {}),
+      });
+      if (choix.canceled || mode.signal?.aborted) return 'Vérification Godot annulée.';
+      const executable = fs.realpathSync(choix.filePaths[0]);
+      if (!fs.statSync(executable).isFile() || (process.platform === 'win32' && !/\.exe$/i.test(executable))) return 'Choisis un exécutable Godot valide.';
+      const { response } = await dialog.showMessageBox(win, {
+        type: 'warning', title: 'Vérifier le projet Godot',
+        buttons: ['Refuser', 'Lancer Godot'], defaultId: 0, cancelId: 0,
+        message: 'Lancer l’import Godot dans :\n' + dossier,
+        detail: executable + '\nArguments : --headless --path <dossier> --import\nGodot peut créer ou modifier des fichiers du projet (.godot/, .import, .uid, project.godot) et exécuter ses extensions. La sortie sera envoyée au modèle sélectionné.',
+      });
+      if (response !== 1 || mode.signal?.aborted) return 'Vérification Godot annulée.';
+      if (!projectDir || fs.realpathSync(projectDir) !== dossier) return 'Le dossier ouvert a changé. Vérification annulée.';
+      return verifierProjetGodot(executable, dossier, mode.signal);
+    }
+    case 'lancer_tests': {
+      if (mode.prof) return 'Ce mode ne permet pas de lancer des tests.';
+      if (!projectDir) return "Ouvre d'abord le dossier du projet.";
+      const dossier = fs.realpathSync(safePath('.'));
+      const { response } = await dialog.showMessageBox(win, {
+        type: 'warning', title: 'Lancer les tests du projet',
+        buttons: ['Refuser', 'Lancer les tests'], defaultId: 0, cancelId: 0,
+        message: 'Cat Ai propose de lancer node --test dans :\n' + dossier,
+        detail: 'Les tests exécutent du code du projet avec tes droits. Autorise seulement un projet de confiance. La sortie des tests sera envoyée au modèle sélectionné.',
+      });
+      if (response !== 1) return "L'utilisateur a refusé de lancer les tests.";
+      if (!projectDir || fs.realpathSync(projectDir) !== dossier) return 'Le dossier ouvert a changé. Tests annulés.';
+      return lancerTestsNode(dossier, mode.signal);
     }
     case 'chercher': {
       return chercherDansProjet(projectDir, args.texte, { regex: args.regex === true || args.regex === 'true', dossier: args.dossier });
@@ -345,6 +383,10 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, documents = [], fo
         }
         if (name === 'lire_page_web' && String(result).startsWith(REFUS_PAGE)) {
           event.sender.send('chat-tool', { id, name: 'refus-page', args: { url: args.url } });
+        }
+        if (name === 'lancer_tests') {
+          const bilan = String(result).split('\n', 1)[0];
+          event.sender.send('chat-tool', { id, name: 'bilan_tests', args: { bilan } });
         }
         const action = resumerAction(name, args || {}, result);
         if (action) event.sender.send('chat-action', { id, action });
