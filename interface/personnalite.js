@@ -76,6 +76,12 @@ const SOMMEIL_APRES = 60000; // le chat s'endort après 1 min sans activité
 // Questions de doc (Linux, commandes, erreurs) : les petits modèles y répondent de mémoire et se trompent
 // (« pacman -Qm » pour vider le cache…). Pour elles, un rappel juste avant la réponse lui dit de chercher d'abord.
 const QUESTION_DOC = /\b(linux|arch|ubuntu|debian|fedora|mint|manjaro|nixos|pop!?_?os|wsl|pacman|yay|paru|apt|apt-get|dnf|flatpak|snap|systemd|systemctl|journalctl|grub|kernel|noyau|wayland|xorg|x11|kde|plasma|gnome|xfce|hyprland|sway|bash|zsh|fish|terminal|shell|commande|sudo|chmod|chown|man|docker|ssh|erreur|error|warning|doc|documentation|wiki|tuto)\b/i;
+// Le rappel ne vaut que pour une vraie question. Quand on demande au chat de FAIRE quelque chose dans le projet
+// (écrire un plan, créer un fichier, corriger un bug), ou qu'on lui dit de ne pas chercher, il n'a rien à aller lire :
+// le mot « commande » ou « terminal » dans la phrase ne suffit pas.
+const DEMANDE_D_ACTION = /\b(r[ée]dige[sz]?|[ée]cri[st]|[ée]crire|cr[ée]e[sz]?|cr[ée]er|g[ée]n[èe]re[sz]?|g[ée]n[ée]rer|modifie[sz]?|modifier|corrige[sz]?|corriger|ajoute[sz]?|ajouter|impl[ée]mente[sz]?|code[sz]?|lance[sz]?|commence[sz]?|continue[sz]?|fais|fait)\b/i;
+const PAS_DE_RECHERCHE = /\b(ne (lis|lit|cherche|va) pas|sans (chercher|internet|lire)|pas (de|d') ?(recherche|page|internet))\b/i;
+const fautChercher = (question) => QUESTION_DOC.test(question) && !DEMANDE_D_ACTION.test(question) && !PAS_DE_RECHERCHE.test(question);
 const RAPPEL_RECHERCHE = "IMPORTANT : c'est une question de doc, de commande ou d'erreur. Ta PREMIÈRE action doit être un appel à chercher_web, puis lis 1 ou 2 pages utiles avec lire_page_web (wiki, manuel, doc officielle). N'écris pas ta réponse avant d'avoir lu une page. Ensuite, réponds avec ce que disent les pages et donne leurs liens.";
 
 function systemPrompt() {

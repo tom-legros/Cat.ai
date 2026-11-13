@@ -250,3 +250,21 @@ test('Ollama : les rappels system après le début deviennent une note de l app,
   assert.equal(messages[3].role, 'system');
   assert.deepEqual(rappelsPourOllama([{ role: 'system', content: 'seul' }]), [{ role: 'system', content: 'seul' }]);
 });
+
+test('envoyerOpenAI : un appel d outil refusé par le fournisseur est redemandé avec la liste des vrais outils', async (t) => {
+  const { envoyerOpenAI, appelOutilRefuse } = require('../principal/envoi');
+  assert.equal(appelOutilRefuse("tool call validation failed: attempted to call tool 'lier_fichier' which was not in request.tools"), true);
+  assert.equal(appelOutilRefuse('Invalid API key'), false);
+  const corps = [];
+  t.mock.method(globalThis, 'fetch', async (_url, options) => {
+    corps.push(JSON.parse(options.body));
+    if (corps.length === 1) return new Response(JSON.stringify({ error: { message: "Tool call validation failed: attempted to call tool 'lier_fichier' which was not in request.tools" } }), { status: 400 });
+    return new Response('data: {"choices":[{"delta":{"content":"Bonjour"}}]}\n\ndata: [DONE]\n\n');
+  });
+  const config = { id: 'groq', nom: 'Groq', baseUrl: 'https://api.groq.com/openai/v1', cle: 'x' };
+  const r = await envoyerOpenAI(config, [{ role: 'user', content: 'lis a.js' }], 'm', () => {}, undefined, { projet: true });
+  assert.equal(r.content, 'Bonjour');
+  assert.equal(corps.length, 2);
+  assert.equal(corps[1].messages.length, corps[0].messages.length + 1);
+  assert.match(corps[1].messages.at(-1).content, /Les seuls outils qui existent : .*lire_fichier/);
+});

@@ -152,7 +152,7 @@ async function executerOutil(name, args, ctx) {
     case 'chercher':
       return chercherDansProjet(ctx.projet(), args.texte, { regex: args.regex === true || args.regex === 'true', dossier: args.dossier });
     case 'ecrire_fichier':
-      return ecrireAvecAccord(ctx, args.chemin, String(args.contenu ?? ''));
+      return ecrireAvecAccord(ctx, args.chemin, sansCloture(String(args.contenu ?? ''), args.chemin));
     case 'remplacer_texte': {
       const full = cheminProjet(ctx, args.chemin);
       if (!fs.existsSync(full)) return `Le fichier ${args.chemin} n'existe pas. Pour créer un fichier, utilise ecrire_fichier.`;
@@ -202,6 +202,19 @@ async function executerOutil(name, args, ctx) {
 //   action(texte)           une ligne gardée dans l'historique (« a lu main.js »)
 //   pause(secondes)         le fournisseur demande d'attendre
 // Renvoie { fini, historique } : fini est faux si toutes les étapes ont été utilisées sans réponse finale.
+// Un petit modèle emballe parfois tout le contenu d'un fichier dans un bloc de code (```markdown … ```), comme s'il
+// l'écrivait dans la discussion. Le fichier n'a pas à garder cet emballage. On ne le retire que s'il entoure tout le
+// contenu : soit il n'y a pas d'autre bloc dedans, soit l'emballage annonce le langage du fichier lui-même.
+function sansCloture(contenu, chemin = '') {
+  const m = contenu.match(/^\s*```([\w+-]*)[ \t]*\r?\n([\s\S]*?)\r?\n```\s*$/);
+  if (!m) return contenu;
+  const [, langage, dedans] = m;
+  const extension = String(chemin).split('.').pop().toLowerCase();
+  const duFichier = { md: ['markdown', 'md'], markdown: ['markdown', 'md'] }[extension] || [];
+  if (dedans.includes('```') && !duFichier.includes(langage.toLowerCase())) return contenu;
+  return `${dedans}\n`;
+}
+
 // Un raisonnement qui a fui dans la réponse : qwen3 et deepseek écrivent parfois leur réflexion (souvent en anglais)
 // puis « </think> » avant la vraie réponse. Tout ce qui précède est retiré ; une réflexion jamais refermée aussi.
 function sansPensee(texte) {
@@ -277,4 +290,4 @@ async function discuter({ messages, modele, envoyer, limites, ctx, ev = {}, opti
   return { fini: false, historique };
 }
 
-module.exports = { sansPensee, MAX_STEPS, REFUS_ECRITURE, executerOutil, discuter, ecrireAvecAccord };
+module.exports = { sansPensee, sansCloture, MAX_STEPS, REFUS_ECRITURE, executerOutil, discuter, ecrireAvecAccord };

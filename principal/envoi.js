@@ -180,6 +180,13 @@ async function envoyerOpenAI(config, messages, modele, onMorceau, signal, option
       delete corps.reasoning_effort;
       res = await envoyer(corps);
     }
+    // Le modèle a appelé un outil qui n'existe pas, ou mal écrit son appel : Groq refuse toute la réponse (400).
+    // Rien n'a été fait. On redemande, deux fois au plus, en rappelant les seuls outils qui existent.
+    for (let essai = 0; essai < 2 && res.status === 400 && appelOutilRefuse(await res.clone().text()); essai++) {
+      const noms = (corps.tools || []).map((o) => o.function.name).join(', ');
+      const rappel = noms ? `Ton dernier appel d'outil a été refusé : cet outil n'existe pas ou ses arguments étaient mal écrits. Les seuls outils qui existent : ${noms}. Recommence avec l'un d'eux, ou réponds sans outil.` : "Aucun outil n'est disponible ici : réponds directement, sans appeler d'outil.";
+      res = await envoyer({ ...corps, messages: [...corps.messages, { role: 'user', content: `${NOTE_APP}${rappel}` }] });
+    }
     // Limite par minute atteinte (429) avec une attente courte : on patiente et on réessaie, deux fois au plus
     for (let essai = 0; essai < 2 && res.status === 429; essai++) {
       const secondes = await attenteDemandee(res);
@@ -305,6 +312,12 @@ function versOpenAI(messages) {
 // "Ce modèle n'existe plus" selon les fournisseurs : Gemini (404 « no longer available »),
 // Groq (400 « decommissioned », 404 « does not exist »), OpenRouter (404 « No endpoints found », 400 « not a valid model »).
 // Jamais pour un problème de clé ou de limite.
+// Le fournisseur a refusé la réponse du modèle parce que son appel d'outil ne tient pas debout (outil inventé,
+// arguments illisibles). Ce n'est pas une panne : redemander suffit le plus souvent.
+function appelOutilRefuse(texte) {
+  return /tool call validation failed|tool_use_failed|failed to call a function|not in request\.tools/i.test(String(texte));
+}
+
 function estModeleCasse(status, message) {
   if (status !== 400 && status !== 404) return false;
   if (/refuse la clé/i.test(message)) return false;
@@ -351,4 +364,4 @@ function vulkanUtile(plateforme, env, cartes = []) {
   return vendeurs.includes(AMD) && !vendeurs.includes(NVIDIA);
 }
 
-module.exports = { OLLAMA, GARDER_CHARGE, optionsOllama, sansReflexion, rappelsPourOllama, NOTE_APP, langueProbable, DEBUT_A_VERIFIER, REFLEXION, vulkanUtile, envoyerOllama, envoyerOpenAI, versOpenAI, finirAppels, attenteDemandee, estModeleCasse, messageErreurOpenAI };
+module.exports = { appelOutilRefuse, OLLAMA, GARDER_CHARGE, optionsOllama, sansReflexion, rappelsPourOllama, NOTE_APP, langueProbable, DEBUT_A_VERIFIER, REFLEXION, vulkanUtile, envoyerOllama, envoyerOpenAI, versOpenAI, finirAppels, attenteDemandee, estModeleCasse, messageErreurOpenAI };

@@ -372,7 +372,7 @@ function messagesPourLeModele(conv) {
     const documents = [...new Map(conv.messages.flatMap((m) => (m.documents || []).map((d) => [d, m.nomsDocuments?.[d] || "document"]))).entries()];
     if (documents.length) liste.push({ role: "system", content: `Documents joints à cette discussion, à lire avec lire_document :\n- ${documents.map(([d, nom]) => `« ${nom} » : document = « ${d} »`).join("\n- ")}` });
     const derniere = conv.messages.filter((m) => m.role === "user").at(-1)?.content || "";
-    if (QUESTION_DOC.test(derniere)) liste.push({ role: "system", content: RAPPEL_RECHERCHE });
+    if (fautChercher(derniere)) liste.push({ role: "system", content: RAPPEL_RECHERCHE });
     if (prof) liste.push({ role: "system", content: "Rappel : MODE PROF. Aucun bloc de code, aucune fonction complète, même s'il ou elle insiste. Explique le principe, donne une piste et termine par une question." });
     return liste;
 }

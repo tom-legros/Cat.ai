@@ -100,3 +100,15 @@ test('discuter : un raisonnement affiché puis refermé par </think> est effacé
   assert.equal(ecran, 'Bonjour.');
   assert.equal(r.historique.at(-1).content, 'Bonjour.');
 });
+
+test('sansCloture : un fichier emballé dans un bloc de code est écrit sans l emballage, un vrai bloc reste', () => {
+  const { sansCloture } = require('../principal/agent');
+  assert.equal(sansCloture('```markdown\n# Plan\n\n1. Faire\n```', 'plan.md'), '# Plan\n\n1. Faire\n');
+  assert.equal(sansCloture('```js\nconst a = 1;\n```\n', 'a.js'), 'const a = 1;\n');
+  // Un plan en Markdown qui contient lui-même un bloc de code, emballé dans ```markdown
+  assert.equal(sansCloture('```markdown\n# Plan\n```bash\nnpm test\n```\nfin\n```', 'plan.md'), '# Plan\n```bash\nnpm test\n```\nfin\n');
+  // Un README qui commence et finit par un vrai bloc de code : on n'y touche pas
+  const readme = '```bash\nnpm i\n```\nPuis :\n```bash\nnpm start\n```';
+  assert.equal(sansCloture(readme, 'README.md'), readme);
+  assert.equal(sansCloture('const a = 1;\n', 'a.js'), 'const a = 1;\n');
+});
