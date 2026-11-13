@@ -495,6 +495,8 @@ const ACTIONS = {
     "refus-lecture": (a) => `Tu as refusé : ${a.chemin} n'a pas été lu`,
     "refus-page": (a) => `Tu as refusé : la page ${a.url} n'a pas été lue`,
     refus: (a) => `Refusé : ${a.chemin} n'a pas changé (mode prof)`,
+    lister_connecteur: () => "Consulte le catalogue du connecteur",
+    lire_connecteur: () => "Demande une lecture au connecteur",
     verifier_godot: () => "Propose de vérifier le projet Godot",
     lancer_tests: () => "Demande à lancer les tests du projet",
     bilan_tests: (a) => a.bilan,
@@ -1516,6 +1518,21 @@ function appliquerPerso() {
 
 // Fenêtre Réglages : fournisseur, modèle et clés
 $("#open-reglages").onclick = ouvrirFournisseurs;
+window.api.lireAdresseMcp().then((adresse) => { if (!$("#mcp-adresse").value) $("#mcp-adresse").value = adresse; });
+$("#mcp-form").onsubmit = async (e) => {
+    e.preventDefault();
+    const champ = $("#mcp-adresse");
+    const statut = $("#mcp-statut");
+    try {
+        const resultat = await window.api.enregistrerAdresseMcp(champ.value.trim());
+        statut.textContent = resultat.erreur || (resultat.adresse ? "Connecteur enregistré." : "Connecteur désactivé.");
+        if (!resultat.erreur) {
+            champ.value = resultat.adresse;
+            dejaPrechauffe = "";
+            prechauffer();
+        }
+    } catch { statut.textContent = "Impossible d’enregistrer le connecteur."; }
+};
 $("#close-reglages").onclick = () => ($("#reglages-modal").hidden = true);
 $("#reglages-modal").onclick = (e) => { if (e.target.id === "reglages-modal") e.target.hidden = true; };
 

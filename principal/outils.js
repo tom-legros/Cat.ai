@@ -2,6 +2,7 @@
 // et les petites fonctions qui travaillent sur leurs arguments. Que des fonctions pures.
 
 // ---------- Outils que le modèle peut utiliser ----------
+const OUTILS_MCP = new Set(['lister_connecteur', 'lire_connecteur']);
 const TOOLS = [
   {
     type: 'function',
@@ -130,6 +131,9 @@ const TOOLS = [
       parameters: { type: 'object', properties: { url: { type: 'string', description: "Adresse complète de la page, qui commence par https://" } }, required: ['url'] },
     },
   },
+  // Connecteur MCP en dernier : quand on l'active, le début de la liste (gardé en mémoire par Ollama) ne change pas
+  { type: 'function', function: { name: 'lister_connecteur', description: 'Liste les outils en lecture seule du connecteur local lorsque l’utilisateur demande de l’utiliser.', parameters: { type: 'object', properties: {}, additionalProperties: false } } },
+  { type: 'function', function: { name: 'lire_connecteur', description: 'Lit des informations via un outil trouvé par lister_connecteur. Demande toujours confirmation.', parameters: { type: 'object', properties: { nom: { type: 'string' }, parametres: { type: 'string', description: 'Objet JSON encodé en texte, ou {}.' } }, required: ['nom', 'parametres'] } } },
 ];
 
 // En mode prof, le chat n'a pas le droit d'écrire : il explique, l'utilisateur code.
@@ -141,6 +145,7 @@ const OUTILS_PROJET = new Set(['lister_fichiers', 'lire_fichier', 'chercher', 'e
 const outilsPour = (mode) => TOOLS.filter(({ function: { name } }) => {
   if (mode?.projet === false && OUTILS_PROJET.has(name)) return false;
   if (mode?.documents === false && name === 'lire_document') return false;
+  if (OUTILS_MCP.has(name)) return mode?.connecteur === true;
   if ((name === 'lancer_tests' || name === 'verifier_godot')) return peutEcrire(mode);
   return peutEcrire(mode) || !OUTILS_ECRITURE.has(name);
 });

@@ -157,4 +157,5 @@ test('sans projet ni document, seuls les outils utilisables sont proposés', () 
   assert.ok(!noms({ projet: false, documents: true }).includes('lire_fichier'));
   assert.ok(noms({ projet: true, documents: false }).includes('lancer_tests'));
   assert.ok(!noms({ projet: true, documents: false }).includes('lire_document'));
+  assert.ok(noms({ projet: false, documents: false, connecteur: true }).includes('lire_connecteur'));
 });

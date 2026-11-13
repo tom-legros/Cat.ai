@@ -7,6 +7,8 @@ contextBridge.exposeInMainWorld('api', {
   lireFournisseurs: () => ipcRenderer.invoke('fournisseurs-lire'),
   enregistrerFournisseur: (payload) => ipcRenderer.invoke('fournisseurs-enregistrer', payload),
   choisirFournisseur: (payload) => ipcRenderer.invoke('fournisseurs-choisir', payload),
+  lireAdresseMcp: () => ipcRenderer.invoke('mcp-lire-adresse'),
+  enregistrerAdresseMcp: (adresse) => ipcRenderer.invoke('mcp-enregistrer-adresse', adresse),
   demandeMemoire: (texte) => ipcRenderer.invoke('memoire-demande', texte),
   chat: (payload) => ipcRenderer.send('chat', payload),
   stop: (id) => ipcRenderer.send('chat-stop', id),

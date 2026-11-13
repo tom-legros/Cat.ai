@@ -135,6 +135,12 @@
       <h2 class="fenetre__titre fenetre__titre--suite">Mes clés</h2>
       <p class="discret">Pour les cerveaux en ligne, il faut une clé gratuite : clique sur « Obtenir une clé », copie-la, colle-la ici. <span id="protection-cles">Elle reste secrète sur ton PC.</span></p>
       <div id="fournisseurs-liste" class="fournisseurs"></div>
+      <h2 class="fenetre__titre fenetre__titre--suite">Connecteur MCP local</h2>
+      <form id="mcp-form" class="enregistrer">
+        <input id="mcp-adresse" type="url" aria-label="Adresse du connecteur MCP local" placeholder="http://127.0.0.1:8765/mcp">
+        <button class="bouton" type="submit">Enregistrer</button>
+      </form>
+      <p id="mcp-statut" class="conseil" aria-live="polite"></p>
       <div class="rangee rangee--fin"><button id="close-reglages" class="lien" type="button">Fermer</button></div>
     </div>
   </div>
