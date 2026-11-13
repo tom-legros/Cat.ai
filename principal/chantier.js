@@ -1,9 +1,10 @@
 // Mode chantier : coder pendant que l'utilisateur n'est pas là, à partir d'un plan détaillé.
 //
-//   chef         découpe le plan en petites étapes, puis relit chaque étape (le modèle le plus malin dispo :
-//                Gemini gratuit, sinon le même que l'ouvrier)
-//   ouvrier      code une étape avec les outils du projet (le modèle local : gratuit, sans limite)
-//   tests        après chaque étape, les tests du projet ; une étape ne passe que s'ils réussissent
+//   chef         découpe le plan en petites étapes et donne chacune à un codeur (le modèle le plus malin dispo)
+//   codeurs      codent une étape avec les outils du projet (un modèle local : gratuit, sans limite)
+//   contrôles    après chaque étape, dans l'ordre : les tests du projet, puis les relecteurs. Une étape ne passe
+//                que si tous acceptent. Un lecteur de logs peut expliquer au codeur pourquoi les tests cassent.
+// L'équipe se compose dans la page Agents de l'app (principal/equipe.js).
 //
 // Tout se passe dans une COPIE : une branche git à part, dans un dossier à part (git worktree). L'ouvrier y écrit
 // sans fenêtre de confirmation, puisque rien ne touche aux fichiers de l'utilisateur ; chaque étape réussie y est
@@ -43,7 +44,7 @@ function etapesDepuis(reponse) {
   const j = lireJson(reponse);
   const liste = Array.isArray(j) ? j : Array.isArray(j?.etapes) ? j.etapes : [];
   return liste
-    .map((e) => ({ titre: String(e?.titre || '').trim().slice(0, 120), consigne: String(e?.consigne || '').trim().slice(0, 2000) }))
+    .map((e) => ({ titre: String(e?.titre || '').trim().slice(0, 120), consigne: String(e?.consigne || '').trim().slice(0, 2000), ...(e?.agent ? { agent: String(e.agent).trim().slice(0, 40) } : {}) }))
     .filter((e) => e.titre && e.consigne)
     .slice(0, MAX_ETAPES);
 }
@@ -70,6 +71,16 @@ N'ajoute AUCUNE étape de vérification, de relecture, de test à lancer ou de �
 automatiquement après chaque étape. Ne refais pas ce qui existe déjà dans le projet.
 Chaque consigne doit se suffire à elle-même : nomme les fichiers et les fonctions, dis exactement quoi changer.
 Réponds UNIQUEMENT avec du JSON, sans rien autour : [{"titre": "...", "consigne": "..."}, ...] (15 étapes au plus).`;
+
+// Avec plusieurs codeurs, le chef dit lequel fait chaque étape
+const consigneEquipe = (codeurs) => `
+
+Plusieurs codeurs sont disponibles. Donne chaque étape à celui qui convient le mieux, avec son nom exact :
+${codeurs.map((c) => `- ${c.nom}${c.specialite ? ` : ${c.specialite}` : ''}`).join('\n')}
+Le JSON devient : [{"titre": "...", "consigne": "...", "agent": "nom du codeur"}, ...]`;
+
+const CONSIGNE_LOGS = `Des tests échouent après le changement d'un autre modèle. Lis leur sortie et le changement.
+Réponds en 5 lignes au plus, sans réécrire le code : quel test casse, pourquoi, et quoi corriger précisément (fichier, fonction).`;
 
 // Dans la sortie des tests, les lignes qui disent ce qui casse : le nom du test raté et l'erreur
 function lignesEchec(sortie) {
@@ -98,13 +109,19 @@ Les modifications sont appliquées directement. Quand l'étape est faite, répon
 // opts :
 //   projet           dossier du projet (dépôt git)
 //   plan             texte du plan
-//   chef / ouvrier   { envoyer, modele, limites } (envoyer : même forme qu'envoyerOllama)
-//   verificateur     même forme : il relit chaque étape après les tests (le chef, s'il n'est pas donné)
+//   chef             { envoyer, modele } (envoyer : même forme qu'envoyerOllama)
+//   codeurs          [{ nom, specialite, envoyer, modele, limites, controles }], controles dans l'ordre :
+//                      { type: 'tests', logs?: { envoyer, modele } }   les tests du projet, s'il en a
+//                      { type: 'relecture', nom, envoyer, modele }    un relecteur
+//   ouvrier / verificateur   l'ancienne forme, sans équipe : un codeur, les tests, puis une relecture (par le chef
+//                    si verificateur n'est pas donné)
 //   dossierCopies    où créer la copie de travail
 //   ev               { etape(i, n, titre), info(texte), morceau(texte) } pour suivre l'avancement
 //   signal           pour arrêter
 // Renvoie { branche, copie, etapes: [{ titre, ok, essais, raison? }], rapport }
-async function lancerChantier({ projet, plan, chef, ouvrier, verificateur = chef, dossierCopies, ev = {}, signal, nom = horodatage() }) {
+async function lancerChantier({ projet, plan, chef, codeurs, ouvrier, verificateur = chef, dossierCopies, ev = {}, signal, nom = horodatage() }) {
+  codeurs ||= [{ ...ouvrier, nom: 'Codeur', controles: [{ type: 'tests' }, { type: 'relecture', nom: 'relecture', envoyer: verificateur.envoyer, modele: verificateur.modele }] }];
+  if (!codeurs.length) throw new Error('Il faut au moins un codeur.');
   const racine = git(projet, 'rev-parse', '--show-toplevel');
   const branche = `catai/chantier-${nom}`;
   const copie = path.join(dossierCopies, `chantier-${nom}`);
@@ -118,23 +135,59 @@ async function lancerChantier({ projet, plan, chef, ouvrier, verificateur = chef
 
   ev.info?.(`Copie de travail : ${copie} (branche ${branche})`);
   const decoupe = await demander(chef.envoyer, chef.modele, [
-    { role: 'system', content: CONSIGNE_DECOUPE },
+    { role: 'system', content: CONSIGNE_DECOUPE + (codeurs.length > 1 ? consigneEquipe(codeurs) : '') },
     { role: 'user', content: `Fichiers du projet :\n${listFiles(copie).slice(0, 200).join('\n')}\n\nLe plan :\n${plan}` },
   ], signal);
   const etapes = etapesDepuis(decoupe);
   if (!etapes.length) throw new Error("Le chef n'a pas réussi à découper le plan en étapes. Écris un plan plus précis (une liste de choses à faire).");
 
-  // L'ouvrier écrit sans fenêtre, seulement dans la copie (cheminSur l'empêche d'en sortir) ; tout le reste est refusé
-  const ctx = {
+  // Un codeur écrit sans fenêtre, seulement dans la copie (cheminSur l'empêche d'en sortir) ; tout le reste est refusé
+  const ctxPour = (codeur) => ({
     projet: () => copie, ouvrirProjet: () => {}, reglages: () => ({}), dossierDocuments: copie, prof: false,
-    liensDonnes: [], documentsJoints: new Set(), signal, maxExtrait: ouvrier.limites ? ouvrier.limites.resultatOutil - 500 : 20000,
+    liensDonnes: [], documentsJoints: new Set(), signal, maxExtrait: codeur.limites ? codeur.limites.resultatOutil - 500 : 20000,
     fournisseurLocal: true, nomFournisseur: '',
     ui: { demander: async () => false, confirmerEcriture: async () => true, choisirExecutable: async () => null },
-  };
+  });
+  // Le codeur nommé par le chef, sinon le premier
+  const codeurDe = (etape) => codeurs.find((c) => c.nom.toLowerCase() === etape.agent?.toLowerCase()) || codeurs[0];
+
+  // Un contrôle après l'essai d'une étape. Renvoie '' si c'est bon, sinon la remarque pour le codeur.
+  async function controler(controle, etape, diff) {
+    if (controle.type === 'tests') {
+      if (!aDesTests()) return '';
+      const bilan = await lancerTestsNode(copie, signal);
+      if (bilan.startsWith('Tests réussis')) { ev.info?.('  tests : réussis'); return ''; }
+      const echec = lignesEchec(bilan);
+      ev.info?.(`  tests : échec${echec ? ` (${echec.split('\n')[0].slice(0, 100)})` : ''}`);
+      let diagnostic = '';
+      if (controle.logs) {
+        try {
+          diagnostic = (await demander(controle.logs.envoyer, controle.logs.modele, [
+            { role: 'system', content: CONSIGNE_LOGS },
+            { role: 'user', content: `Consigne de l'étape : ${etape.titre}\n${etape.consigne}\n\nLe changement :\n${diff.slice(0, 4000)}\n\nSortie des tests :\n${bilan.slice(0, 6000)}` },
+          ], signal)).trim().slice(0, 1200);
+          if (diagnostic) ev.info?.(`  logs : ${diagnostic.split('\n')[0].slice(0, 120)}`);
+        } catch (err) {
+          if (err.name === 'AbortError') throw err;
+          ev.info?.(`  logs : pas de diagnostic (${err.message})`);
+        }
+      }
+      const resume = diagnostic ? `Diagnostic :\n${diagnostic}` : echec ? `En bref :\n${echec}` : '';
+      return `Les tests échouent après ton changement. ${resume ? `${resume}\n\nSortie complète :\n` : ''}${bilan.slice(0, 3000)}`;
+    }
+    const avis = avisDepuis(await demander(controle.envoyer, controle.modele, [
+      { role: 'system', content: CONSIGNE_RELECTURE },
+      { role: 'user', content: `Consigne de l'étape : ${etape.titre}\n${etape.consigne}\n\nLe changement :\n${diff.slice(0, 12000)}` },
+    ], signal));
+    if (avis.ok) return '';
+    ev.info?.(`  ${controle.nom || 'relecture'} : refusée (${avis.remarque.slice(0, 120)})`);
+    return avis.remarque || 'Le relecteur a refusé cette étape.';
+  }
   const resultats = [];
   for (const [i, etape] of etapes.entries()) {
     if (signal?.aborted) break;
-    ev.etape?.(i + 1, etapes.length, etape.titre);
+    const codeur = codeurDe(etape);
+    ev.etape?.(i + 1, etapes.length, codeurs.length > 1 ? `${etape.titre} (${codeur.nom})` : etape.titre);
     let remarque = '';
     let reussie = false;
     let essais = 0;
@@ -145,28 +198,19 @@ async function lancerChantier({ projet, plan, chef, ouvrier, verificateur = chef
       git(copie, 'clean', '-fdq', '-e', 'node_modules');
       await discuter({
         messages: [{ role: 'user', content: consigneOuvrier(plan, etape, resultats.filter((r) => r.ok), remarque) }],
-        modele: ouvrier.modele, envoyer: ouvrier.envoyer, limites: ouvrier.limites, ctx,
+        modele: codeur.modele, envoyer: codeur.envoyer, limites: codeur.limites, ctx: ctxPour(codeur),
         options: { seulement: OUTILS_OUVRIER, projet: true, documents: false },
         ev: { morceau: ev.morceau, outil: (nom, a) => ev.info?.(`  ${nom} ${a?.chemin || a?.texte || ''}`.trimEnd()) },
       });
       git(copie, 'add', '-A');
       const diff = git(copie, 'diff', '--cached');
       if (!diff) { remarque = "Rien n'a été modifié. Fais vraiment les changements demandés avec les outils."; continue; }
-      if (aDesTests()) {
-        const bilan = await lancerTestsNode(copie, signal);
-        if (!bilan.startsWith('Tests réussis')) {
-          const echec = lignesEchec(bilan);
-          remarque = `Les tests échouent après ton changement. ${echec ? `En bref :\n${echec}\n\nSortie complète :\n` : ''}${bilan.slice(0, 3000)}`;
-          ev.info?.(`  tests : échec${echec ? ` (${echec.split('\n')[0].slice(0, 100)})` : ''}`);
-          continue;
-        }
-        ev.info?.('  tests : réussis');
+      remarque = '';
+      for (const controle of codeur.controles || []) {
+        remarque = await controler(controle, etape, diff);
+        if (remarque) break;
       }
-      const avis = avisDepuis(await demander(verificateur.envoyer, verificateur.modele, [
-        { role: 'system', content: CONSIGNE_RELECTURE },
-        { role: 'user', content: `Consigne de l'étape : ${etape.titre}\n${etape.consigne}\n\nLe changement :\n${diff.slice(0, 12000)}` },
-      ], signal));
-      if (!avis.ok) { remarque = avis.remarque; ev.info?.(`  relecture : refusée (${avis.remarque.slice(0, 120)})`); continue; }
+      if (remarque) continue;
       git(copie, '-c', 'user.name=Cat Ai', '-c', 'user.email=chantier@cat-ai.invalid', 'commit', '-q', '-m', `Chantier, étape ${i + 1} : ${etape.titre}`);
       reussie = true;
     }

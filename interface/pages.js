@@ -25,19 +25,31 @@ document.querySelectorAll(".nav__lien").forEach((b) => b.addEventListener("click
 $("#new-chat").addEventListener("click", () => voirPage("discussion"));
 $("#conv-list").addEventListener("click", () => voirPage("discussion"));
 
+// Un élément avec sa classe et son texte : moins de lignes pour construire la page
+function creer(balise, classe, texte) {
+    const el = document.createElement(balise);
+    if (classe) el.className = classe;
+    if (texte !== undefined) el.textContent = texte;
+    return el;
+}
 
-/* ---------- 11. Page Agents ---------- */
-const AGENTS = {
-    chef: { nom: "Chef", icone: "couronne", role: "Il découpe ton plan en étapes, une par une." },
-    ouvrier: { nom: "Ouvrier", icone: "marteau", role: "Il écrit le code de chaque étape, dans une copie à part de ton projet." },
-    verificateur: { nom: "Vérificateur", icone: "coche", role: "Après les tests de ton projet, il relit le changement et dit si l'étape est bonne." }
+
+/* ---------- 11. Page Agents : l'arbre de l'équipe ---------- */
+// Les règles de l'arbre (qui va sous qui, combien) sont dans principal/equipe.js : ici, on dessine et on demande.
+const GENRES = {
+    chef: { icone: "couronne", couleur: "jaune", role: "Découpe ton plan et distribue les étapes." },
+    codeur: { icone: "code", couleur: "bleu", role: "Écrit le code de ses étapes, dans une copie de ton projet." },
+    testeur: { icone: "coche", couleur: "vert", role: "Lance les tests de ton projet après chaque étape." },
+    logs: { icone: "serveur", couleur: "gris", role: "Quand un test casse, il lit la sortie et dit quoi corriger." },
+    relecteur: { icone: "lunettes", couleur: "rose", role: "Compare le changement à la consigne : il accepte ou refuse." }
 };
-const COMME_LE_CHEF = "comme-le-chef";
-let roles = null;
+let equipe = null;          // { agents: [{ id, type, nom, parent, fournisseur, modele, ajouts… }], types }
 let agentOuvert = "chef";
-const modelesParFournisseur = {}; // { ollama: ["qwen3:8b", …] }, demandés une fois par ouverture de la page
+let menuAjout = "";         // id de l'agent dont le menu « + » est ouvert
+const modelesParFournisseur = {}; // demandés une fois par ouverture de la page
 
-const nomFournisseur = (id) => reglages.fournisseurs.find((f) => f.id === id)?.nom || id;
+const nomFournisseur = (id) => reglages.fournisseurs.find((f) => f.id === id)?.nom.replace(/ \(local\)$/, "") || id;
+const agentDe = (id) => equipe.agents.find((a) => a.id === id);
 
 async function modelesDe(fournisseurId) {
     if (!modelesParFournisseur[fournisseurId]) {
@@ -48,110 +60,188 @@ async function modelesDe(fournisseurId) {
     return modelesParFournisseur[fournisseurId];
 }
 
-function dessinerSchema() {
-    const schema = $("#schema");
-    schema.replaceChildren();
-    Object.entries(AGENTS).forEach(([id, agent], i) => {
-        if (i) {
-            const fleche = document.createElement("span");
-            fleche.className = "schema__fleche";
-            fleche.innerHTML = icone("fleche");
-            schema.appendChild(fleche);
+function sousTitre(agent) {
+    if (!agent.avecModele) return "tests du projet";
+    if (!agent.modele) return "aucun modèle";
+    // Sur le PC, le nom du modèle suffit ; en ligne, on dit chez qui
+    return agent.fournisseur === "ollama" ? agent.modele : `${nomFournisseur(agent.fournisseur)} · ${agent.modele}`;
+}
+
+function dessinerNoeud(agent) {
+    const li = creer("li");
+    const genre = GENRES[agent.type];
+    const carte = creer("div", "noeud" + (agent.id === agentOuvert ? " is-ouvert" : ""));
+    const bouton = creer("button", "noeud__carte");
+    bouton.type = "button";
+    bouton.setAttribute("aria-pressed", String(agent.id === agentOuvert));
+    bouton.innerHTML = `<span class="menu-icone menu-icone--${genre.couleur}">${icone(genre.icone)}</span>`
+        + `<span class="noeud__texte"><span class="noeud__nom">${escape(agent.nom)}</span><span class="noeud__qui">${escape(sousTitre(agent))}</span></span>`;
+    bouton.addEventListener("click", () => { agentOuvert = agent.id; menuAjout = ""; dessinerAgents(); });
+    carte.appendChild(bouton);
+    if (agent.ajouts.length) {
+        const plus = creer("button", "noeud__plus");
+        plus.type = "button";
+        plus.title = "Ajouter un agent dessous";
+        plus.setAttribute("aria-label", `Ajouter un agent sous ${agent.nom}`);
+        plus.innerHTML = icone("plus");
+        plus.addEventListener("click", (e) => { e.stopPropagation(); menuAjout = menuAjout === agent.id ? "" : agent.id; dessinerToile(); });
+        carte.appendChild(plus);
+        if (menuAjout === agent.id) {
+            const menu = creer("div", "noeud__menu");
+            for (const type of agent.ajouts) {
+                const choix = creer("button", "noeud__choix");
+                choix.type = "button";
+                choix.innerHTML = `<span class="menu-icone menu-icone--petite menu-icone--${GENRES[type].couleur}">${icone(GENRES[type].icone)}</span>${escape(equipe.types[type])}`;
+                choix.title = GENRES[type].role;
+                choix.addEventListener("click", () => changerEquipe(window.api.ajouterAgent(agent.id, type), true));
+                menu.appendChild(choix);
+            }
+            carte.appendChild(menu);
         }
-        const choix = roles[id];
-        const bouton = document.createElement("button");
-        bouton.type = "button";
-        bouton.className = "agent" + (id === agentOuvert ? " is-ouvert" : "");
-        bouton.setAttribute("aria-pressed", String(id === agentOuvert));
-        const qui = id === "verificateur" && roles.verificateurCommeChef ? "Les tests, puis le chef" : `${nomFournisseur(choix.fournisseur)} · ${choix.modele || "aucun modèle"}`;
-        bouton.innerHTML = `<span class="agent__nom">${icone(agent.icone)}${escape(agent.nom)}</span><span class="agent__qui">${escape(qui)}</span>`;
-        bouton.addEventListener("click", () => { agentOuvert = id; dessinerAgents(); });
-        schema.appendChild(bouton);
-    });
+    }
+    li.appendChild(carte);
+    const dessous = equipe.agents.filter((a) => a.parent === agent.id);
+    if (dessous.length) {
+        const ul = creer("ul");
+        dessous.forEach((a) => ul.appendChild(dessinerNoeud(a)));
+        li.appendChild(ul);
+    }
+    return li;
 }
 
-// Le conseil sous les listes : ce que le choix change vraiment pour un chantier de plusieurs heures
-function conseilAgent(id) {
-    const choix = roles[id];
-    if (id === "verificateur" && roles.verificateurCommeChef) return "Le chef relit lui-même : c'est le plus simple.";
-    if (!choix.modele) return "Aucun modèle choisi : installe-en un dans la page Modèles.";
-    if (choix.fournisseur !== "ollama") return "En ligne : plus malin pour découper et relire. Chaque étape lui coûte quelques messages de ton quota gratuit.";
-    if (id === "ouvrier") return "Sur ton PC : aucune limite, il peut coder pendant des heures.";
-    if (choix.modele !== roles.ouvrier.modele) return "Deux modèles différents sur ton PC : Ollama les échange à chaque étape, c'est plus lent.";
-    return "Sur ton PC : aucune limite, mais il relit moins bien qu'un modèle en ligne.";
+function dessinerToile() {
+    const arbre = creer("ul", "arbre");
+    arbre.appendChild(dessinerNoeud(equipe.agents.find((a) => a.type === "chef")));
+    $("#toile").replaceChildren(arbre);
 }
 
-async function dessinerFiche() {
-    const id = agentOuvert;
-    const agent = AGENTS[id];
-    const choix = roles[id];
-    $("#agent-titre").textContent = agent.nom;
-    $("#agent-role").textContent = agent.role;
-    const selFournisseur = $("#agent-fournisseur");
-    const selModele = $("#agent-modele");
-    const commeChef = id === "verificateur" && roles.verificateurCommeChef;
-    // L'ouvrier reste sur le PC : sinon un long chantier viderait le quota gratuit du jour
-    const possibles = reglages.fournisseurs.filter((f) => (id === "ouvrier" ? f.type === "ollama" : true));
-    selFournisseur.innerHTML = (id === "verificateur" ? `<option value="${COMME_LE_CHEF}">Comme le chef</option>` : "")
-        + possibles.map((f) => `<option value="${escape(f.id)}"${f.aCle ? "" : " disabled"}>${escape(f.nom)}${f.aCle ? "" : " (pas de clé)"}</option>`).join("");
-    selFournisseur.value = commeChef ? COMME_LE_CHEF : choix.fournisseur;
-    selFournisseur.disabled = id === "ouvrier";
-    selModele.disabled = commeChef;
-    const modeles = await modelesDe(choix.fournisseur);
-    if (id !== agentOuvert) return; // un autre agent a été ouvert pendant la requête
-    const liste = choix.modele && !modeles.includes(choix.modele) ? [choix.modele, ...modeles] : modeles;
-    selModele.innerHTML = liste.map((m) => `<option value="${escape(m)}">${escape(m)}</option>`).join("");
-    selModele.value = choix.modele;
-    const conseil = $("#agent-conseil");
-    conseil.textContent = conseilAgent(id);
-    conseil.className = "conseil";
+// Une ligne de conseil, seulement quand le choix a une conséquence
+function conseilAgent(agent) {
+    if (!agent.avecModele) return "";
+    if (!agent.modele) return "Aucun modèle : installe-en un dans la page Modèles.";
+    if (agent.fournisseur !== "ollama") return "En ligne : plus malin, mais chaque étape prend sur ton quota gratuit.";
+    const locaux = new Set(equipe.agents.filter((a) => a.fournisseur === "ollama" && a.modele).map((a) => a.modele));
+    return locaux.size > 1 ? "Plusieurs modèles sur ton PC : Ollama les échange, c'est plus lent." : "";
+}
+
+function champ(etiquette, controle) {
+    const bloc = creer("label", "fiche__champ");
+    bloc.append(creer("span", "fiche__etiquette", etiquette), controle);
+    return bloc;
+}
+
+function dessinerFiche() {
+    const agent = agentDe(agentOuvert) || agentDe("chef");
+    const genre = GENRES[agent.type];
+    const fiche = $("#fiche");
+    const tete = creer("div", "fiche__tete");
+    tete.innerHTML = `<span class="menu-icone menu-icone--${genre.couleur}">${icone(genre.icone)}</span><span><span class="fiche__genre">${escape(equipe.types[agent.type])}</span><span class="fiche__role">${escape(genre.role)}</span></span>`;
+    const erreur = creer("p", "fiche__erreur");
+    const modifier = async (changement) => {
+        const ok = await changerEquipe(window.api.modifierAgent(agent.id, changement));
+        if (ok !== true) erreur.textContent = ok;
+    };
+
+    const nom = creer("input");
+    nom.value = agent.nom;
+    nom.maxLength = 30;
+    nom.addEventListener("change", () => modifier({ nom: nom.value }));
+    const blocs = [tete, champ("Nom", nom)];
+
+    if (agent.type === "codeur") {
+        const specialite = creer("input");
+        specialite.value = agent.specialite || "";
+        specialite.maxLength = 120;
+        specialite.placeholder = "interface, tests, base de données…";
+        specialite.addEventListener("change", () => modifier({ specialite: specialite.value }));
+        blocs.push(champ("Spécialité, pour que le chef distribue", specialite));
+    }
+
+    if (agent.avecModele) {
+        const selFournisseur = creer("select");
+        // Un codeur reste sur le PC : sinon un long chantier viderait le quota gratuit du jour
+        const possibles = reglages.fournisseurs.filter((f) => !agent.local || f.type === "ollama");
+        selFournisseur.innerHTML = possibles.map((f) => `<option value="${escape(f.id)}"${f.aCle ? "" : " disabled"}>${escape(f.nom)}${f.aCle ? "" : " (pas de clé)"}</option>`).join("");
+        selFournisseur.value = agent.fournisseur;
+        selFournisseur.disabled = possibles.length < 2;
+        const selModele = creer("select");
+        selFournisseur.addEventListener("change", async () => {
+            const fournisseur = selFournisseur.value;
+            const modeles = await modelesDe(fournisseur);
+            if (!modeles.length) { erreur.textContent = `${nomFournisseur(fournisseur)} ne répond pas, ou n'a aucun modèle.`; selFournisseur.value = agent.fournisseur; return; }
+            const retenu = reglages.modeles[fournisseur];
+            modifier({ fournisseur, modele: modeles.includes(retenu) ? retenu : modeleParDefaut(modeles, fournisseur) });
+        });
+        selModele.addEventListener("change", () => modifier({ fournisseur: agent.fournisseur, modele: selModele.value }));
+        blocs.push(champ("Fournisseur", selFournisseur), champ("Modèle", selModele));
+        modelesDe(agent.fournisseur).then((modeles) => {
+            const liste = agent.modele && !modeles.includes(agent.modele) ? [agent.modele, ...modeles] : modeles;
+            selModele.innerHTML = liste.map((m) => `<option value="${escape(m)}">${escape(m)}</option>`).join("");
+            selModele.value = agent.modele;
+        });
+    }
+
+    const conseil = conseilAgent(agent);
+    if (conseil) blocs.push(creer("p", "fiche__conseil", conseil));
+    blocs.push(erreur);
+    if (agent.type !== "chef") {
+        const dessous = equipe.agents.some((a) => a.parent === agent.id);
+        const retirer = creer("button", "bouton-calme bouton-calme--retirer", dessous ? "Retirer avec ce qui est dessous" : "Retirer");
+        retirer.type = "button";
+        retirer.addEventListener("click", async () => {
+            const parent = agent.parent;
+            const ok = await changerEquipe(window.api.retirerAgent(agent.id));
+            if (ok === true) { agentOuvert = parent; dessinerAgents(); } else erreur.textContent = ok;
+        });
+        blocs.push(retirer);
+    }
+    fiche.replaceChildren(...blocs);
 }
 
 function dessinerAgents() {
-    dessinerSchema();
+    dessinerToile();
     dessinerFiche();
 }
 
-async function changerAgent(choix) {
-    const r = await window.api.changerRole(agentOuvert, choix);
-    if (r.ok) {
-        roles = r.roles;
-        dessinerAgents();
-    } else {
-        $("#agent-conseil").textContent = r.erreur;
-        $("#agent-conseil").className = "conseil is-gourmand";
-    }
+// Applique la réponse de l'app à une demande de changement. Renvoie true, ou le message d'erreur.
+async function changerEquipe(demande, ouvrirNouveau = false) {
+    const r = await demande;
+    if (!r.ok) return r.erreur || "Ça n'a pas marché.";
+    equipe = r;
+    menuAjout = "";
+    if (ouvrirNouveau && r.id) agentOuvert = r.id;
+    dessinerAgents();
+    return true;
 }
 
-$("#agent-fournisseur").addEventListener("change", async (e) => {
-    const fournisseur = e.target.value;
-    if (fournisseur === COMME_LE_CHEF) return changerAgent(null);
-    const modeles = await modelesDe(fournisseur);
-    if (!modeles.length) {
-        $("#agent-conseil").textContent = `${nomFournisseur(fournisseur)} ne répond pas, ou n'a aucun modèle.`;
-        $("#agent-conseil").className = "conseil is-gourmand";
-        return dessinerFiche();
-    }
-    const retenu = reglages.modeles[fournisseur];
-    return changerAgent({ fournisseur, modele: modeles.includes(retenu) ? retenu : modeleParDefaut(modeles, fournisseur) });
+$("#equipe-remettre").addEventListener("click", async () => {
+    agentOuvert = "chef";
+    await changerEquipe(window.api.remettreEquipe());
+    await donnerModelesManquants();
 });
 
-$("#agent-modele").addEventListener("change", (e) => changerAgent({ fournisseur: roles[agentOuvert].fournisseur, modele: e.target.value }));
+// Un clic ailleurs ferme le menu « + »
+$("#page-agents").addEventListener("click", (e) => {
+    if (menuAjout && !e.target.closest(".noeud")) { menuAjout = ""; dessinerToile(); }
+});
+
+// Un agent sans modèle (rien n'a encore été choisi) prend celui de la discussion, sinon le conseillé
+async function donnerModelesManquants() {
+    for (const agent of equipe.agents.filter((a) => a.avecModele && !a.modele)) {
+        const modeles = await modelesDe(agent.fournisseur);
+        const choisi = agent.fournisseur === reglages.actif && modeles.includes(modelSel.value) ? modelSel.value : modeleParDefaut(modeles, agent.fournisseur);
+        if (!choisi) continue;
+        const r = await window.api.modifierAgent(agent.id, { fournisseur: agent.fournisseur, modele: choisi });
+        if (r.ok) equipe = r;
+    }
+    dessinerAgents();
+}
 
 async function ouvrirAgents() {
     for (const id of Object.keys(modelesParFournisseur)) delete modelesParFournisseur[id];
-    roles = await window.api.lireRoles();
-    // Un agent sans modèle (rien n'a encore été choisi) prend celui de la discussion, sinon le conseillé
-    for (const id of ["chef", "ouvrier"]) {
-        const { fournisseur, modele } = roles[id];
-        if (modele) continue;
-        const modeles = await modelesDe(fournisseur);
-        const choisi = fournisseur === reglages.actif && modeles.includes(modelSel.value) ? modelSel.value : modeleParDefaut(modeles, fournisseur);
-        if (!choisi) continue;
-        const r = await window.api.changerRole(id, { fournisseur, modele: choisi });
-        if (r.ok) roles = r.roles;
-    }
-    dessinerAgents();
+    equipe = await window.api.lireEquipe();
+    if (!agentDe(agentOuvert)) agentOuvert = "chef";
+    await donnerModelesManquants();
 }
 
 
@@ -162,38 +252,25 @@ const AVIS = {
     lent: { texte: "Lent chez toi", classe: "avis--lent" },
     trop: { texte: "Trop gros", classe: "avis--trop" }
 };
+const USAGES = { tous: "Tous", general: "Général", code: "Code", images: "Images", reflexion: "Réflexion", installes: "Installés" };
 let catalogue = null;       // { vramGo, ramGo, disqueGo, modeles }
 let installes = [];         // modèles déjà dans Ollama
 let ollamaLa = false;
+let usageChoisi = "tous";
 let enTelechargement = "";  // nom du modèle en cours, vide sinon
 let ligneEnCours = null;    // { barre, texte } de la ligne qui télécharge
 
 const go = (n) => String(n).replace(".", ",");
 
-function infoPc(texte) {
-    const el = document.createElement("span");
-    el.className = "info-pc";
-    el.textContent = texte;
-    return el;
-}
-
 function ligneModele({ modele, detail, avis, action }) {
-    const li = document.createElement("li");
-    li.className = "modele";
-    const texte = document.createElement("div");
-    texte.className = "modele__texte";
-    texte.innerHTML = `<p class="modele__nom">${escape(modele)}</p><p class="modele__detail">${escape(detail)}</p>`;
+    const li = creer("li", "modele");
+    const texte = creer("div", "modele__texte");
+    texte.append(creer("p", "modele__nom", modele), creer("p", "modele__detail", detail));
     li.appendChild(texte);
-    if (avis) {
-        const badge = document.createElement("span");
-        badge.className = `avis ${AVIS[avis].classe}`;
-        badge.textContent = AVIS[avis].texte;
-        li.appendChild(badge);
-    }
+    if (avis) li.appendChild(creer("span", `avis ${AVIS[avis].classe}`, AVIS[avis].texte));
     li.appendChild(action);
     if (modele === enTelechargement) {
-        const suivi = document.createElement("div");
-        suivi.className = "modele__suivi";
+        const suivi = creer("div", "modele__suivi");
         suivi.innerHTML = '<div class="barre"><div class="barre__pleine"></div></div><p class="modele__detail">Ça démarre…</p>';
         li.appendChild(suivi);
         ligneEnCours = { barre: suivi.querySelector(".barre__pleine"), texte: suivi.querySelector("p") };
@@ -201,55 +278,65 @@ function ligneModele({ modele, detail, avis, action }) {
     return li;
 }
 
-function etatModele(texte) {
-    const el = document.createElement("span");
-    el.className = "modele__etat";
-    el.textContent = texte;
-    return el;
-}
+const etatModele = (texte, classe = "") => creer("span", `modele__etat ${classe}`.trim(), texte);
 
-function boutonTelecharger(modele, pourquoiPas) {
-    const b = document.createElement("button");
+function boutonTelecharger(modele) {
+    const b = creer("button", "bouton-calme", "Télécharger");
     b.type = "button";
-    b.className = "bouton bouton--petit";
-    b.textContent = "Télécharger";
-    b.disabled = !!pourquoiPas || !!enTelechargement || telechargement;
-    if (pourquoiPas) b.title = pourquoiPas;
     b.addEventListener("click", () => telechargerDepuisPage(modele));
     return b;
+}
+
+// Ce qu'il y a au bout de la ligne : un état, ou le bouton. Jamais de bouton grisé : on dit pourquoi à la place.
+function actionModele(m) {
+    if (installes.includes(m.modele)) return etatModele("Installé", "is-installe");
+    if (m.modele === enTelechargement) return etatModele("En cours");
+    if (m.avis === "trop") return etatModele(`${m.vram} Go requis`);
+    if (catalogue.disqueGo !== null && m.taille > catalogue.disqueGo) return etatModele("Disque plein");
+    if (!ollamaLa || enTelechargement || telechargement) return etatModele("");
+    return boutonTelecharger(m.modele);
+}
+
+function dessinerFiltres() {
+    const filtres = $("#filtres");
+    filtres.replaceChildren();
+    for (const [id, texte] of Object.entries(USAGES)) {
+        const b = creer("button", "filtre" + (id === usageChoisi ? " is-actif" : ""), texte);
+        b.type = "button";
+        b.setAttribute("role", "tab");
+        b.setAttribute("aria-selected", String(id === usageChoisi));
+        b.addEventListener("click", () => { usageChoisi = id; dessinerModeles(); });
+        filtres.appendChild(b);
+    }
 }
 
 function dessinerModeles() {
     ligneEnCours = null;
     const { vramGo, ramGo, disqueGo, modeles } = catalogue;
     $("#infos-pc").replaceChildren(
-        infoPc(vramGo ? `Carte graphique : ${vramGo} Go` : "Carte graphique : non détectée"),
-        infoPc(`Mémoire : ${ramGo} Go`),
-        ...(disqueGo === null ? [] : [infoPc(`Disque libre : ${disqueGo} Go`)])
+        creer("span", "info-pc", vramGo ? `Carte ${vramGo} Go` : "Pas de carte graphique"),
+        creer("span", "info-pc", `Mémoire ${ramGo} Go`),
+        ...(disqueGo === null ? [] : [creer("span", "info-pc", `Disque ${disqueGo} Go libres`)])
     );
-    $("#modeles-etat").textContent = ollamaLa ? "" : "Ollama ne répond pas : lance-le (ou installe-le depuis l'accueil) pour télécharger un modèle.";
+    dessinerFiltres();
+    $("#modeles-etat").textContent = ollamaLa ? "" : "Ollama ne répond pas : lance-le pour télécharger un modèle.";
     const liste = $("#modeles-liste");
     liste.replaceChildren();
-    // Dans l'ordre utile : le conseillé, les rapides, les lents, puis ceux qui ne tiennent pas
+    // Dans l'ordre utile : le conseillé, les rapides, les lents, puis ceux qui ne tiennent pas ; les plus gros d'abord
     const rang = (m) => (m.conseille ? 0 : ["ok", "lent", "trop"].indexOf(m.avis) + 1);
-    for (const m of [...modeles].sort((a, b) => rang(a) - rang(b))) {
-        const installe = installes.includes(m.modele);
-        const manquePlace = disqueGo !== null && m.taille > disqueGo;
-        const pourquoiPas = !ollamaLa ? "Ollama ne répond pas"
-            : m.avis === "trop" ? `Il lui faut ${m.vram} Go de carte graphique`
-                : manquePlace ? "Pas assez de place sur le disque" : "";
-        liste.appendChild(ligneModele({
-            modele: m.modele,
-            detail: `${go(m.taille)} Go · ${m.avis === "trop" ? `il lui faut ${m.vram} Go de carte graphique` : m.raison}`,
-            avis: m.conseille ? "conseille" : m.avis,
-            action: installe ? etatModele("Installé") : m.modele === enTelechargement ? etatModele("En cours") : boutonTelecharger(m.modele, pourquoiPas)
-        }));
+    const garde = (m) => usageChoisi === "tous" || (usageChoisi === "installes" ? installes.includes(m.modele) : m.usage === usageChoisi);
+    for (const m of modeles.filter(garde).sort((a, b) => rang(a) - rang(b) || b.taille - a.taille)) {
+        liste.appendChild(ligneModele({ modele: m.modele, detail: `${go(m.taille)} Go · ${m.raison}`, avis: m.conseille ? "conseille" : m.avis, action: actionModele(m) }));
     }
     // Ceux que l'utilisateur a installés lui-même, hors de la liste connue
-    const connus = modeles.map((m) => m.modele);
-    for (const nom of [...installes, enTelechargement].filter((n, i, tous) => n && !connus.includes(n) && tous.indexOf(n) === i)) {
-        liste.appendChild(ligneModele({ modele: nom, detail: "Ajouté par toi", avis: null, action: etatModele(nom === enTelechargement && !installes.includes(nom) ? "En cours" : "Installé") }));
+    if (usageChoisi === "tous" || usageChoisi === "installes") {
+        const connus = modeles.map((m) => m.modele);
+        for (const nom of [...installes, enTelechargement].filter((n, i, tous) => n && !connus.includes(n) && tous.indexOf(n) === i)) {
+            const enCours = nom === enTelechargement && !installes.includes(nom);
+            liste.appendChild(ligneModele({ modele: nom, detail: "Ajouté par toi", avis: null, action: enCours ? etatModele("En cours") : etatModele("Installé", "is-installe") }));
+        }
     }
+    if (!liste.children.length) liste.appendChild(creer("li", "modele modele--vide", "Rien ici pour l'instant."));
 }
 
 async function telechargerDepuisPage(modele) {
@@ -279,16 +366,17 @@ $("#autre-modele").addEventListener("submit", (e) => {
     e.preventDefault();
     const nom = $("#autre-modele-nom").value.trim().toLowerCase();
     const etat = $("#autre-modele-etat");
-    if (!/^[\w.-]+(:[\w.-]+)?$/.test(nom)) { etat.textContent = "Écris le nom comme sur ollama.com, par exemple « gemma3:4b »."; return; }
+    if (!/^[\w.-]+(:[\w.-]+)?$/.test(nom)) { etat.textContent = "Écris le nom comme sur ollama.com, par exemple gemma3:4b."; return; }
     if (installes.includes(nom)) { etat.textContent = `${nom} est déjà installé.`; return; }
     if (!ollamaLa) { etat.textContent = "Ollama ne répond pas."; return; }
     if (enTelechargement || telechargement) { etat.textContent = "Un téléchargement est déjà en cours."; return; }
     etat.textContent = "";
     $("#autre-modele-nom").value = "";
+    usageChoisi = "tous";
     telechargerDepuisPage(nom);
 });
 
-$("#lien-ollama").appendChild(lienExterne("ollama.com", "https://ollama.com/search", "lien lien--texte"));
+$("#lien-ollama").appendChild(lienExterne("Voir ollama.com", "https://ollama.com/search", "lien lien--petit"));
 
 async function ouvrirModeles() {
     const [cat, liste] = await Promise.all([window.api.catalogueModeles(), window.api.models("ollama")]);

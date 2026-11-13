@@ -15,7 +15,7 @@ const { configurerMiseAJour } = require('./principal/miseajour');
 const { urlsDans } = require('./principal/web');
 const { integrerMenu } = require('./principal/menu-linux');
 const { conseilMateriel, catalogueMateriel } = require('./principal/materiel');
-const { rolesDepuis, changerRole } = require('./principal/roles');
+const { TYPES, equipeDepuis, equipeParDefaut, ajoutsPossibles, ajouterAgent, retirerAgent, modifierAgent } = require('./principal/equipe');
 const { LANGUES_CORRECTION, lignesMenu } = require('./principal/menu-saisie');
 const { BINAIRES, lireTexteDocument, texteJointDocument, idValide } = require('./principal/documents');
 // Textes extraits des PDF et longs fichiers glissés dans la discussion
@@ -514,14 +514,24 @@ ipcMain.handle('conseil-materiel', () => conseilMateriel());
 // Page Modèles : le PC (carte graphique, RAM, disque) et chaque modèle connu avec son avis
 ipcMain.handle('modeles-catalogue', () => catalogueMateriel());
 
-// Page Agents : qui fait le chef, l'ouvrier et le vérificateur du mode chantier (principal/roles.js)
-ipcMain.handle('roles-lire', () => rolesDepuis(lireReglagesFournisseurs()));
-ipcMain.handle('roles-changer', (_e, { role, choix } = {}) => {
-  const r = changerRole(lireReglagesFournisseurs(), role, choix, infosFournisseur);
-  if (r.erreur) return { ok: false, erreur: r.erreur };
-  writeJson('fournisseurs.json', r.reglages);
-  return { ok: true, roles: rolesDepuis(r.reglages) };
+// Page Agents : l'arbre d'agents du mode chantier (principal/equipe.js). L'interface reçoit l'arbre, et pour
+// chaque agent ce qu'on peut encore ajouter dessous ; toutes les règles restent ici.
+const vueEquipe = (equipe) => ({
+  agents: equipe.agents.map((a) => ({ ...a, avecModele: TYPES[a.type].modele, local: !!TYPES[a.type].local, ajouts: ajoutsPossibles(equipe, a.id) })),
+  types: Object.fromEntries(Object.entries(TYPES).map(([id, t]) => [id, t.nom])),
 });
+function changerEquipe(changer) {
+  const reglages = lireReglagesFournisseurs();
+  const r = changer(equipeDepuis(reglages));
+  if (r.erreur) return { ok: false, erreur: r.erreur };
+  writeJson('fournisseurs.json', { ...reglages, equipe: r.equipe });
+  return { ok: true, id: r.id, ...vueEquipe(r.equipe) };
+}
+ipcMain.handle('equipe-lire', () => vueEquipe(equipeDepuis(lireReglagesFournisseurs())));
+ipcMain.handle('equipe-ajouter', (_e, { parent, type } = {}) => changerEquipe((e) => ajouterAgent(e, String(parent), String(type))));
+ipcMain.handle('equipe-retirer', (_e, id) => changerEquipe((e) => retirerAgent(e, String(id))));
+ipcMain.handle('equipe-modifier', (_e, { id, changement } = {}) => changerEquipe((e) => modifierAgent(e, String(id), changement || {}, infosFournisseur)));
+ipcMain.handle('equipe-remettre', () => changerEquipe(() => ({ equipe: equipeParDefaut(lireReglagesFournisseurs()) })));
 
 ipcMain.handle('ollama-telecharger', async (event, modele) => {
   if (!/^[\w.-]+(:[\w.-]+)?$/.test(String(modele))) return { ok: false, erreur: 'Nom de modèle invalide.' };

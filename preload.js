@@ -48,8 +48,11 @@ contextBridge.exposeInMainWorld('api', {
   conseilMateriel: () => ipcRenderer.invoke('conseil-materiel'),
   // Pages Modèles et Agents
   catalogueModeles: () => ipcRenderer.invoke('modeles-catalogue'),
-  lireRoles: () => ipcRenderer.invoke('roles-lire'),
-  changerRole: (role, choix) => ipcRenderer.invoke('roles-changer', { role, choix }),
+  lireEquipe: () => ipcRenderer.invoke('equipe-lire'),
+  ajouterAgent: (parent, type) => ipcRenderer.invoke('equipe-ajouter', { parent, type }),
+  retirerAgent: (id) => ipcRenderer.invoke('equipe-retirer', id),
+  modifierAgent: (id, changement) => ipcRenderer.invoke('equipe-modifier', { id, changement }),
+  remettreEquipe: () => ipcRenderer.invoke('equipe-remettre'),
   modeleVoitImages: (choix) => ipcRenderer.invoke('modele-voit-images', choix),
   onProgressionOllama: (cb) => ipcRenderer.on('ollama-progression', (_e, p) => cb(p)),
   // Touches personnelles facultatives (perso.json dans le dossier des données)

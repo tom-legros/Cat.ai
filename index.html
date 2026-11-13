@@ -121,44 +121,41 @@
       </div>
     </form>
 
-    <!-- Page Agents : qui fait quoi dans le mode chantier (interface/pages.js) -->
+    <!-- Page Agents : l'arbre d'agents du mode chantier, à composer (interface/pages.js) -->
     <section id="page-agents" class="page" hidden>
-      <div class="page__contenu">
-        <p class="etiquette">Mode chantier</p>
-        <h2 class="fenetre__titre">Les agents</h2>
-        <p class="discret">Pendant un chantier, le chat code tout seul à partir de ton plan. Trois agents se relaient. Clique sur un agent pour choisir qui le fait tourner.</p>
-        <div class="schema" id="schema"></div>
-        <p class="schema__boucle">Étape refusée : l'ouvrier recommence, trois essais au plus. Rien ne touche ton projet : tout se passe dans une copie à part.</p>
-        <div class="fiche">
-          <h3 class="fiche__titre" id="agent-titre"></h3>
-          <p class="discret" id="agent-role"></p>
-          <div class="fiche__choix">
-            <div class="bloc"><label class="etiquette" for="agent-fournisseur">Fournisseur</label><select id="agent-fournisseur"></select></div>
-            <div class="bloc"><label class="etiquette" for="agent-modele">Modèle</label><select id="agent-modele"></select></div>
+      <div class="page__contenu page__contenu--large">
+        <header class="page__tete">
+          <div>
+            <h2 class="page__titre">Agents</h2>
+            <p class="page__resume">Ton équipe pour coder sans toi. Clique sur un agent pour le régler, sur + pour en ajouter un dessous.</p>
           </div>
-          <p class="conseil" id="agent-conseil" aria-live="polite"></p>
+          <button id="equipe-remettre" class="bouton-calme" type="button">Équipe de départ</button>
+        </header>
+        <div class="atelier">
+          <div class="toile" id="toile"></div>
+          <aside class="fiche" id="fiche" aria-live="polite"></aside>
         </div>
-        <h2 class="fenetre__titre fenetre__titre--suite">Lancer un chantier</h2>
-        <p class="discret">Écris ton plan dans un fichier, ouvre un terminal dans ton projet (il doit être suivi par git), puis tape :</p>
-        <pre class="commande"><code>catai chantier plan.md</code></pre>
-        <p class="discret">À la fin, tu lis le rapport et tu gardes ou tu jettes le travail.</p>
+        <p class="lancement">Pour lancer l'équipe sur un plan, dans le terminal de ton projet : <code>catai chantier plan.md</code></p>
       </div>
     </section>
 
     <!-- Page Modèles : ce que le PC peut faire tourner, et les téléchargements (interface/pages.js) -->
     <section id="page-modeles" class="page" hidden>
       <div class="page__contenu">
-        <p class="etiquette">Ollama, sur ton PC</p>
-        <h2 class="fenetre__titre">Les modèles</h2>
-        <p class="discret">Un modèle qui tient dans ta carte graphique répond vite. S'il déborde, il marche encore, mais lentement.</p>
-        <div class="infos-pc" id="infos-pc"></div>
+        <header class="page__tete">
+          <div>
+            <h2 class="page__titre">Modèles</h2>
+            <p class="page__resume">Ce que ton PC peut faire tourner avec Ollama.</p>
+          </div>
+          <div class="infos-pc" id="infos-pc"></div>
+        </header>
+        <div class="filtres" id="filtres" role="tablist" aria-label="Usage des modèles"></div>
         <p class="conseil" id="modeles-etat" aria-live="polite"></p>
         <ul class="modeles" id="modeles-liste"></ul>
-        <h2 class="fenetre__titre fenetre__titre--suite">Un autre modèle</h2>
-        <p class="discret">Copie son nom depuis <span id="lien-ollama"></span>, par exemple « gemma3:4b ».</p>
-        <form id="autre-modele" class="enregistrer">
-          <input id="autre-modele-nom" aria-label="Nom du modèle à télécharger" placeholder="nom:taille" autocomplete="off" spellcheck="false">
-          <button class="bouton" type="submit">Télécharger</button>
+        <form id="autre-modele" class="autre-modele">
+          <input id="autre-modele-nom" aria-label="Nom d'un autre modèle à télécharger" placeholder="Un autre modèle : son nom sur ollama.com, par exemple gemma3:4b" autocomplete="off" spellcheck="false">
+          <button class="bouton-calme" type="submit">Télécharger</button>
+          <span id="lien-ollama"></span>
         </form>
         <p class="conseil" id="autre-modele-etat" aria-live="polite"></p>
       </div>

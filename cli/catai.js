@@ -29,7 +29,7 @@ const { LIMITES_OLLAMA, MAX_JOINT, raccourcir, listeCourte, limitesTaille } = re
 const { OLLAMA, envoyerOllama } = require(path.join(racine, 'principal/envoi'));
 const { discuter } = require(path.join(racine, 'principal/agent'));
 const { lireReglagesFournisseurs, infosFournisseur } = require(path.join(racine, 'principal/fournisseurs'));
-const { rolesDepuis } = require(path.join(racine, 'principal/roles'));
+const { equipeDepuis, planDeTravail } = require(path.join(racine, 'principal/equipe'));
 const { hote, HOTES_LOCAUX } = require(path.join(racine, 'principal/gratuit'));
 
 // ---------- Couleurs (seulement dans un vrai terminal, et jamais avec NO_COLOR) ----------
@@ -62,9 +62,9 @@ const AIDE = `catai : Cat Ai dans le terminal, sur le dossier courant.
 Chaque modification de fichier est montrée avant d'être écrite, et attend ton accord.
 
 Mode chantier (dans un projet git) : Cat Ai code seule, étape par étape, à partir d'un plan.
-  catai chantier plan.md             le chef découpe le plan, l'ouvrier code, les tests et le chef vérifient
-  catai chantier plan.md --chef gemini   le chef (sinon celui choisi dans la page Agents de l'app)
-  catai chantier plan.md -m qwen3:8b     l'ouvrier (un modèle Ollama)
+  catai chantier plan.md             l'équipe de la page Agents : le chef découpe, les codeurs codent, les contrôles vérifient
+  catai chantier plan.md --chef gemini   le chef (sinon celui de la page Agents de l'app)
+  catai chantier plan.md -m qwen3:8b     le codeur (un modèle Ollama)
   catai chantier --jeter <nom>       supprime la copie et la branche d'un chantier
 Tout se passe dans une copie (une branche à part) : tes fichiers ne bougent pas. À la fin, un rapport
 dit ce qui a été fait, et tu gardes ce que tu veux (git merge).`;
@@ -275,13 +275,13 @@ async function chantier(argv) {
   }
   if (!o.plan || !fs.existsSync(o.plan)) { process.stderr.write(rouge('Donne le fichier du plan : catai chantier plan.md\n')); return 1; }
   const reglages = lireReglagesFournisseurs();
-  // Les agents choisis dans l'app (page Agents) ; --chef et -m passent devant
-  const roles = rolesDepuis(reglages);
-  o.modele ||= roles.ouvrier.modele || 'qwen3:8b';
-  if (!(await ollamaRepond())) { process.stderr.write(rouge("Ollama ne répond pas : l'ouvrier du chantier en a besoin.\n")); return 1; }
+  // L'équipe composée dans l'app (page Agents) ; --chef et -m passent devant
+  const equipe = planDeTravail(equipeDepuis(reglages));
+  o.modele ||= equipe.codeurs[0].modele || reglages.modeles.ollama || 'qwen3:8b';
+  if (!(await ollamaRepond())) { process.stderr.write(rouge("Ollama ne répond pas : les codeurs du chantier en ont besoin.\n")); return 1; }
   const ouvrier = { envoyer: envoyerOllama, modele: o.modele, limites: LIMITES_OLLAMA };
-  // Un agent qui relit (chef, vérificateur) : sur le PC ou en ligne. S'il ne répond pas (clé illisible, quota),
-  // l'ouvrier prend sa place, et on le dit.
+  // Un agent qui parle sans coder (chef, relecteur, lecteur de logs) : sur le PC ou en ligne.
+  // S'il ne répond pas (clé illisible, quota), le modèle du PC prend sa place, et on le dit.
   const agentSur = (nom, choix) => {
     const local = choix.fournisseur === 'ollama';
     let agent = local ? { envoyer: envoyerOllama, modele: choix.modele || o.modele } : { envoyer: envoyeurParApp(choix.fournisseur), modele: choix.modele };
@@ -298,14 +298,24 @@ async function chantier(argv) {
       },
     };
   };
-  const chef = agentSur('Chef', o.chef ? { fournisseur: o.chef, modele: reglages.modeles[o.chef] } : roles.chef);
-  const verificateur = o.chef || roles.verificateurCommeChef ? chef : agentSur('Vérificateur', roles.verificateur);
+  // Un même agent de l'arbre (un relecteur sous le chef, par exemple) sert à tous les codeurs
+  const dejaFaits = new Map();
+  const agentDe = (a) => dejaFaits.get(a.id) || dejaFaits.set(a.id, agentSur(a.nom, a)).get(a.id);
+  const chef = o.chef ? agentSur('Chef', { fournisseur: o.chef, modele: reglages.modeles[o.chef] }) : agentDe(equipe.chef);
+  const codeurs = equipe.codeurs.map((c, i) => ({
+    nom: c.nom, specialite: c.specialite, envoyer: envoyerOllama, limites: LIMITES_OLLAMA,
+    modele: (i === 0 ? o.modele : c.modele) || o.modele,
+    controles: c.controles.map((k) => (k.type === 'tests'
+      ? { type: 'tests', logs: k.logs ? agentDe(k.logs) : null }
+      : { type: 'relecture', nom: k.nom, envoyer: agentDe(k.agent).envoyer, modele: k.agent.modele })),
+  }));
+  const autres = [...dejaFaits.values()].filter((a) => a !== chef).map((a) => a.nom());
   const arret = new AbortController();
   process.on('SIGINT', () => { process.stdout.write(jaune('\nArrêt du chantier demandé…\n')); arret.abort(); });
-  process.stdout.write(`${gras('Chantier')} ${gris(`· chef ${chef.nom()} · ouvrier ${o.modele}${verificateur === chef ? '' : ` · vérificateur ${verificateur.nom()}`}`)}\n`);
+  process.stdout.write(`${gras('Chantier')} ${gris(`· chef ${chef.nom()} · ${codeurs.length > 1 ? `codeurs ${codeurs.map((c) => `${c.nom} (${c.modele})`).join(', ')}` : `codeur ${codeurs[0].modele}`}${autres.length ? ` · contrôles : ${[...new Set(autres)].join(', ')}` : ''}`)}\n`);
   const debut = Date.now();
   const r = await lancerChantier({
-    projet: o.dossier, plan: fs.readFileSync(o.plan, 'utf8'), chef, ouvrier, verificateur,
+    projet: o.dossier, plan: fs.readFileSync(o.plan, 'utf8'), chef, codeurs,
     dossierCopies: path.join(dossierDonnees(), 'chantiers'), signal: arret.signal,
     ev: {
       etape: (i, n, titre) => process.stdout.write(`\n${gras(`Étape ${i}/${n}`)} ${titre}\n`),
