@@ -35,23 +35,32 @@ function equipeParDefaut(reglages = {}) {
   ] };
 }
 
-// Une équipe enregistrée n'est gardée que si elle tient debout : un chef, au moins un codeur, des parents permis
-function equipeValide(equipe) {
+// Une équipe enregistrée n'est gardée que si elle tient debout : le fichier a pu être abîmé ou modifié à la main.
+// Un chef, au moins un codeur, des parents permis, un nom partout. Avec infos(id) (le fournisseur, ou null), les
+// modèles sont vérifiés aussi : un codeur sur le PC, et jamais de modèle payant, même déjà enregistré.
+function equipeValide(equipe, infos) {
   const agents = Array.isArray(equipe?.agents) ? equipe.agents : [];
   if (!agents.length || agents.length > MAX_AGENTS) return false;
-  const parId = new Map(agents.map((a) => [a?.id, a]));
+  if (!agents.every((a) => a && typeof a === 'object' && typeof a.id === 'string' && TYPES[a.type] && typeof a.nom === 'string' && a.nom.trim())) return false;
+  const parId = new Map(agents.map((a) => [a.id, a]));
   if (parId.size !== agents.length) return false;
   if (agents.filter((a) => a.type === 'chef').length !== 1 || !agents.some((a) => a.type === 'codeur')) return false;
   return agents.every((a) => {
-    if (!TYPES[a.type] || typeof a.id !== 'string') return false;
+    const type = TYPES[a.type];
+    if (type.modele) {
+      if (typeof a.fournisseur !== 'string' || typeof a.modele !== 'string') return false;
+      const config = infos ? infos(a.fournisseur) : undefined;
+      if (infos && (!config || (type.local && config.type !== 'ollama') || (a.modele && !modeleGratuit(config, a.modele)))) return false;
+    }
     if (a.type === 'chef') return a.parent === null;
     const parent = parId.get(a.parent);
-    return !!parent && TYPES[parent.type].enfants.includes(a.type);
+    if (!parent || !TYPES[parent.type].enfants.includes(a.type)) return false;
+    return !(type.unParParent && agents.some((b) => b !== a && b.parent === a.parent && b.type === a.type));
   });
 }
 
-function equipeDepuis(reglages = {}) {
-  return equipeValide(reglages.equipe) ? reglages.equipe : equipeParDefaut(reglages);
+function equipeDepuis(reglages = {}, infos) {
+  return equipeValide(reglages.equipe, infos) ? reglages.equipe : equipeParDefaut(reglages);
 }
 
 const enfantsDe = (equipe, id) => equipe.agents.filter((a) => a.parent === id);

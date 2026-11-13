@@ -522,12 +522,12 @@ const vueEquipe = (equipe) => ({
 });
 function changerEquipe(changer) {
   const reglages = lireReglagesFournisseurs();
-  const r = changer(equipeDepuis(reglages));
+  const r = changer(equipeDepuis(reglages, infosFournisseur));
   if (r.erreur) return { ok: false, erreur: r.erreur };
   writeJson('fournisseurs.json', { ...reglages, equipe: r.equipe });
   return { ok: true, id: r.id, ...vueEquipe(r.equipe) };
 }
-ipcMain.handle('equipe-lire', () => vueEquipe(equipeDepuis(lireReglagesFournisseurs())));
+ipcMain.handle('equipe-lire', () => vueEquipe(equipeDepuis(lireReglagesFournisseurs(), infosFournisseur)));
 ipcMain.handle('equipe-ajouter', (_e, { parent, type } = {}) => changerEquipe((e) => ajouterAgent(e, String(parent), String(type))));
 ipcMain.handle('equipe-retirer', (_e, id) => changerEquipe((e) => retirerAgent(e, String(id))));
 ipcMain.handle('equipe-modifier', (_e, { id, changement } = {}) => changerEquipe((e) => modifierAgent(e, String(id), changement || {}, infosFournisseur)));

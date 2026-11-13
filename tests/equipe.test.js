@@ -31,6 +31,23 @@ test('equipeDepuis : une équipe enregistrée abîmée est remplacée par celle 
   assert.equal(equipeDepuis({ equipe: bonne }), bonne);
 });
 
+test('equipeDepuis : un fichier modifié à la main ne fait ni planter, ni garder un modèle payant ou un codeur en ligne', () => {
+  const depart = ['chef', 'codeur', 'testeur', 'relecteur'];
+  const base = equipeParDefaut({ modeles: { ollama: 'qwen3:8b' } });
+  const avec = (changer) => ({ equipe: { agents: base.agents.map((a) => ({ ...a, ...changer(a) })) } });
+  assert.deepEqual(types(equipeDepuis({ equipe: { agents: [null] } }, infos)), depart);
+  const sansNom = avec((a) => (a.id === 'codeur-1' ? { nom: undefined } : {}));
+  assert.equal(equipeValide(sansNom.equipe, infos), false);
+  const payant = avec((a) => (a.id === 'chef' ? { fournisseur: 'gemini', modele: 'gemini-pro' } : {}));
+  assert.equal(equipeValide(payant.equipe, infos), false);
+  assert.equal(equipeDepuis(payant, infos).agents[0].fournisseur, 'ollama');
+  const codeurEnLigne = avec((a) => (a.id === 'codeur-1' ? { fournisseur: 'gemini', modele: 'gemini-flash' } : {}));
+  assert.equal(equipeValide(codeurEnLigne.equipe, infos), false);
+  const deuxTesteurs = { agents: [...base.agents, { id: 'testeur-2', type: 'testeur', nom: 'Testeur 2', parent: 'chef' }] };
+  assert.equal(equipeValide(deuxTesteurs, infos), false);
+  assert.equal(equipeValide(avec((a) => (a.id === 'chef' ? { fournisseur: 'gemini', modele: 'gemini-flash' } : {})).equipe, infos), true);
+});
+
 test('ajouterAgent : chaque agent a sa place, un seul testeur par parent, et un nombre limité', () => {
   let e = equipeParDefaut();
   assert.deepEqual(ajoutsPossibles(e, 'chef'), ['codeur', 'relecteur']); // le testeur est déjà là

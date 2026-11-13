@@ -276,7 +276,7 @@ async function chantier(argv) {
   if (!o.plan || !fs.existsSync(o.plan)) { process.stderr.write(rouge('Donne le fichier du plan : catai chantier plan.md\n')); return 1; }
   const reglages = lireReglagesFournisseurs();
   // L'équipe composée dans l'app (page Agents) ; --chef et -m passent devant
-  const equipe = planDeTravail(equipeDepuis(reglages));
+  const equipe = planDeTravail(equipeDepuis(reglages, infosFournisseur));
   o.modele ||= equipe.codeurs[0].modele || reglages.modeles.ollama || 'qwen3:8b';
   if (!(await ollamaRepond())) { process.stderr.write(rouge("Ollama ne répond pas : les codeurs du chantier en ont besoin.\n")); return 1; }
   const ouvrier = { envoyer: envoyerOllama, modele: o.modele, limites: LIMITES_OLLAMA };
