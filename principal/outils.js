@@ -142,7 +142,9 @@ const OUTILS_ECRITURE = new Set(['ecrire_fichier', 'remplacer_texte']);
 const peutEcrire = ({ prof } = {}) => !prof;
 // Un outil impossible à utiliser alourdit le contexte et ralentit les modèles locaux.
 const OUTILS_PROJET = new Set(['lister_fichiers', 'lire_fichier', 'chercher', 'ecrire_fichier', 'remplacer_texte', 'verifier_godot', 'lancer_tests']);
+// mode.seulement : la liste des seuls outils permis (l'ouvrier du mode chantier n'a ni internet ni autre dossier)
 const outilsPour = (mode) => TOOLS.filter(({ function: { name } }) => {
+  if (Array.isArray(mode?.seulement) && !mode.seulement.includes(name)) return false;
   if (mode?.projet === false && OUTILS_PROJET.has(name)) return false;
   if (mode?.documents === false && name === 'lire_document') return false;
   if (OUTILS_MCP.has(name)) return mode?.connecteur === true;

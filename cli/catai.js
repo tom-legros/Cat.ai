@@ -58,7 +58,15 @@ const AIDE = `catai : Cat Ai dans le terminal, sur le dossier courant.
   catai -f gemini            choisir le fournisseur (ollama, gemini, groq, openrouter…)
   catai -d chemin/du/projet  travailler dans un autre dossier
 
-Chaque modification de fichier est montrée avant d'être écrite, et attend ton accord.`;
+Chaque modification de fichier est montrée avant d'être écrite, et attend ton accord.
+
+Mode chantier (dans un projet git) : Cat Ai code seule, étape par étape, à partir d'un plan.
+  catai chantier plan.md             le chef découpe le plan, l'ouvrier code, les tests et le chef vérifient
+  catai chantier plan.md --chef gemini   le chef (Gemini par défaut s'il a une clé, sinon le modèle local)
+  catai chantier plan.md -m qwen3:8b     l'ouvrier (un modèle Ollama)
+  catai chantier --jeter <nom>       supprime la copie et la branche d'un chantier
+Tout se passe dans une copie (une branche à part) : tes fichiers ne bougent pas. À la fin, un rapport
+dit ce qui a été fait, et tu gardes ce que tu veux (git merge).`;
 
 function lireOptions(argv) {
   const o = { prof: false, modele: null, fournisseur: null, dossier: process.cwd(), question: [] };
@@ -236,10 +244,65 @@ async function repondre({ conversation, question, o, lire, signal }) {
 }
 
 // ---------- Le programme ----------
+// ---------- Mode chantier ----------
+async function chantier(argv) {
+  const { lancerChantier, jeterChantier } = require(path.join(racine, 'principal/chantier'));
+  const o = { chef: null, modele: null, dossier: process.cwd(), plan: null, jeter: null };
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === '--chef') o.chef = argv[++i];
+    else if (argv[i] === '-m' || argv[i] === '--modele') o.modele = argv[++i];
+    else if (argv[i] === '-d' || argv[i] === '--dossier') o.dossier = path.resolve(argv[++i] || '.');
+    else if (argv[i] === '--jeter') o.jeter = argv[++i];
+    else o.plan = argv[i];
+  }
+  if (o.jeter) {
+    const { branche, copie } = jeterChantier(o.dossier, o.jeter);
+    process.stdout.write(`Jeté : branche ${branche}${copie ? ` et copie ${copie}` : ''}.\n`);
+    return 0;
+  }
+  if (!o.plan || !fs.existsSync(o.plan)) { process.stderr.write(rouge('Donne le fichier du plan : catai chantier plan.md\n')); return 1; }
+  const reglages = lireReglagesFournisseurs();
+  o.modele ||= reglages.modeles.ollama || 'qwen3:8b';
+  if (!(await ollamaRepond())) { process.stderr.write(rouge("Ollama ne répond pas : l'ouvrier du chantier en a besoin.\n")); return 1; }
+  const ouvrier = { envoyer: envoyerOllama, modele: o.modele, limites: LIMITES_OLLAMA };
+  // Le chef : le fournisseur demandé, sinon Gemini s'il a une clé, sinon l'ouvrier lui-même.
+  // S'il ne répond pas (clé illisible, quota), l'ouvrier prend sa place, et on le dit.
+  const idChef = o.chef || (reglages.fournisseurs.gemini?.cleChiffree ? 'gemini' : 'ollama');
+  let chef = idChef === 'ollama' ? ouvrier : { envoyer: envoyeurParApp(idChef), modele: reglages.modeles[idChef] };
+  const chefSur = {
+    get modele() { return chef.modele; },
+    envoyer: async (...args) => {
+      try { return await chef.envoyer(...args); } catch (err) {
+        if (err.name === 'AbortError' || chef === ouvrier) throw err;
+        process.stdout.write(jaune(`Chef ${idChef} indisponible (${err.message}) : ${o.modele} le remplace.\n`));
+        chef = ouvrier;
+        return chef.envoyer(args[0], chef.modele, ...args.slice(2));
+      }
+    },
+  };
+  const arret = new AbortController();
+  process.on('SIGINT', () => { process.stdout.write(jaune('\nArrêt du chantier demandé…\n')); arret.abort(); });
+  process.stdout.write(`${gras('Chantier')} ${gris(`· chef ${idChef === 'ollama' ? o.modele : `${idChef} ${chef.modele}`} · ouvrier ${o.modele}`)}\n`);
+  const debut = Date.now();
+  const r = await lancerChantier({
+    projet: o.dossier, plan: fs.readFileSync(o.plan, 'utf8'), chef: chefSur, ouvrier,
+    dossierCopies: path.join(dossierDonnees(), 'chantiers'), signal: arret.signal,
+    ev: {
+      etape: (i, n, titre) => process.stdout.write(`\n${gras(`Étape ${i}/${n}`)} ${titre}\n`),
+      info: (t) => process.stdout.write(gris(`${t}\n`)),
+    },
+  });
+  const fichier = path.join(dossierDonnees(), 'chantiers', `${r.branche.replace('catai/', '')}.md`);
+  fs.writeFileSync(fichier, `${r.rapport}\n\nDurée : ${Math.round((Date.now() - debut) / 60000)} min.\n`);
+  process.stdout.write(`\n${r.rapport}\n\n${gris(`Rapport enregistré : ${fichier}`)}\n`);
+  return 0;
+}
+
 async function principal() {
+  configurerStockage({ dossier: dossierDonnees() });
+  if (process.argv[2] === 'chantier') return chantier(process.argv.slice(3));
   const o = lireOptions(process.argv.slice(2));
   if (o.aide) { process.stdout.write(`${AIDE}\n`); return 0; }
-  configurerStockage({ dossier: dossierDonnees() });
   // Par défaut, le fournisseur et le modèle choisis dans l'app
   const reglages = lireReglagesFournisseurs();
   o.fournisseur ||= reglages.actif;
