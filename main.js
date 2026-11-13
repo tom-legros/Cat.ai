@@ -476,7 +476,7 @@ ipcMain.handle('fournisseurs-choisir', async (_e, { id, modele }) => {
 // Pour l'accueil du premier lancement. Hors Windows, on ne sait pas s'il est installé tant qu'il ne répond pas.
 ipcMain.handle('etat-ollama', async () => {
   const repond = await ollamaRepond();
-  return { repond, installe: repond || (process.platform === 'win32' && !!commandeOllama()) };
+  return { repond, installe: repond || (process.platform === 'win32' && !!commandeOllama()), installationWindows: process.platform === 'win32' };
 });
 
 // Charge le modèle sur la carte graphique dès qu'il est choisi (ouverture de l'app, changement de modèle) :
@@ -530,6 +530,34 @@ async function prechaufferAuDemarrage() {
 }
 
 // Télécharge un modèle dans Ollama depuis l'accueil (clic de l'utilisateur), en envoyant la progression
+let installationOllama = false;
+ipcMain.handle('ollama-installer', async () => {
+  if (process.platform !== 'win32') return { erreur: 'Ouvre le site officiel pour installer Ollama sur ce système.' };
+  if (installationOllama) return { erreur: 'Une installation est déjà en cours.' };
+  if (commandeOllama() || await ollamaRepond()) return { ok: true };
+  if (installationOllama) return { erreur: 'Une installation est déjà en cours.' };
+  installationOllama = true;
+  try {
+    const programme = path.join(process.env.LOCALAPPDATA || '', 'Microsoft', 'WindowsApps', 'winget.exe');
+    const { response } = await dialog.showMessageBox(win, {
+      type: 'question', title: 'Installer Ollama',
+      buttons: ['Annuler', 'Installer'], defaultId: 0, cancelId: 0,
+      message: 'Installer Ollama pour ton compte Windows avec WinGet ?',
+    });
+    if (response !== 1) return { annule: true };
+    const code = await new Promise((resolve) => {
+      const installateur = spawn(programme, ['install', '--id', 'Ollama.Ollama', '--exact', '--source', 'winget', '--scope', 'user', '--interactive'], {
+        cwd: path.dirname(programme), windowsHide: true, stdio: 'ignore',
+      });
+      installateur.once('error', () => resolve(null));
+      installateur.once('close', resolve);
+    });
+    if (code !== 0 && !commandeOllama()) return { erreur: 'WinGet n’a pas installé Ollama. Utilise le lien vers l’installateur officiel.' };
+    await demarrerOllama();
+    return { ok: true };
+  } finally { installationOllama = false; }
+});
+
 // Le Qwen conseillé selon la mémoire de la carte graphique (principal/materiel.js), pour l'accueil
 ipcMain.handle('conseil-materiel', () => conseilMateriel());
 

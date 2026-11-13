@@ -1069,7 +1069,8 @@ async function renderDemarrage(f, models) {
             $("#demarrage-ollama-texte").textContent = "Ollama est installé mais ne répond pas. Relance l'app, ou lance Ollama toi-même.";
         } else {
             $("#demarrage-ollama-texte").textContent = "Gratuit, sans limite, et rien ne sort de ton PC. Mais il demande un PC puissant, type PC gamer récent : sur un PC portable classique, il sera très lent. Dans le doute, prends Gemini.";
-            actions.append(lienExterne("Télécharger Ollama", LIEN_OLLAMA, "bouton"));
+            if (etatOllama.installationWindows) actions.append(boutonAction("Installer Ollama", "bouton", installerOllama));
+            actions.append(lienExterne("Télécharger Ollama", LIEN_OLLAMA, etatOllama.installationWindows ? "lien" : "bouton"));
         }
     }
 
@@ -1106,6 +1107,22 @@ async function renderDemarrage(f, models) {
         });
         actions.append(etapes, lienExterne("Ouvrir Google AI Studio", LIENS_CLES.gemini, "lien"), champ, valider, message);
     }
+}
+
+async function installerOllama() {
+    if (telechargement) return;
+    telechargement = true;
+    const texte = $("#demarrage-ollama-texte");
+    const avant = texte.textContent;
+    const bouton = $("#demarrage-ollama-actions button");
+    if (bouton) bouton.disabled = true;
+    texte.textContent = "Installation d’Ollama en cours…";
+    let resultat;
+    try { resultat = await window.api.installerOllama(); }
+    catch { resultat = { erreur: "Impossible de lancer l’installation d’Ollama." }; }
+    finally { telechargement = false; if (bouton) bouton.disabled = false; }
+    if (resultat.ok) await loadModels();
+    else texte.textContent = resultat.erreur || avant;
 }
 
 async function telechargerModele(modele) {
