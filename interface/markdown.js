@@ -36,10 +36,26 @@ const FIN_ACTION = "";
 const LIGNE_ACTION = new RegExp(`${DEBUT_ACTION}[^${FIN_ACTION}]*${FIN_ACTION}`, "g");
 const etiquetteAction = (texte) => `\n\n${DEBUT_ACTION}${texte.replace(/[]/g, "")}${FIN_ACTION}\n\n`;
 
+// Les formules mises de côté par protegerMaths (interface/maths.js), dessinées par KaTeX en MathML : Chromium les
+// affiche lui-même, sans style intégré (que la CSP de la fenêtre interdit) ni police à embarquer.
+// Une formule fausse reste affichée telle quelle au lieu de casser la réponse.
+function afficherMaths(html, formules) {
+    return html.replace(new RegExp(`${DEBUT_MATHS}(\\d+)${FIN_MATHS}`, "g"), (_, n) => {
+        const formule = formules[n];
+        if (!formule) return "";
+        try {
+            return katex.renderToString(formule.tex, { output: "mathml", displayMode: formule.bloc, throwOnError: false });
+        } catch {
+            return escape(formule.bloc ? `$$${formule.tex}$$` : `$${formule.tex}$`);
+        }
+    });
+}
+
 function renderMarkdown(src) {
     // Les qwen3 peuvent écrire leur réflexion entre <think> : on la cache
     src = src.replace(/<think>[\s\S]*?(<\/think>|$)/g, "");
-    const html = marked.parse(src)
+    const { texte, formules } = protegerMaths(src);
+    const html = afficherMaths(marked.parse(texte), formules)
         .replace(new RegExp(`<p>${DEBUT_ACTION}(.*?)${FIN_ACTION}</p>`, "g"), '<p><span class="action">$1</span></p>');
     return DOMPurify.sanitize(html);
 }

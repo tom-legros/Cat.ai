@@ -330,6 +330,10 @@ select {
 .bulle-msg h1 { font-size: 22px; }
 .bulle-msg h2 { font-size: 20px; }
 .bulle-msg table { border-collapse: collapse; margin: 0 0 12px; font-size: 14px; }
+/* Formules de maths (KaTeX en MathML, dessinées par Chromium) : un peu plus grandes que le texte, une formule en bloc
+   défile si elle est trop large au lieu de déborder de la bulle */
+.bulle-msg math { font-size: 1.12em; }
+.bulle-msg math[display="block"] { margin: 10px 0; overflow-x: auto; overflow-y: hidden; }
 .bulle-msg th, .bulle-msg td { padding: 6px 12px; border: 1px solid var(--ligne-2); text-align: left; }
 .bulle-msg th { font-weight: 500; color: var(--lumiere); background: var(--surface); }
 .bulle-msg blockquote { margin: 0 0 12px; padding-left: 14px; border-left: 1px solid var(--ligne-2); color: var(--texte-2); }
