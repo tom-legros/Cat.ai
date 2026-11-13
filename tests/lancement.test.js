@@ -1,0 +1,91 @@
+// Préparer un chantier : l'équipe devient des agents, le dossier doit être sous git, garder fusionne sans rien casser
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { execFileSync } = require('child_process');
+const { agentsDuChantier, etatDepot, preparerDepot, garderChantier, resumeChantier } = require('../principal/lancement');
+const { equipeParDefaut, ajouterAgent } = require('../principal/equipe');
+
+const git = (d, ...a) => execFileSync('git', a, { cwd: d, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+const identite = ['-c', 'user.name=t', '-c', 'user.email=t@t.invalid'];
+const dossier = () => fs.mkdtempSync(path.join(os.tmpdir(), 'catai-lancement-'));
+const infos = (id) => ({ ollama: { type: 'ollama' }, gemini: { type: 'openai', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai' } })[id] || null;
+
+test('etatDepot et preparerDepot : un dossier simple devient un dépôt avec un point de départ, sans toucher aux fichiers', () => {
+  const d = dossier();
+  fs.writeFileSync(path.join(d, 'a.txt'), 'bonjour\n');
+  assert.deepEqual(etatDepot(d), { pret: false, raison: 'pas-de-depot' });
+  assert.deepEqual(preparerDepot(d), { pret: true, modifs: 0 });
+  assert.equal(fs.readFileSync(path.join(d, 'a.txt'), 'utf8'), 'bonjour\n');
+  assert.equal(git(d, 'log', '--format=%s'), 'Point de départ avant le premier chantier');
+  fs.writeFileSync(path.join(d, 'b.txt'), 'x\n');
+  assert.equal(etatDepot(d).modifs, 1);
+});
+
+test('etatDepot : un dépôt sans aucun commit n est pas prêt', () => {
+  const d = dossier();
+  git(d, 'init', '-q');
+  assert.deepEqual(etatDepot(d), { pret: false, raison: 'pas-de-commit' });
+});
+
+// Un dépôt avec une branche de chantier qui ajoute un fichier
+function depotAvecChantier() {
+  const d = dossier();
+  fs.writeFileSync(path.join(d, 'a.txt'), 'un\n');
+  git(d, 'init', '-q');
+  git(d, 'add', '-A');
+  git(d, ...identite, 'commit', '-qm', 'depart');
+  const principale = git(d, 'rev-parse', '--abbrev-ref', 'HEAD');
+  git(d, 'checkout', '-q', '-b', 'catai/chantier-essai');
+  fs.writeFileSync(path.join(d, 'neuf.txt'), 'du chantier\n');
+  fs.writeFileSync(path.join(d, 'a.txt'), 'un\nchantier\n');
+  git(d, 'add', '-A');
+  git(d, ...identite, 'commit', '-qm', 'etape 1');
+  git(d, 'checkout', '-q', principale);
+  return d;
+}
+
+test('garderChantier : le travail arrive dans le projet', () => {
+  const d = depotAvecChantier();
+  assert.match(resumeChantier(d, 'essai'), /neuf\.txt/);
+  assert.deepEqual(garderChantier(d, 'essai'), { ok: true });
+  assert.equal(fs.readFileSync(path.join(d, 'neuf.txt'), 'utf8').trim(), 'du chantier');
+});
+
+test('garderChantier : refusé si le projet a des changements en cours, et un conflit ne laisse rien à moitié', () => {
+  const d = depotAvecChantier();
+  fs.writeFileSync(path.join(d, 'a.txt'), 'un\nmoi\n');
+  const refus = garderChantier(d, 'essai');
+  assert.equal(refus.ok, false);
+  assert.match(refus.erreur, /changements en cours/);
+  assert.equal(fs.existsSync(path.join(d, 'neuf.txt')), false);
+  // Le même changement, enregistré : la fusion entre en conflit, elle est annulée
+  git(d, 'add', '-A');
+  git(d, ...identite, 'commit', '-qm', 'moi');
+  const conflit = garderChantier(d, 'essai');
+  assert.equal(conflit.ok, false);
+  assert.match(conflit.erreur, /rien n'a été changé/);
+  assert.equal(git(d, 'status', '--porcelain'), '');
+  assert.equal(fs.readFileSync(path.join(d, 'a.txt'), 'utf8').replace(/\r/g, ''), 'un\nmoi\n');
+});
+
+test('agentsDuChantier : les codeurs sur le PC, les autres en ligne, et le modèle du PC en secours si le quota saute', async () => {
+  let equipe = equipeParDefaut({ modeles: { ollama: 'qwen3:8b', gemini: 'gemini-flash-lite' }, fournisseurs: { gemini: { cleChiffree: 'x' } } });
+  equipe = ajouterAgent(equipe, 'testeur-1', 'logs').equipe;
+  const appels = [];
+  const dits = [];
+  const envoyerLocal = async (_m, modele) => { appels.push(`local ${modele}`); return { content: 'ok', toolCalls: [] }; };
+  const envoyerEnLigne = (id) => async (_m, modele) => { appels.push(`${id} ${modele}`); throw new Error('Limite atteinte (429)'); };
+  const { chef, codeurs, resume } = agentsDuChantier({ reglages: { equipe, modeles: { ollama: 'qwen3:8b' } }, infos, envoyerLocal, envoyerEnLigne, limitesLocales: { total: 1 }, dire: (t) => dits.push(t) });
+  assert.match(resume, /^chef gemini gemini-flash-lite · codeur qwen3:8b · contrôles : gemini gemini-flash-lite$/);
+  assert.equal(codeurs[0].envoyer, envoyerLocal);
+  assert.deepEqual(codeurs[0].controles.map((c) => c.type), ['tests', 'relecture']);
+  assert.ok(codeurs[0].controles[0].logs);
+  // Le chef en ligne tombe : le modèle du PC répond à sa place, et les fois suivantes directement
+  assert.equal((await chef.envoyer([], 'ignoré')).content, 'ok');
+  await chef.envoyer([], 'ignoré');
+  assert.deepEqual(appels, ['gemini gemini-flash-lite', 'local qwen3:8b', 'local qwen3:8b']);
+  assert.match(dits[0], /Chef indisponible \(Limite atteinte \(429\)\) : qwen3:8b le remplace/);
+});

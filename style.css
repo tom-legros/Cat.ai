@@ -505,6 +505,23 @@ optgroup, option { background: var(--surface); color: var(--texte); font-style: 
 .lancement { margin: 14px 0 0; font-size: 13px; color: var(--texte-3); }
 .lancement code { margin-left: 4px; padding: 3px 8px; font: 12px var(--police-mono); color: var(--oeil); background: var(--champ); border-radius: 6px; user-select: all; }
 
+/* Le chantier, sous l'arbre : le plan, le suivi, le rapport */
+.chantier { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; padding: 18px; background: var(--surface); border-radius: var(--rayon); }
+.chantier__titre { margin: 0; font: 600 16px/1.3 var(--police-texte); color: var(--lumiere); }
+.chantier__dossier { margin: -6px 0 0; font: 12px var(--police-mono); color: var(--texte-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chantier__plan { width: 100%; min-height: 110px; padding: 10px 12px; resize: vertical; font: 13.5px/1.5 var(--police-texte); background: var(--champ); border: 1px solid var(--ligne-2); border-radius: var(--rayon-petit); }
+.chantier__actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.chantier__statut { flex: 1; min-width: 200px; margin: 0; font-size: 13px; color: var(--texte-2); }
+.chantier__suivi { display: flex; flex-direction: column; gap: 8px; }
+.chantier__etape { margin: 6px 0 0; font-size: 14px; font-weight: 500; color: var(--lumiere); }
+.chantier__journal { max-height: 220px; margin: 0; padding: 10px 12px; overflow-y: auto; list-style: none; font: 12px/1.6 var(--police-mono); color: var(--texte-3); background: var(--champ); border-radius: var(--rayon-petit); }
+.chantier__journal li { white-space: pre-wrap; overflow-wrap: anywhere; }
+.chantier__journal .is-etape { margin-top: 6px; color: var(--oeil); }
+.chantier__journal .is-etape:first-child { margin-top: 0; }
+.chantier__journal .is-alerte { color: var(--texte); }
+.chantier__fin { display: flex; flex-direction: column; gap: 10px; }
+.chantier__rapport { max-height: 300px; margin: 0; padding: 12px 14px; overflow: auto; white-space: pre-wrap; font: 12.5px/1.55 var(--police-mono); color: var(--texte-2); background: var(--champ); border-radius: var(--rayon-petit); }
+
 /* Les modèles : le PC en haut à droite, des filtres, puis une ligne par modèle */
 .infos-pc { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px 16px; }
 .info-pc { font: 12px var(--police-mono); color: var(--texte-3); }

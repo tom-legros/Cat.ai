@@ -45,7 +45,6 @@ contextBridge.exposeInMainWorld('api', {
   etatPrechauffage: () => ipcRenderer.invoke('etat-prechauffage'),
   onPrechauffage: (cb) => ipcRenderer.on('prechauffage', (_e, etat) => cb(etat)),
   installerOllama: () => ipcRenderer.invoke('ollama-installer'),
-  choisirFichier: (options) => ipcRenderer.invoke('choisir-fichier', options),
   conseilMateriel: () => ipcRenderer.invoke('conseil-materiel'),
   // Pages Modèles et Agents
   catalogueModeles: () => ipcRenderer.invoke('modeles-catalogue'),
@@ -56,9 +55,15 @@ contextBridge.exposeInMainWorld('api', {
   remettreEquipe: () => ipcRenderer.invoke('equipe-remettre'),
   modeleVoitImages: (choix) => ipcRenderer.invoke('modele-voit-images', choix),
   onProgressionOllama: (cb) => ipcRenderer.on('ollama-progression', (_e, p) => cb(p)),
-  lancerChantier: (payload) => ipcRenderer.invoke('lancer-chantier', payload),
-  onChantierInfo: (cb) => ipcRenderer.on('chantier-info', (_e, d) => cb(d)),
-  onChantierEtape: (cb) => ipcRenderer.on('chantier-etape', (_e, d) => cb(d)),
+  // Chantier depuis la page Agents : état du dossier, plan, lancement, suivi, puis garder ou jeter
+  etatChantier: () => ipcRenderer.invoke('chantier-etat'),
+  preparerChantier: () => ipcRenderer.invoke('chantier-preparer'),
+  importerPlan: () => ipcRenderer.invoke('chantier-importer-plan'),
+  lancerChantier: (plan) => ipcRenderer.invoke('chantier-lancer', { plan }),
+  arreterChantier: () => ipcRenderer.invoke('chantier-arreter'),
+  garderChantier: (nom) => ipcRenderer.invoke('chantier-garder', nom),
+  jeterChantier: (nom) => ipcRenderer.invoke('chantier-jeter', nom),
+  onChantier: (cb) => ipcRenderer.on('chantier-evenement', (_e, evenement) => cb(evenement)),
   // Touches personnelles facultatives (perso.json dans le dossier des données)
   perso: () => ipcRenderer.invoke('perso'),
   // Rôles créés dans Réglages : [{ nom, consigne }]

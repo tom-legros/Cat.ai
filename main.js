@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, nativeImage, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, nativeImage, Menu, powerSaveBlocker } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
@@ -17,6 +17,8 @@ const { integrerMenu } = require('./principal/menu-linux');
 const { conseilMateriel, catalogueMateriel } = require('./principal/materiel');
 const { TYPES, equipeDepuis, equipeParDefaut, ajoutsPossibles, ajouterAgent, retirerAgent, modifierAgent } = require('./principal/equipe');
 const { LANGUES_CORRECTION, lignesMenu } = require('./principal/menu-saisie');
+const { lancerChantier, jeterChantier } = require('./principal/chantier');
+const { agentsDuChantier, etatDepot, MESSAGES_DEPOT, preparerDepot, garderChantier, resumeChantier } = require('./principal/lancement');
 const { BINAIRES, lireTexteDocument, texteJointDocument, idValide } = require('./principal/documents');
 // Textes extraits des PDF et longs fichiers glissés dans la discussion
 const DOSSIER_DOCUMENTS = () => path.join(app.getPath('userData'), 'documents');
@@ -701,45 +703,105 @@ ipcMain.handle('load-convs', () => readJson('conversations.json', []));
 ipcMain.handle('save-convs', (_e, convs) => writeJson('conversations.json', convs));
 ipcMain.handle('alertes-stockage', () => prendreAlertes());
 
-ipcMain.handle('choisir-fichier', async (_e, { titre }) => {
-  const choix = await dialog.showOpenDialog(win, {
-    title: titre || 'Choisir un fichier',
-    properties: ['openFile'],
-    filters: [{ name: 'Markdown', extensions: ['md', 'txt'] }]
-  });
-  return choix.canceled ? null : choix.filePaths[0];
+// ---------- Chantier, lancé depuis la page Agents ----------
+// Même moteur et même équipe que `catai chantier` (principal/chantier.js, principal/lancement.js). Le travail se
+// fait dans une copie git du projet ouvert : rien n'y est écrit avant que l'utilisateur choisisse de le garder.
+let chantierEnCours = null; // { arret } pendant qu'un chantier tourne : un seul à la fois
+const direChantier = (evenement) => win?.webContents.send('chantier-evenement', evenement);
+const NOM_CHANTIER = /^[\w-]{1,60}$/;
+const demanderAccord = async ({ titre, message, detail, accepter }) => (await dialog.showMessageBox(win, {
+  type: 'question', buttons: ['Annuler', accepter], defaultId: 0, cancelId: 0, title: titre, message, detail,
+})).response === 1;
+
+ipcMain.handle('chantier-etat', () => {
+  if (!projectDir) return { projet: null, enCours: !!chantierEnCours };
+  const etat = etatDepot(projectDir);
+  return { projet: projectDir, enCours: !!chantierEnCours, ...etat, message: etat.pret ? '' : MESSAGES_DEPOT[etat.raison] };
 });
 
-ipcMain.handle('lancer-chantier', async (_e, { plan }) => {
-  if (!projectDir) return { ok: false, erreur: 'Aucun projet ouvert.' };
-  try {
-    const { lancerChantier } = require('./principal/chantier');
-    const reglages = lireReglagesFournisseurs();
-    const fournisseurChef = reglages.actif || 'ollama';
-    const modeleChef = reglages.modeles?.[fournisseurChef] || 'qwen2.5-coder:7b';
-    const envoyerChef = await envoyeurPour(fournisseurChef);
+// Met le dossier ouvert sous git, après accord : sans ça, pas de copie de travail possible
+ipcMain.handle('chantier-preparer', async () => {
+  if (!projectDir) return { ok: false, erreur: "Ouvre d'abord un dossier." };
+  const accord = await demanderAccord({
+    titre: 'Préparer le dossier', message: 'Mettre ce dossier sous git ?', accepter: 'Préparer le dossier',
+    detail: `${projectDir}\n\nUn dossier caché « .git » y sera créé, avec une première version de tes fichiers. Tes fichiers ne changent pas, et rien n'est envoyé sur internet.`,
+  });
+  if (!accord) return { ok: false, annule: true };
+  try { return { ok: true, ...preparerDepot(projectDir) }; } catch (err) { return { ok: false, erreur: err.message }; }
+});
 
-    const r = await lancerChantier({
-      projet: projectDir,
-      plan: path.resolve(projectDir, plan || 'plan.md'),
-      chef: { envoyer: envoyerChef, modele: modeleChef },
-      codeurs: [{
-        nom: 'Codeur',
-        envoyer: await envoyeurPour('ollama'),
-        modele: reglages.modeles?.['ollama'] || 'qwen2.5-coder:7b',
-        controles: [{ type: 'tests' }]
-      }],
-      dossierCopies: path.join(app.getPath('userData'), 'chantiers'),
-      ev: {
-        info: (d) => win?.webContents.send('chantier-info', d),
-        etape: (d) => win?.webContents.send('chantier-etape', d),
-        morceau: (d) => win?.webContents.send('chantier-morceau', d)
-      }
-    });
-    return r;
+// Le plan peut venir d'un fichier texte choisi par l'utilisateur
+ipcMain.handle('chantier-importer-plan', async () => {
+  const choix = await dialog.showOpenDialog(win, { title: 'Choisir un plan', properties: ['openFile'], filters: [{ name: 'Texte', extensions: ['md', 'txt'] }] });
+  if (choix.canceled) return null;
+  try {
+    if (fs.statSync(choix.filePaths[0]).size > 200000) return { erreur: 'Ce fichier est trop gros pour un plan.' };
+    return { nom: path.basename(choix.filePaths[0]), texte: fs.readFileSync(choix.filePaths[0], 'utf8') };
   } catch (err) {
-    return { ok: false, erreur: err.message };
+    return { erreur: `Impossible de lire ce fichier : ${err.message}` };
   }
+});
+
+ipcMain.handle('chantier-lancer', async (_e, { plan } = {}) => {
+  const texte = String(plan || '').trim();
+  if (chantierEnCours) return { ok: false, erreur: 'Un chantier tourne déjà.' };
+  if (!projectDir) return { ok: false, erreur: "Ouvre d'abord le dossier de ton projet (bouton Dossier, sous la saisie)." };
+  if (texte.length < 20) return { ok: false, erreur: 'Écris ton plan : ce qu\'il faut faire, étape par étape.' };
+  const etat = etatDepot(projectDir);
+  if (!etat.pret) return { ok: false, erreur: MESSAGES_DEPOT[etat.raison], aPreparer: etat.raison !== 'git-absent' };
+  if (!(await ollamaRepond())) return { ok: false, erreur: 'Ollama ne répond pas : les codeurs du chantier en ont besoin.' };
+  const arret = new AbortController();
+  chantierEnCours = { arret };
+  // Un chantier dure longtemps : le PC ne se met pas en veille pendant qu'il tourne
+  const veille = powerSaveBlocker.start('prevent-app-suspension');
+  const debut = Date.now();
+  const dossierCopies = path.join(app.getPath('userData'), 'chantiers');
+  try {
+    const { chef, codeurs, resume } = agentsDuChantier({
+      reglages: lireReglagesFournisseurs(), infos: infosFournisseur, envoyerLocal: envoyerOllama, limitesLocales: LIMITES_OLLAMA,
+      // Dernier garde-fou avant chaque appel en ligne : jamais de modèle payant
+      envoyerEnLigne: (id) => async (messages, modele, ...reste) => { verifierGratuit(id, modele); return (await envoyeurPour(id))(messages, modele, ...reste); },
+      dire: (t) => direChantier({ type: 'info', texte: t }),
+    });
+    direChantier({ type: 'info', texte: `Équipe : ${resume}` });
+    if (etat.modifs) direChantier({ type: 'info', texte: `Attention : ${etat.modifs} fichier(s) modifié(s) mais pas enregistré(s) dans git ne seront pas dans la copie.` });
+    const r = await lancerChantier({
+      projet: projectDir, plan: texte, chef, codeurs, dossierCopies, signal: arret.signal,
+      ev: { etape: (i, n, titre) => direChantier({ type: 'etape', i, n, titre }), info: (t) => direChantier({ type: 'info', texte: t }) },
+    });
+    const nom = r.branche.replace('catai/chantier-', '');
+    const minutes = Math.max(1, Math.round((Date.now() - debut) / 60000));
+    fs.writeFileSync(path.join(dossierCopies, `chantier-${nom}.md`), `${r.rapport}\n\nDurée : ${minutes} min.\n`);
+    return { ok: true, nom, rapport: r.rapport, etapes: r.etapes, minutes, arrete: arret.signal.aborted, changements: resumeChantier(projectDir, nom) };
+  } catch (err) {
+    return { ok: false, erreur: arret.signal.aborted ? 'Chantier arrêté avant la première étape.' : err.message };
+  } finally {
+    chantierEnCours = null;
+    powerSaveBlocker.stop(veille);
+  }
+});
+
+ipcMain.handle('chantier-arreter', () => { chantierEnCours?.arret.abort(); return { ok: !!chantierEnCours }; });
+
+// Garder : la branche du chantier est fusionnée dans le projet, après accord. C'est le seul moment où un chantier
+// écrit dans les fichiers de l'utilisateur.
+ipcMain.handle('chantier-garder', async (_e, nom) => {
+  if (!projectDir || !NOM_CHANTIER.test(String(nom))) return { ok: false, erreur: 'Chantier inconnu.' };
+  const accord = await demanderAccord({
+    titre: 'Garder le travail', message: 'Mettre le travail du chantier dans ton projet ?', accepter: 'Garder',
+    detail: `${resumeChantier(projectDir, nom) || 'Aucun changement.'}\n\nLes fichiers de ${projectDir} seront modifiés. Tu pourras revenir en arrière avec git.`,
+  });
+  if (!accord) return { ok: false, annule: true };
+  const r = garderChantier(projectDir, nom);
+  if (r.ok) { try { jeterChantier(projectDir, nom); } catch { /* la copie reste, sans gravité */ } }
+  return r;
+});
+
+ipcMain.handle('chantier-jeter', async (_e, nom) => {
+  if (!projectDir || !NOM_CHANTIER.test(String(nom))) return { ok: false, erreur: 'Chantier inconnu.' };
+  const accord = await demanderAccord({ titre: 'Jeter le travail', message: 'Jeter tout le travail de ce chantier ?', accepter: 'Jeter', detail: 'La copie et sa branche sont supprimées. Ton projet ne change pas.' });
+  if (!accord) return { ok: false, annule: true };
+  try { jeterChantier(projectDir, nom); return { ok: true }; } catch (err) { return { ok: false, erreur: err.message }; }
 });
 
 // Une seule app ouverte à la fois : deux fenêtres liraient et enregistreraient chacune leur version

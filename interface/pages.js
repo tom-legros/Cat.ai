@@ -243,40 +243,104 @@ async function donnerModelesManquants() {
 }
 
 async function ouvrirAgents() {
+    window.api.etatChantier().then(majChantier);
     for (const id of Object.keys(modelesParFournisseur)) delete modelesParFournisseur[id];
     equipe = await window.api.lireEquipe();
     if (!agentDe(agentOuvert)) agentOuvert = "chef";
     await donnerModelesManquants();
 }
 
-$("#parcourir-plan").addEventListener("click", async () => {
-    const chemin = await window.api.choisirFichier({ titre: "Choisir un plan de chantier", filtre: "Markdown (*.md)" });
-    if (chemin) {
-        $("#chantier-plan").value = chemin;
+/* Le chantier : le plan, le suivi en direct, puis le rapport. Tout le travail est fait par le processus principal. */
+let chantierTourne = false;
+let chantierFini = "";       // nom du dernier chantier terminé, tant qu'il n'est ni gardé ni jeté
+const JOURNAL_MAX = 300;
+
+function majChantier(etat) {
+    $("#chantier-lancer").textContent = chantierTourne ? "Arrêter" : "Lancer";
+    $("#chantier-lancer").classList.toggle("is-stop", chantierTourne);
+    $("#chantier-importer").hidden = chantierTourne;
+    $("#chantier-plan").readOnly = chantierTourne;
+    if (!etat) return;
+    const dossier = $("#chantier-dossier");
+    dossier.textContent = etat.projet ? `Dans ${etat.projet}` : "Ouvre d'abord le dossier de ton projet, avec le bouton Dossier sous la saisie.";
+    $("#chantier-preparer").hidden = chantierTourne || !etat.projet || etat.pret || etat.raison === "git-absent";
+    if (etat.projet && !etat.pret && !chantierTourne) $("#chantier-statut").textContent = etat.message;
+}
+
+function ligneJournal(texte, classe = "") {
+    const journal = $("#chantier-journal");
+    const li = creer("li", classe, texte.trim());
+    journal.appendChild(li);
+    while (journal.children.length > JOURNAL_MAX) journal.firstChild.remove();
+    journal.scrollTop = journal.scrollHeight;
+}
+
+window.api.onChantier((e) => {
+    if (e.type === "etape") {
+        $("#chantier-etape").textContent = `Étape ${e.i} sur ${e.n} · ${e.titre}`;
+        $("#chantier-barre").style.width = `${Math.round(((e.i - 1) / e.n) * 100)}%`;
+        ligneJournal(`Étape ${e.i} : ${e.titre}`, "is-etape");
+    } else if (e.type === "info") ligneJournal(e.texte, /échec|refusée|abandonnée|indisponible|Attention/.test(e.texte) ? "is-alerte" : "");
+});
+
+async function lancerOuArreter() {
+    const statut = $("#chantier-statut");
+    if (chantierTourne) { statut.textContent = "Arrêt demandé…"; window.api.arreterChantier(); return; }
+    chantierTourne = true;
+    statut.textContent = "";
+    $("#chantier-fin").hidden = true;
+    $("#chantier-suivi").hidden = false;
+    $("#chantier-journal").replaceChildren();
+    $("#chantier-etape").textContent = "Le chef découpe le plan…";
+    $("#chantier-barre").style.width = "0%";
+    majChantier();
+    const r = await window.api.lancerChantier($("#chantier-plan").value);
+    chantierTourne = false;
+    majChantier(await window.api.etatChantier());
+    if (!r.ok) {
+        statut.textContent = r.erreur;
+        if (!$("#chantier-journal").children.length) $("#chantier-suivi").hidden = true;
+        return;
     }
+    const faites = r.etapes.filter((e) => e.ok).length;
+    $("#chantier-barre").style.width = `${r.etapes.length ? Math.round((faites / r.etapes.length) * 100) : 0}%`;
+    $("#chantier-etape").textContent = `${r.arrete ? "Arrêté" : "Terminé"} en ${r.minutes} min · ${faites} étape${faites > 1 ? "s" : ""} faite${faites > 1 ? "s" : ""}`;
+    // Dans l'app, les commandes git du rapport ne servent pas : les boutons Garder et Jeter les remplacent
+    $("#chantier-rapport").textContent = r.rapport.split("\n\nLe travail est sur la branche")[0].replace(/^# Rapport du chantier\n+/, "") + (r.changements ? `\n\nFichiers changés :\n${r.changements}` : "");
+    $("#chantier-suite").textContent = "";
+    $("#chantier-garder").hidden = !faites;
+    $("#chantier-fin").hidden = false;
+    chantierFini = r.nom;
+}
+
+$("#chantier-lancer").addEventListener("click", lancerOuArreter);
+
+$("#chantier-importer").addEventListener("click", async () => {
+    const plan = await window.api.importerPlan();
+    if (!plan) return;
+    if (plan.erreur) { $("#chantier-statut").textContent = plan.erreur; return; }
+    $("#chantier-plan").value = plan.texte;
+    $("#chantier-statut").textContent = `${plan.nom} chargé.`;
 });
 
-$("#lancer-chantier").addEventListener("click", async () => {
-    const plan = $("#chantier-plan").value || "plan.md";
-    const statut = $("#chantier-statut");
-    statut.textContent = "Lancement du chantier en cours...";
-    try {
-        const res = await window.api.lancerChantier({ plan });
-        statut.textContent = res.ok ? "Chantier terminé avec succès !" : `Erreur : ${res.erreur}`;
-    } catch (err) {
-        statut.textContent = `Erreur : ${err.message}`;
-    }
+$("#chantier-preparer").addEventListener("click", async () => {
+    const r = await window.api.preparerChantier();
+    if (r.annule) return;
+    $("#chantier-statut").textContent = r.ok ? "Dossier prêt." : r.erreur;
+    majChantier(await window.api.etatChantier());
 });
 
-window.api.onChantierInfo((info) => {
-    const statut = $("#chantier-statut");
-    if (statut) statut.textContent = info;
-});
-
-window.api.onChantierEtape(({ i, n, titre }) => {
-    const statut = $("#chantier-statut");
-    if (statut) statut.textContent = `Étape ${i}/${n} : ${titre}`;
-});
+async function finirChantier(action, fait) {
+    if (!chantierFini) return;
+    const r = await action(chantierFini);
+    if (r.annule) return;
+    if (!r.ok) { $("#chantier-suite").textContent = r.erreur; return; }
+    chantierFini = "";
+    $("#chantier-fin").hidden = true;
+    $("#chantier-statut").textContent = fait;
+}
+$("#chantier-garder").addEventListener("click", () => finirChantier(window.api.garderChantier, "Le travail est dans ton projet."));
+$("#chantier-jeter").addEventListener("click", () => finirChantier(window.api.jeterChantier, "Travail jeté. Ton projet n'a pas changé."));
 
 
 /* ---------- 12. Page Modèles ---------- */

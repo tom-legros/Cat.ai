@@ -19,6 +19,8 @@ const { discuter } = require('./agent');
 const { listFiles } = require('./fichiers');
 const { lancerTestsNode } = require('./tests-projet');
 
+// Ce que fait un codeur, dit simplement dans le suivi du chantier
+const GESTES = { lister_fichiers: 'regarde les fichiers', lire_fichier: 'lit', chercher: 'cherche', ecrire_fichier: 'écrit', remplacer_texte: 'modifie' };
 const ESSAIS_PAR_ETAPE = 3;
 const MAX_ETAPES = 15;
 const OUTILS_OUVRIER = ['lister_fichiers', 'lire_fichier', 'chercher', 'ecrire_fichier', 'remplacer_texte'];
@@ -184,6 +186,8 @@ async function lancerChantier({ projet, plan, chef, codeurs, ouvrier, verificate
     return avis.remarque || 'Le relecteur a refusé cette étape.';
   }
   const resultats = [];
+  // Un arrêt demandé en cours d'étape n'est pas une panne : on garde ce qui est fait et on rend le rapport
+  try {
   for (const [i, etape] of etapes.entries()) {
     if (signal?.aborted) break;
     const codeur = codeurDe(etape);
@@ -200,7 +204,7 @@ async function lancerChantier({ projet, plan, chef, codeurs, ouvrier, verificate
         messages: [{ role: 'user', content: consigneOuvrier(plan, etape, resultats.filter((r) => r.ok), remarque) }],
         modele: codeur.modele, envoyer: codeur.envoyer, limites: codeur.limites, ctx: ctxPour(codeur),
         options: { seulement: OUTILS_OUVRIER, projet: true, documents: false },
-        ev: { morceau: ev.morceau, outil: (nom, a) => ev.info?.(`  ${nom} ${a?.chemin || a?.texte || ''}`.trimEnd()) },
+        ev: { morceau: ev.morceau, outil: (nom, a) => ev.info?.(`  ${GESTES[nom] || nom} ${a?.chemin || a?.texte || a?.dossier || ''}`.trimEnd()) },
       });
       git(copie, 'add', '-A');
       const diff = git(copie, 'diff', '--cached');
@@ -218,6 +222,10 @@ async function lancerChantier({ projet, plan, chef, codeurs, ouvrier, verificate
     ev.info?.(reussie ? `  étape ${i + 1} faite` : `  étape ${i + 1} abandonnée après ${essais} essais`);
     // Une étape ratée : on s'arrête, les suivantes s'appuieraient sur elle
     if (!reussie) break;
+  }
+  } catch (err) {
+    if (!signal?.aborted) throw err;
+    ev.info?.('Arrêt demandé : le chantier s\'arrête ici.');
   }
   git(copie, 'reset', '--hard', '-q');
   git(copie, 'clean', '-fdq', '-e', 'node_modules');

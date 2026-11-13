@@ -137,12 +137,31 @@
           <div class="toile" id="toile" role="region" aria-label="Arbre des agents" tabindex="0"></div>
           <aside class="fiche" id="fiche" aria-live="polite"></aside>
         </div>
-        <div class="atelier-lancement">
-          <input id="chantier-plan" type="text" placeholder="Chemin du plan (ex : plan.md)" value="plan.md">
-          <button id="parcourir-plan" class="bouton-calme" type="button">Choisir un plan...</button>
-          <button id="lancer-chantier" class="bouton" type="button">Lancer le chantier</button>
-          <p id="chantier-statut" class="conseil" aria-live="polite"></p>
-        </div>
+        <!-- Le chantier : un plan, puis l'équipe travaille dans une copie du projet (interface/pages.js) -->
+        <section class="chantier" id="chantier">
+          <h3 class="chantier__titre">Lancer un chantier</h3>
+          <p class="chantier__dossier" id="chantier-dossier"></p>
+          <textarea id="chantier-plan" class="chantier__plan" rows="5" spellcheck="true" lang="fr" placeholder="Ton plan, une étape par ligne. Par exemple :&#10;1. Ajoute une fonction produit(a, b) dans calcul.js&#10;2. Ajoute son test dans calcul.test.js"></textarea>
+          <div class="chantier__actions">
+            <button id="chantier-lancer" class="bouton" type="button">Lancer</button>
+            <button id="chantier-importer" class="bouton-calme" type="button">Importer un plan</button>
+            <button id="chantier-preparer" class="bouton-calme" type="button" hidden>Préparer le dossier</button>
+            <p id="chantier-statut" class="chantier__statut" aria-live="polite"></p>
+          </div>
+          <div class="chantier__suivi" id="chantier-suivi" hidden>
+            <p class="chantier__etape" id="chantier-etape"></p>
+            <div class="barre"><div class="barre__pleine" id="chantier-barre"></div></div>
+            <ol class="chantier__journal" id="chantier-journal" aria-live="polite"></ol>
+          </div>
+          <div class="chantier__fin" id="chantier-fin" hidden>
+            <pre class="chantier__rapport" id="chantier-rapport"></pre>
+            <div class="chantier__actions">
+              <button id="chantier-garder" class="bouton" type="button">Garder le travail</button>
+              <button id="chantier-jeter" class="bouton-calme" type="button">Jeter</button>
+              <p id="chantier-suite" class="chantier__statut" aria-live="polite"></p>
+            </div>
+          </div>
+        </section>
       </div>
     </section>
 

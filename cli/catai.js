@@ -29,7 +29,7 @@ const { LIMITES_OLLAMA, MAX_JOINT, raccourcir, listeCourte, limitesTaille } = re
 const { OLLAMA, envoyerOllama } = require(path.join(racine, 'principal/envoi'));
 const { discuter } = require(path.join(racine, 'principal/agent'));
 const { lireReglagesFournisseurs, infosFournisseur } = require(path.join(racine, 'principal/fournisseurs'));
-const { equipeDepuis, planDeTravail } = require(path.join(racine, 'principal/equipe'));
+const { agentsDuChantier, etatDepot, MESSAGES_DEPOT } = require(path.join(racine, 'principal/lancement'));
 const { hote, HOTES_LOCAUX } = require(path.join(racine, 'principal/gratuit'));
 
 // ---------- Couleurs (seulement dans un vrai terminal, et jamais avec NO_COLOR) ----------
@@ -274,45 +274,19 @@ async function chantier(argv) {
     return 0;
   }
   if (!o.plan || !fs.existsSync(o.plan)) { process.stderr.write(rouge('Donne le fichier du plan : catai chantier plan.md\n')); return 1; }
-  const reglages = lireReglagesFournisseurs();
-  // L'équipe composée dans l'app (page Agents) ; --chef et -m passent devant
-  const equipe = planDeTravail(equipeDepuis(reglages, infosFournisseur));
-  o.modele ||= equipe.codeurs[0].modele || reglages.modeles.ollama || 'qwen3:8b';
+  const depot = etatDepot(o.dossier);
+  if (!depot.pret) { process.stderr.write(rouge(`${MESSAGES_DEPOT[depot.raison]}\n`) + gris('Dans ce dossier : git init, puis git add -A, puis git commit -m "départ".\n')); return 1; }
   if (!(await ollamaRepond())) { process.stderr.write(rouge("Ollama ne répond pas : les codeurs du chantier en ont besoin.\n")); return 1; }
-  const ouvrier = { envoyer: envoyerOllama, modele: o.modele, limites: LIMITES_OLLAMA };
-  // Un agent qui parle sans coder (chef, relecteur, lecteur de logs) : sur le PC ou en ligne.
-  // S'il ne répond pas (clé illisible, quota), le modèle du PC prend sa place, et on le dit.
-  const agentSur = (nom, choix) => {
-    const local = choix.fournisseur === 'ollama';
-    let agent = local ? { envoyer: envoyerOllama, modele: choix.modele || o.modele } : { envoyer: envoyeurParApp(choix.fournisseur), modele: choix.modele };
-    return {
-      get modele() { return agent.modele; },
-      nom: () => (local ? agent.modele : `${choix.fournisseur} ${agent.modele}`),
-      envoyer: async (...args) => {
-        try { return await agent.envoyer(args[0], agent.modele, ...args.slice(2)); } catch (err) {
-          if (err.name === 'AbortError' || agent === ouvrier) throw err;
-          process.stdout.write(jaune(`${nom} indisponible (${err.message}) : ${o.modele} le remplace.\n`));
-          agent = ouvrier;
-          return agent.envoyer(args[0], agent.modele, ...args.slice(2));
-        }
-      },
-    };
-  };
-  // Un même agent de l'arbre (un relecteur sous le chef, par exemple) sert à tous les codeurs
-  const dejaFaits = new Map();
-  const agentDe = (a) => dejaFaits.get(a.id) || dejaFaits.set(a.id, agentSur(a.nom, a)).get(a.id);
-  const chef = o.chef ? agentSur('Chef', { fournisseur: o.chef, modele: reglages.modeles[o.chef] }) : agentDe(equipe.chef);
-  const codeurs = equipe.codeurs.map((c, i) => ({
-    nom: c.nom, specialite: c.specialite, envoyer: envoyerOllama, limites: LIMITES_OLLAMA,
-    modele: (i === 0 ? o.modele : c.modele) || o.modele,
-    controles: c.controles.map((k) => (k.type === 'tests'
-      ? { type: 'tests', logs: k.logs ? agentDe(k.logs) : null }
-      : { type: 'relecture', nom: k.nom, envoyer: agentDe(k.agent).envoyer, modele: k.agent.modele })),
-  }));
-  const autres = [...dejaFaits.values()].filter((a) => a !== chef).map((a) => a.nom());
+  // L'équipe composée dans l'app (page Agents) ; --chef et -m passent devant
+  const { chef, codeurs, resume } = agentsDuChantier({
+    reglages: lireReglagesFournisseurs(), infos: infosFournisseur, envoyerLocal: envoyerOllama, envoyerEnLigne: envoyeurParApp,
+    limitesLocales: LIMITES_OLLAMA, chefForce: o.chef, modeleForce: o.modele,
+    dire: (texte) => process.stdout.write(jaune(`${texte}\n`)),
+  });
+  if (depot.modifs) process.stdout.write(jaune(`Attention : ${depot.modifs} fichier(s) modifié(s) mais pas enregistré(s) dans git ne seront pas dans la copie.\n`));
   const arret = new AbortController();
   process.on('SIGINT', () => { process.stdout.write(jaune('\nArrêt du chantier demandé…\n')); arret.abort(); });
-  process.stdout.write(`${gras('Chantier')} ${gris(`· chef ${chef.nom()} · ${codeurs.length > 1 ? `codeurs ${codeurs.map((c) => `${c.nom} (${c.modele})`).join(', ')}` : `codeur ${codeurs[0].modele}`}${autres.length ? ` · contrôles : ${[...new Set(autres)].join(', ')}` : ''}`)}\n`);
+  process.stdout.write(`${gras('Chantier')} ${gris(`· ${resume}`)}\n`);
   const debut = Date.now();
   const r = await lancerChantier({
     projet: o.dossier, plan: fs.readFileSync(o.plan, 'utf8'), chef, codeurs,
