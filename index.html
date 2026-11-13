@@ -13,14 +13,14 @@
       <span class="logo__nom">Cat Ai</span>
     </div>
 
+    <button id="new-chat" class="bouton--nouveau" type="button"><svg class="icone icone-px" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="3" y="0" width="2" height="1"/><rect x="3" y="1" width="2" height="1"/><rect x="3" y="2" width="2" height="1"/><rect x="0" y="3" width="8" height="1"/><rect x="0" y="4" width="8" height="1"/><rect x="3" y="5" width="2" height="1"/><rect x="3" y="6" width="2" height="1"/><rect x="3" y="7" width="2" height="1"/></svg>Nouvelle discussion</button>
+
     <!-- Les pages de l'app. Les icônes sont posées par interface/pages.js -->
     <nav class="nav" aria-label="Pages">
-      <button class="nav__lien is-actif" data-page="discussion" type="button"><span data-icone="bulle"></span>Discussion</button>
+      <button class="nav__lien is-actif" data-page="discussion" type="button" aria-current="page"><span data-icone="bulle"></span>Discussion</button>
       <button class="nav__lien" data-page="agents" type="button"><span data-icone="agents"></span>Agents</button>
       <button class="nav__lien" data-page="modeles" type="button"><span data-icone="boite"></span>Modèles</button>
     </nav>
-
-    <button id="new-chat" class="bouton bouton--nouveau"><svg class="icone icone-px" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="3" y="0" width="2" height="1"/><rect x="3" y="1" width="2" height="1"/><rect x="3" y="2" width="2" height="1"/><rect x="0" y="3" width="8" height="1"/><rect x="0" y="4" width="8" height="1"/><rect x="3" y="5" width="2" height="1"/><rect x="3" y="6" width="2" height="1"/><rect x="3" y="7" width="2" height="1"/></svg>Nouvelle discussion</button>
 
     <p class="etiquette">Discussions</p>
     <ul id="conv-list" class="discussions"></ul>
@@ -35,6 +35,7 @@
   </aside>
 
   <main class="principal">
+    <header class="entete"><h1 id="titre-conv" class="entete__titre"></h1></header>
     <div id="messages" class="messages">
       <section id="welcome" class="accueil">
         <div class="mascotte" id="mascotte">
@@ -78,47 +79,48 @@
     </div>
 
     <form id="composer" class="saisie">
-      <ul id="pieces" class="pieces" hidden></ul>
-      <div class="saisie__ligne">
+      <div class="saisie__boite">
+        <ul id="pieces" class="pieces" hidden></ul>
         <textarea id="input" rows="1" placeholder="Écris au chat…" spellcheck="true" lang="fr"></textarea>
         <button id="send" type="submit" class="bouton-envoi" title="Envoyer (Entrée)" aria-label="Envoyer">
-          <svg class="icone icone-px icone--envoi" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="3" y="0" width="2" height="1"/><rect x="2" y="1" width="4" height="1"/><rect x="1" y="2" width="6" height="1"/><rect x="0" y="3" width="2" height="1"/><rect x="3" y="3" width="2" height="1"/><rect x="6" y="3" width="2" height="1"/><rect x="3" y="4" width="2" height="1"/><rect x="3" y="5" width="2" height="1"/><rect x="3" y="6" width="2" height="1"/><rect x="3" y="7" width="2" height="1"/></svg>
-          <svg class="icone icone-px icone--stop" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="1" y="1" width="6" height="1"/><rect x="1" y="2" width="6" height="1"/><rect x="1" y="3" width="6" height="1"/><rect x="1" y="4" width="6" height="1"/><rect x="1" y="5" width="6" height="1"/><rect x="1" y="6" width="6" height="1"/></svg>
-        </button>
-      </div>
-      <!-- Sous la saisie, ce qui change la façon de répondre : dossier, mode prof -->
-      <div class="saisie__outils">
-        <!-- À gauche : ce qui change la façon de répondre -->
-        <div class="outils__groupe">
-          <span class="pastille-groupe">
-            <button id="open-project" class="pastille" type="button" title="Ouvrir un dossier pour que le chat lise son contenu">
-              <svg class="icone icone-px" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="0" y="1" width="3" height="1"/><rect x="0" y="2" width="7" height="1"/><rect x="0" y="3" width="1" height="1"/><rect x="7" y="3" width="1" height="1"/><rect x="0" y="4" width="1" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="0" y="5" width="1" height="1"/><rect x="7" y="5" width="1" height="1"/><rect x="0" y="6" width="8" height="1"/></svg>
-              <span id="project-name">Dossier</span>
-            </button>
-            <button id="close-project" class="pastille pastille--x" type="button" title="Fermer le dossier" hidden>×</button>
-          </span>
-          <button id="mode-prof" class="pastille" type="button" role="switch" aria-checked="false" title="Mode prof : il t'explique et te donne des pistes, mais c'est toi qui trouves">
-            <svg class="icone icone-px" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="0" y="1" width="1" height="1"/><rect x="7" y="1" width="1" height="1"/><rect x="0" y="2" width="3" height="1"/><rect x="5" y="2" width="3" height="1"/><rect x="0" y="3" width="1" height="1"/><rect x="2" y="3" width="4" height="1"/><rect x="7" y="3" width="1" height="1"/><rect x="0" y="4" width="1" height="1"/><rect x="2" y="4" width="1" height="1"/><rect x="5" y="4" width="1" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="0" y="5" width="3" height="1"/><rect x="5" y="5" width="3" height="1"/></svg>
-            <span>Mode prof</span>
+            <svg class="icone icone-px icone--envoi" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="3" y="0" width="2" height="1"/><rect x="2" y="1" width="4" height="1"/><rect x="1" y="2" width="6" height="1"/><rect x="0" y="3" width="2" height="1"/><rect x="3" y="3" width="2" height="1"/><rect x="6" y="3" width="2" height="1"/><rect x="3" y="4" width="2" height="1"/><rect x="3" y="5" width="2" height="1"/><rect x="3" y="6" width="2" height="1"/><rect x="3" y="7" width="2" height="1"/></svg>
+            <svg class="icone icone-px icone--stop" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="1" y="1" width="6" height="1"/><rect x="1" y="2" width="6" height="1"/><rect x="1" y="3" width="6" height="1"/><rect x="1" y="4" width="6" height="1"/><rect x="1" y="5" width="6" height="1"/><rect x="1" y="6" width="6" height="1"/></svg>
           </button>
-        </div>
-        <!-- À droite : qui répond (fournisseur et modèle) ; le petit rond = quota du jour -->
-        <div class="outils__groupe">
-          <span class="raccourci">
-            <button id="fournisseur-raccourci" class="pastille pastille--discrete" type="button" aria-haspopup="true" title="Fournisseur : le service qui fait réfléchir le chat">
-              <span id="fournisseur-icone" class="menu-icone menu-icone--petite"></span><span class="pastille__terme">Fournisseur</span><span id="fournisseur-nom">…</span><svg class="icone icone-px icone--chevron" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="0" y="2" width="2" height="1"/><rect x="6" y="2" width="2" height="1"/><rect x="1" y="3" width="2" height="1"/><rect x="5" y="3" width="2" height="1"/><rect x="2" y="4" width="4" height="1"/><rect x="3" y="5" width="2" height="1"/></svg>
-            </button>
-            <div id="menu-fournisseurs" class="menu-modeles" hidden></div>
-          </span>
-          <span class="raccourci">
-            <button id="modele-raccourci" class="pastille pastille--discrete" type="button" aria-haspopup="true">
-              <svg class="quota" viewBox="0 0 20 20" aria-hidden="true"><circle class="quota__fond" cx="10" cy="10" r="7"/><circle id="quota-arc" class="quota__plein" cx="10" cy="10" r="7"/></svg>
-              <span class="pastille__terme">Modèle</span><span id="modele-nom">…</span><svg class="icone icone-px icone--chevron" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="0" y="2" width="2" height="1"/><rect x="6" y="2" width="2" height="1"/><rect x="1" y="3" width="2" height="1"/><rect x="5" y="3" width="2" height="1"/><rect x="2" y="4" width="4" height="1"/><rect x="3" y="5" width="2" height="1"/></svg>
-            </button>
-            <div id="menu-modeles" class="menu-modeles" hidden></div>
-          </span>
-        </div>
       </div>
+      <!-- Commandes sous le champ, à portée de clic. -->
+        <div class="saisie__barre">
+          <!-- À gauche : ce qui change la façon de répondre -->
+          <div class="outils__groupe">
+            <span class="pastille-groupe">
+              <button id="open-project" class="pastille" type="button" title="Ouvrir un dossier pour que le chat lise son contenu">
+                <svg class="icone icone-px" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="0" y="1" width="3" height="1"/><rect x="0" y="2" width="7" height="1"/><rect x="0" y="3" width="1" height="1"/><rect x="7" y="3" width="1" height="1"/><rect x="0" y="4" width="1" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="0" y="5" width="1" height="1"/><rect x="7" y="5" width="1" height="1"/><rect x="0" y="6" width="8" height="1"/></svg>
+                <span id="project-name">Dossier</span>
+              </button>
+              <button id="close-project" class="pastille pastille--x" type="button" title="Fermer le dossier" hidden>×</button>
+            </span>
+            <button id="mode-prof" class="pastille" type="button" role="switch" aria-checked="false" title="Mode prof : il t'explique et te donne des pistes, mais c'est toi qui trouves">
+              <svg class="icone icone-px" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="0" y="1" width="1" height="1"/><rect x="7" y="1" width="1" height="1"/><rect x="0" y="2" width="3" height="1"/><rect x="5" y="2" width="3" height="1"/><rect x="0" y="3" width="1" height="1"/><rect x="2" y="3" width="4" height="1"/><rect x="7" y="3" width="1" height="1"/><rect x="0" y="4" width="1" height="1"/><rect x="2" y="4" width="1" height="1"/><rect x="5" y="4" width="1" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="0" y="5" width="3" height="1"/><rect x="5" y="5" width="3" height="1"/></svg>
+              <span>Mode prof</span>
+            </button>
+          </div>
+          <!-- À droite : qui répond (fournisseur et modèle) ; le petit rond = quota du jour -->
+          <div class="outils__groupe">
+            <span class="raccourci">
+              <button id="fournisseur-raccourci" class="pastille pastille--discrete" type="button" aria-haspopup="true" title="Fournisseur : le service qui fait réfléchir le chat">
+                <span id="fournisseur-icone" class="menu-icone menu-icone--petite"></span><span class="pastille__terme">Fournisseur</span><span id="fournisseur-nom">…</span><svg class="icone icone-px icone--chevron" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="0" y="2" width="2" height="1"/><rect x="6" y="2" width="2" height="1"/><rect x="1" y="3" width="2" height="1"/><rect x="5" y="3" width="2" height="1"/><rect x="2" y="4" width="4" height="1"/><rect x="3" y="5" width="2" height="1"/></svg>
+              </button>
+              <div id="menu-fournisseurs" class="menu-modeles" hidden></div>
+            </span>
+            <span class="raccourci">
+              <button id="modele-raccourci" class="pastille pastille--discrete" type="button" aria-haspopup="true">
+                <svg class="quota" viewBox="0 0 20 20" aria-hidden="true"><circle class="quota__fond" cx="10" cy="10" r="7"/><circle id="quota-arc" class="quota__plein" cx="10" cy="10" r="7"/></svg>
+                <span class="pastille__terme">Modèle</span><span id="modele-nom">…</span><svg class="icone icone-px icone--chevron" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="0" y="2" width="2" height="1"/><rect x="6" y="2" width="2" height="1"/><rect x="1" y="3" width="2" height="1"/><rect x="5" y="3" width="2" height="1"/><rect x="2" y="4" width="4" height="1"/><rect x="3" y="5" width="2" height="1"/></svg>
+              </button>
+              <div id="menu-modeles" class="menu-modeles" hidden></div>
+            </span>
+
+          </div>
+        </div>
     </form>
 
     <!-- Page Agents : l'arbre d'agents du mode chantier, à composer (interface/pages.js) -->
@@ -132,32 +134,33 @@
           <button id="equipe-remettre" class="bouton-calme" type="button">Équipe de départ</button>
         </header>
         <div class="atelier">
-          <div class="toile" id="toile"></div>
+          <div class="toile" id="toile" role="region" aria-label="Arbre des agents" tabindex="0"></div>
           <aside class="fiche" id="fiche" aria-live="polite"></aside>
         </div>
-        <p class="lancement">Pour lancer l'équipe sur un plan, dans le terminal de ton projet : <code>catai chantier plan.md</code></p>
+        <div class="atelier-lancement">
+          <input id="chantier-plan" type="text" placeholder="Chemin du plan (ex : plan.md)" value="plan.md">
+          <button id="parcourir-plan" class="bouton-calme" type="button">Choisir un plan...</button>
+          <button id="lancer-chantier" class="bouton" type="button">Lancer le chantier</button>
+          <p id="chantier-statut" class="conseil" aria-live="polite"></p>
+        </div>
       </div>
     </section>
 
     <!-- Page Modèles : ce que le PC peut faire tourner, et les téléchargements (interface/pages.js) -->
     <section id="page-modeles" class="page" hidden>
-      <div class="page__contenu">
+      <div class="page__contenu page__contenu--large">
         <header class="page__tete">
           <div>
             <h2 class="page__titre">Modèles</h2>
-            <p class="page__resume">Ce que ton PC peut faire tourner avec Ollama.</p>
+            <p class="page__resume">Modèles Ollama à télécharger sur ton PC, sans clé API.</p>
           </div>
           <div class="infos-pc" id="infos-pc"></div>
         </header>
-        <div class="filtres" id="filtres" role="tablist" aria-label="Usage des modèles"></div>
+        <button class="bouton-calme" id="modeles-adaptes" type="button" aria-pressed="false" aria-controls="modeles-liste" hidden>Adaptés à mon PC</button>
+        <p class="conseil" id="modeles-filtre-etat" aria-live="polite"></p>
         <p class="conseil" id="modeles-etat" aria-live="polite"></p>
-        <ul class="modeles" id="modeles-liste"></ul>
-        <form id="autre-modele" class="autre-modele">
-          <input id="autre-modele-nom" aria-label="Nom d'un autre modèle à télécharger" placeholder="Un autre modèle : son nom sur ollama.com, par exemple gemma3:4b" autocomplete="off" spellcheck="false">
-          <button class="bouton-calme" type="submit">Télécharger</button>
-          <span id="lien-ollama"></span>
-        </form>
-        <p class="conseil" id="autre-modele-etat" aria-live="polite"></p>
+        <p class="conseil" id="modeles-progression" aria-live="polite"></p>
+        <ul class="modeles" id="modeles-liste" aria-label="Sélection de modèles"></ul>
       </div>
     </section>
 
@@ -244,6 +247,17 @@
   </div>
 
   <!-- Bibliothèques open source (voir les crédits dans README.md) -->
+  <dialog id="message-dialog" aria-labelledby="message-dialog-titre">
+    <form method="dialog">
+      <h2 id="message-dialog-titre" class="fenetre__titre"></h2>
+      <p id="message-dialog-info"></p>
+      <textarea id="message-dialog-texte" aria-label="Texte du message" rows="7" hidden></textarea>
+      <div class="rangee rangee--fin">
+        <button type="submit" value="annuler" class="bouton-calme" autofocus>Annuler</button>
+        <button type="submit" value="valider" id="message-dialog-valider" class="bouton"></button>
+      </div>
+    </form>
+  </dialog>
   <script src="node_modules/marked/lib/marked.umd.js"></script>
   <script src="node_modules/dompurify/dist/purify.min.js"></script>
   <script src="node_modules/@highlightjs/cdn-assets/highlight.min.js"></script>

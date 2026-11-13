@@ -103,7 +103,7 @@ function etiquettePiece(nom, apercu) {
     return li;
 }
 
-function addMessage(role, text, fichiers = [], apercus = {}) {
+function addMessage(role, text, fichiers = [], apercus = {}, message = null) {
     welcomeEl.hidden = true;
     const wrap = document.createElement("div");
     wrap.className = `msg ${role}`;
@@ -130,9 +130,81 @@ function addMessage(role, text, fichiers = [], apercus = {}) {
         chat = new ChatNoir(toile, { suitSouris: false });
         if (role === "error") chat.expression("fache");
     }
+    if (message) ajouterActionsMessage(wrap, current, message);
     messagesEl.appendChild(wrap);
     messagesEl.scrollTop = messagesEl.scrollHeight;
     return { bulle, chat };
+}
+
+function ajouterActionsMessage(wrap, conv, message) {
+    const barre = document.createElement("div");
+    barre.className = "msg__actions";
+    const retour = document.createElement("span");
+    retour.setAttribute("role", "status");
+    const action = (nom, dessin, clic) => {
+        const bouton = document.createElement("button");
+        bouton.type = "button";
+        bouton.title = nom;
+        bouton.setAttribute("aria-label", nom);
+        bouton.innerHTML = icone(dessin);
+        bouton.onclick = clic;
+        barre.append(bouton);
+    };
+    action("Copier le message", "copier", async () => {
+        try {
+            const texte = message.affichage ?? message.content;
+            await navigator.clipboard.writeText(message.role === "assistant" ? sansEtiquettes(texte) : texte);
+            retour.textContent = "Copié";
+        } catch { retour.textContent = "Copie impossible"; }
+    });
+    action("Modifier le message", "stylo", () => ouvrirActionMessage(conv, message, "modifier"));
+    if (message.role === "assistant" && conv.messages.at(-1) === message && conv.messages.at(-2)?.role === "user") {
+        action("Régénérer la dernière réponse", "relancer", () => regenererReponse(conv, message));
+        barre.lastElementChild.classList.add("msg__regenerer");
+    }
+    action("Supprimer le message", "corbeille", () => ouvrirActionMessage(conv, message, "supprimer"));
+    barre.append(retour);
+    (message.role === "assistant" ? wrap.lastElementChild : wrap).append(barre);
+}
+
+function ouvrirActionMessage(conv, message, operation) {
+    if (streaming || envoiEnCours) return;
+    const edition = operation === "modifier";
+    const dialogue = $("#message-dialog");
+    const champ = $("#message-dialog-texte");
+    const ancienTexte = message.affichage ?? message.content;
+    $("#message-dialog-titre").textContent = edition ? "Modifier le message" : "Supprimer ce message ?";
+    $("#message-dialog-info").textContent = edition
+        ? "Le texte enregistré sera aussi utilisé dans les prochaines réponses."
+        : "Ce message sera retiré de la discussion et de son contexte.";
+    $("#message-dialog-valider").textContent = edition ? "Enregistrer" : "Supprimer";
+    champ.hidden = !edition;
+    champ.required = edition;
+    champ.value = edition ? ancienTexte : "";
+    dialogue.returnValue = "";
+    dialogue.showModal();
+    if (edition) champ.focus();
+    dialogue.onclose = () => {
+        const position = conv.messages.indexOf(message);
+        if (dialogue.returnValue !== "valider" || position < 0 || streaming || envoiEnCours) return;
+        if (edition) {
+            const texte = champ.value.trim();
+            if (!texte || texte === ancienTexte) return;
+            if (message.affichage !== undefined) {
+                const debutPieces = ancienTexte.length || message.content.indexOf("\n\n");
+                message.content = texte + (debutPieces >= 0 ? message.content.slice(debutPieces) : "");
+                message.affichage = texte;
+            } else message.content = texte;
+        } else conv.messages.splice(position, 1);
+        delete conv.resume;
+        delete conv.resumeJusqua;
+        save();
+        const scroll = messagesEl.scrollTop;
+        renderConv();
+        messagesEl.scrollTop = scroll;
+        const voisine = messagesEl.querySelectorAll(".msg__actions")[Math.min(position, conv.messages.length - 1)];
+        (voisine?.querySelector("button") || input).focus({ preventScroll: true });
+    };
 }
 
 // Le texte suit la réponse seulement si on est déjà en bas : on peut remonter lire pendant que le chat écrit
@@ -150,7 +222,7 @@ function renderConv() {
     const enCoursIci = !!vivante && vivante.conv === current;
     const erreur = current && erreursEnAttente.get(current);
     welcomeEl.hidden = !!(current && current.messages.length) || enCoursIci || !!erreur;
-    current?.messages.forEach((m) => addMessage(m.role, m.affichage ?? m.content, m.fichiers));
+    current?.messages.forEach((m) => addMessage(m.role, m.affichage ?? m.content, m.fichiers, {}, m));
     if (enCoursIci) {
         messagesEl.appendChild(vivante.wrap);
         messagesEl.scrollTop = messagesEl.scrollHeight;
@@ -167,6 +239,7 @@ function renderConv() {
 }
 
 function renderList() {
+    $("#titre-conv").textContent = current?.title || "";
     convList.innerHTML = "";
     convs.forEach((c) => {
         const li = document.createElement("li");
@@ -363,7 +436,6 @@ async function send(text) {
             rendreTexte(text);
             return;
         }
-        compterMessage();
         // Les fichiers glissés sont ajoutés au message envoyé au modèle, mais affichés en petites étiquettes
         const fichiers = pieces.map((p) => p.nom);
         const apercus = Object.fromEntries(images.map((p) => [p.nom, p.apercu]));
@@ -389,42 +461,78 @@ async function send(text) {
         if (images.length) message.images = images.map((p) => p.image);
         const conv = current; // la réponse ira dans cette discussion, même si on en ouvre une autre entre-temps
         conv.messages.push(message);
-        addMessage("user", text, fichiers, apercus);
+        addMessage("user", text, fichiers, apercus, message);
         renderList();
         save();
         messagesEnvoyes++;
 
-        const id = Date.now();
-        const { bulle, chat } = addMessage("assistant", "");
-        preparation = { conv, wrap: bulle.closest(".msg") };
-        renderList();
-        chat.reflechit = true;
-        await resumerSiBesoin(conv, bulle);
-        const consignes = systemPrompt() + (await projectInfo(text));
-        bulle.innerHTML = "";
-        // attend-modele : rien reçu du modèle pour l'instant, « Miaou réfléchit » reste affiché (même sous l'alerte de budget)
-        bulle.classList.add("is-typing", "attend-modele");
-        // Avec Ollama, des consignes trop lourdes sont coupées : l'utilisateur le voit en haut de la réponse
-        const alerteBudget = fournisseurActif().type === "ollama" ? budgetConsignes(consignes) : "";
-        streaming = { id, el: bulle, wrap: preparation.wrap, conv, chat, text: alerteBudget ? etiquetteAction(alerteBudget) : "", actions: [], dernierSignal: Date.now() };
-        renderList();
-        if (alerteBudget) afficherFlux();
-        setStreaming(true);
-        surveillerSilence();
-
-        window.api.chat({
-            id,
-            model: modelSel.value,
-            fournisseurId: reglages.actif,
-            prof,
-            documents: conv.messages.filter((m) => m.role === "user").flatMap((m) => m.documents || []),
-            messages: [{ role: "system", content: consignes }, ...messagesPourLeModele(conv)]
-        });
+        await lancerReponse(conv, text);
     } finally {
-        envoiEnCours = false;
-        preparation = null;
-        majSaisie();
+        terminerPreparation();
     }
+}
+
+function terminerPreparation() {
+    envoiEnCours = false;
+    preparation = null;
+    majSaisie();
+}
+
+async function regenererReponse(conv, message) {
+    if (current !== conv || streaming || envoiEnCours || conv.messages.at(-1) !== message) return;
+    const question = conv.messages.at(-2);
+    if (question?.role !== "user") return;
+    if (!modelSel.value) {
+        addMessage("error", "Choisis un modèle pour régénérer cette réponse.");
+        return;
+    }
+    if (!question.images?.length && question.content.includes("\n\n(Image jointe : « ")) {
+        addMessage("error", "L’image n’est plus disponible. Renvoie ton message avec l’image pour obtenir une nouvelle réponse.");
+        return;
+    }
+    envoiEnCours = true;
+    try {
+        if (question.images?.length && !(await window.api.modeleVoitImages({ fournisseurId: reglages.actif, modele: modelSel.value }))) {
+            if (current === conv) addMessage("error", "Choisis un modèle qui accepte les images pour régénérer cette réponse.");
+            return;
+        }
+        if (current !== conv) return;
+        const contexte = { ...conv, messages: conv.messages.slice(0, -1) };
+        // La réponse précédente reste enregistrée jusqu'à la réussite de la génération.
+        await lancerReponse(conv, question.affichage ?? question.content, contexte, message);
+    } finally {
+        terminerPreparation();
+    }
+}
+
+async function lancerReponse(conv, text, contexte = conv, remplace = null) {
+    compterMessage();
+    const id = Date.now();
+    const { bulle, chat } = addMessage("assistant", "");
+    preparation = { conv, wrap: bulle.closest(".msg") };
+    renderList();
+    chat.reflechit = true;
+    if (!remplace) await resumerSiBesoin(conv, bulle);
+    const consignes = systemPrompt() + (await projectInfo(text));
+    bulle.innerHTML = "";
+    // attend-modele : rien reçu du modèle pour l'instant, « Miaou réfléchit » reste affiché (même sous l'alerte de budget)
+    bulle.classList.add("is-typing", "attend-modele");
+    // Avec Ollama, des consignes trop lourdes sont coupées : l'utilisateur le voit en haut de la réponse
+    const alerteBudget = fournisseurActif().type === "ollama" ? budgetConsignes(consignes) : "";
+    streaming = { id, el: bulle, wrap: preparation.wrap, conv, chat, remplace, text: alerteBudget ? etiquetteAction(alerteBudget) : "", actions: [], dernierSignal: Date.now() };
+    renderList();
+    if (alerteBudget) afficherFlux();
+    setStreaming(true);
+    surveillerSilence();
+
+    window.api.chat({
+        id,
+        model: modelSel.value,
+        fournisseurId: reglages.actif,
+        prof,
+        documents: contexte.messages.filter((m) => m.role === "user").flatMap((m) => m.documents || []),
+        messages: [{ role: "system", content: consignes }, ...messagesPourLeModele(contexte)]
+    });
 }
 
 function afficherFlux() {
@@ -532,19 +640,26 @@ function finirFlux() {
     majSaisie();
 }
 
-window.api.onDone(({ id }) => {
+window.api.onDone(({ id, interrompu }) => {
     if (streaming?.id !== id) return;
     const texte = streaming.text.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
-    if (texte || streaming.actions.length) {
+    const { conv, remplace, wrap } = streaming;
+    if ((!remplace || !interrompu) && (texte || streaming.actions.length)) {
         const message = { role: "assistant", content: texte };
         if (streaming.actions.length) message.actions = streaming.actions;
-        streaming.conv.messages.push(message);
+        if (remplace) conv.messages.pop();
+        conv.messages.push(message);
+        if (!remplace) ajouterActionsMessage(wrap, conv, message);
         if (streaming.conv !== current) streaming.conv.nonLu = true;
     }
     // Réponse finie : le chat sautille, content
     streaming.chat.sautiller(2);
     streaming.chat.expression("content", 1400);
     finirFlux();
+    if (remplace) {
+        wrap.remove();
+        if (current === conv) renderConv();
+    }
     save();
 });
 
@@ -657,7 +772,6 @@ const grandChat = new ChatNoir($("#grand-chat"));
 const logo = $("#logo");
 
 let minuterieFrappe = null;
-let minuterieMasque = null;
 let derniereReplique = "";
 const auHasard = (liste) => {
     // Évite de répéter la dernière réplique, sauf s'il n'y a qu'elle
@@ -666,19 +780,17 @@ const auHasard = (liste) => {
     return choix[Math.floor(Math.random() * choix.length)];
 };
 
-// Affiche une réplique lettre par lettre, puis la bulle se cache seule
+// La réplique reste visible tant que le chat est éveillé.
 function dire(texte) {
     if (!texte) return;
     derniereReplique = texte;
     clearInterval(minuterieFrappe);
-    clearTimeout(minuterieMasque);
     bulle.classList.remove("is-hidden");
     let n = 0;
     minuterieFrappe = setInterval(() => {
         bulleTexte.textContent = texte.slice(0, ++n);
         if (n >= texte.length) {
             clearInterval(minuterieFrappe);
-            minuterieMasque = setTimeout(() => bulle.classList.add("is-hidden"), 6000);
         }
     }, 24);
 }
@@ -758,6 +870,7 @@ function renderProf() {
 
 // Une seule réponse à la fois : si elle tourne dans une autre discussion, la saisie le dit (le carré l'arrête)
 function majSaisie() {
+    messagesEl.classList.toggle("is-occupe", !!streaming || envoiEnCours);
     const vivante = reponseVivante();
     if (vivante && vivante.conv !== current) {
         input.placeholder = `Le chat répond dans « ${vivante.conv.title} » : attends qu'il ait fini, ou arrête-le avec le carré`;
@@ -1056,7 +1169,7 @@ function majReveil({ enCours, debut, ok }) {
 window.api.onPrechauffage(majReveil);
 window.api.etatPrechauffage().then((etat) => { if (etat.enCours) majReveil(etat); });
 
-async function loadModels() {
+async function loadModels(modeleDemande) {
     const f = fournisseurActif();
     renderAccueil(f);
     const { ok, models, erreur } = await window.api.models(f.id);
@@ -1073,7 +1186,8 @@ async function loadModels() {
         })
         .join("");
     const retenu = reglages.modeles[f.id];
-    if (models.includes(avant)) modelSel.value = avant;
+    if (models.includes(modeleDemande)) modelSel.value = modeleDemande;
+    else if (models.includes(avant)) modelSel.value = avant;
     else if (models.includes(retenu)) modelSel.value = retenu;
     else if (models.length) modelSel.value = modeleParDefaut(models, f.id);
     afficherConseil();

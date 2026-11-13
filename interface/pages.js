@@ -14,7 +14,11 @@ function voirPage(nom) {
     pageOuverte = PAGES[nom] ? nom : "discussion";
     for (const [id, el] of Object.entries(PAGES)) el.hidden = id !== pageOuverte;
     $(".principal").classList.toggle("is-page", pageOuverte !== "discussion");
-    document.querySelectorAll(".nav__lien").forEach((b) => b.classList.toggle("is-actif", b.dataset.page === pageOuverte));
+    document.querySelectorAll(".nav__lien").forEach((b) => {
+        const active = b.dataset.page === pageOuverte;
+        b.classList.toggle("is-actif", active);
+        if (active) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    });
     if (pageOuverte === "agents") ouvrirAgents();
     if (pageOuverte === "modeles") ouvrirModeles();
     if (pageOuverte === "discussion") $("#input").focus();
@@ -73,6 +77,7 @@ function dessinerNoeud(agent) {
     const carte = creer("div", "noeud" + (agent.id === agentOuvert ? " is-ouvert" : ""));
     const bouton = creer("button", "noeud__carte");
     bouton.type = "button";
+    bouton.title = `${agent.nom} · ${sousTitre(agent)}`;
     bouton.setAttribute("aria-pressed", String(agent.id === agentOuvert));
     bouton.innerHTML = `<span class="menu-icone menu-icone--${genre.couleur}">${icone(genre.icone)}</span>`
         + `<span class="noeud__texte"><span class="noeud__nom">${escape(agent.nom)}</span><span class="noeud__qui">${escape(sousTitre(agent))}</span></span>`;
@@ -244,38 +249,84 @@ async function ouvrirAgents() {
     await donnerModelesManquants();
 }
 
+$("#parcourir-plan").addEventListener("click", async () => {
+    const chemin = await window.api.choisirFichier({ titre: "Choisir un plan de chantier", filtre: "Markdown (*.md)" });
+    if (chemin) {
+        $("#chantier-plan").value = chemin;
+    }
+});
+
+$("#lancer-chantier").addEventListener("click", async () => {
+    const plan = $("#chantier-plan").value || "plan.md";
+    const statut = $("#chantier-statut");
+    statut.textContent = "Lancement du chantier en cours...";
+    try {
+        const res = await window.api.lancerChantier({ plan });
+        statut.textContent = res.ok ? "Chantier terminé avec succès !" : `Erreur : ${res.erreur}`;
+    } catch (err) {
+        statut.textContent = `Erreur : ${err.message}`;
+    }
+});
+
+window.api.onChantierInfo((info) => {
+    const statut = $("#chantier-statut");
+    if (statut) statut.textContent = info;
+});
+
+window.api.onChantierEtape(({ i, n, titre }) => {
+    const statut = $("#chantier-statut");
+    if (statut) statut.textContent = `Étape ${i}/${n} : ${titre}`;
+});
+
 
 /* ---------- 12. Page Modèles ---------- */
-const AVIS = {
-    conseille: { texte: "Conseillé", classe: "avis--conseille" },
-    ok: { texte: "Rapide", classe: "avis--ok" },
-    lent: { texte: "Lent chez toi", classe: "avis--lent" },
-    trop: { texte: "Trop gros", classe: "avis--trop" }
-};
-const USAGES = { tous: "Tous", general: "Général", code: "Code", images: "Images", reflexion: "Réflexion", installes: "Installés" };
-let catalogue = null;       // { vramGo, ramGo, disqueGo, modeles }
-let installes = [];         // modèles déjà dans Ollama
+let catalogue = null;
+let installes = [];
 let ollamaLa = false;
-let usageChoisi = "tous";
-let enTelechargement = "";  // nom du modèle en cours, vide sinon
-let ligneEnCours = null;    // { barre, texte } de la ligne qui télécharge
+let enTelechargement = "";
+let ouvertureCatalogue = 0;
+
+const MODELES_SELECTION = [
+    ["qwen3:0.6b", "Texte simple sur un PC peu puissant", "modeleQwen", 4],
+    ["qwen3.5:0.8b", "Texte et images simples avec peu de mémoire", "modeleQwen", 6],
+    ["qwen3.5:2b", "Discussion légère et images simples", "modeleQwen", 8, 4],
+    ["qwen3:4b", "Discussion et rédaction avec peu de mémoire", "modeleQwen"],
+    ["qwen3.5:4b", "Assistant polyvalent pour le texte, le code et les images", "modeleQwen"],
+    ["qwen3:8b", "Discussion multilingue et raisonnement", "modeleQwen"],
+    ["qwen3.5:9b", "Code et analyse d’images plus poussée", "modeleQwen"],
+    ["qwen3:14b", "Rédaction et raisonnement sur des tâches complexes", "modeleQwen"],
+    ["qwen2.5-coder:7b", "Écriture, explication et correction de code", "modeleQwen"],
+    ["gemma4:e2b", "Lecture de captures et analyse d’images", "modeleGemma"],
+    ["deepseek-r1:8b", "Maths et raisonnement étape par étape", "modeleDeepSeek"],
+    ["gpt-oss:20b", "Raisonnement et tâches avec outils", "modeleOpenAI"],
+    ["qwen3.6:27b", "Code avec outils et raisonnement sur une machine puissante", "modeleQwen"],
+    ["qwen3.6:35b", "Code avec outils et analyse d’images", "modeleQwen"]
+];
 
 const go = (n) => String(n).replace(".", ",");
+const filtreAdaptes = $("#modeles-adaptes");
+filtreAdaptes.addEventListener("click", () => {
+    const actif = filtreAdaptes.getAttribute("aria-pressed") !== "true";
+    filtreAdaptes.setAttribute("aria-pressed", String(actif));
+    dessinerModeles();
+});
 
-function ligneModele({ modele, detail, avis, action }) {
-    const li = creer("li", "modele");
-    const texte = creer("div", "modele__texte");
-    texte.append(creer("p", "modele__nom", modele), creer("p", "modele__detail", detail));
-    li.appendChild(texte);
-    if (avis) li.appendChild(creer("span", `avis ${AVIS[avis].classe}`, AVIS[avis].texte));
-    li.appendChild(action);
-    if (modele === enTelechargement) {
-        const suivi = creer("div", "modele__suivi");
-        suivi.innerHTML = '<div class="barre"><div class="barre__pleine"></div></div><p class="modele__detail">Ça démarre…</p>';
-        li.appendChild(suivi);
-        ligneEnCours = { barre: suivi.querySelector(".barre__pleine"), texte: suivi.querySelector("p") };
+function evaluerModele({ vram, ramCPU, avis, conseille }, { vramGo, ramGo }) {
+    if (vramGo >= vram) {
+        return conseille
+            ? { label: "Conseillé", classe: "avis--conseille", detail: "Bon choix pour ton GPU", adapte: true }
+            : { label: "Rapide", classe: "avis--ok", detail: "Tient dans ta VRAM", adapte: true };
     }
-    return li;
+    if (ramCPU && ramGo >= ramCPU) {
+        return { label: "Lent (CPU)", classe: "avis--lent", detail: "Peut tourner sur le processeur", adapte: !vramGo };
+    }
+    if (vramGo && avis === "lent") {
+        return { label: "Lent", classe: "avis--lent", detail: "Utilise aussi la RAM", adapte: false };
+    }
+    if (!vramGo && !ramCPU) {
+        return { label: "À vérifier", classe: "avis--trop", detail: "GPU non détecté", adapte: false };
+    }
+    return { label: "Trop lourd", classe: "avis--trop", detail: "Mémoire probablement insuffisante", adapte: false };
 }
 
 const etatModele = (texte, classe = "") => creer("span", `modele__etat ${classe}`.trim(), texte);
@@ -289,54 +340,85 @@ function boutonTelecharger(modele) {
 
 // Ce qu'il y a au bout de la ligne : un état, ou le bouton. Jamais de bouton grisé : on dit pourquoi à la place.
 function actionModele(m) {
-    if (installes.includes(m.modele)) return etatModele("Installé", "is-installe");
     if (m.modele === enTelechargement) return etatModele("En cours");
-    if (m.avis === "trop") return etatModele(`${m.vram} Go requis`);
-    if (catalogue.disqueGo !== null && m.taille > catalogue.disqueGo) return etatModele("Disque plein");
-    if (!ollamaLa || enTelechargement || telechargement) return etatModele("");
+    if (catalogue.disqueGo !== null && (m.tailleMax ?? m.taille) > catalogue.disqueGo) return etatModele("Espace insuffisant");
+    if (!ollamaLa) return etatModele("Ollama hors ligne");
+    if (enTelechargement || telechargement) return etatModele("En attente");
     return boutonTelecharger(m.modele);
 }
 
-function dessinerFiltres() {
-    const filtres = $("#filtres");
-    filtres.replaceChildren();
-    for (const [id, texte] of Object.entries(USAGES)) {
-        const b = creer("button", "filtre" + (id === usageChoisi ? " is-actif" : ""), texte);
-        b.type = "button";
-        b.setAttribute("role", "tab");
-        b.setAttribute("aria-selected", String(id === usageChoisi));
-        b.addEventListener("click", () => { usageChoisi = id; dessinerModeles(); });
-        filtres.appendChild(b);
+function dessinerModeles() {
+    if (!catalogue) return;
+    const { vramGo, ramGo, disqueGo, modeles } = catalogue;
+    $("#infos-pc").replaceChildren(
+        creer("span", "info-pc", vramGo ? vramGo + " Go de VRAM" : "VRAM inconnue"),
+        creer("span", "info-pc", ramGo + " Go de RAM"),
+        ...(disqueGo === null ? [] : [creer("span", "info-pc", disqueGo + " Go libres")])
+    );
+    $("#modeles-etat").textContent = ollamaLa ? "" : "Lance Ollama pour utiliser ou télécharger un modèle.";
+    const modelesConnus = new Map(modeles.map(m => [m.modele, m]));
+    const selection = MODELES_SELECTION.map(([modele, raison, pictogramme, ramCPU, budgetVRAM]) => {
+        const fiche = modelesConnus.get(modele);
+        const m = { ...fiche, modele, raison, pictogramme, ramCPU, vram: budgetVRAM ?? fiche.vram };
+        return { ...m, evaluation: evaluerModele(m, catalogue) };
+    });
+    filtreAdaptes.hidden = false;
+    const filtre = filtreAdaptes.getAttribute("aria-pressed") === "true";
+    const visibles = filtre ? selection.filter(m => m.evaluation.adapte) : selection;
+    $("#modeles-filtre-etat").textContent = filtre ? visibles.length + " modèles adaptés sur " + selection.length + "." : "";
+    $("#modeles-liste").replaceChildren(...visibles.map(carteCatalogue));
+    if (!visibles.length) {
+        $("#modeles-liste").append(creer("li", "modele", "Aucun modèle adapté détecté. Désactive le filtre pour tout voir."));
     }
 }
 
-function dessinerModeles() {
-    ligneEnCours = null;
-    const { vramGo, ramGo, disqueGo, modeles } = catalogue;
-    $("#infos-pc").replaceChildren(
-        creer("span", "info-pc", vramGo ? `Carte ${vramGo} Go` : "Pas de carte graphique"),
-        creer("span", "info-pc", `Mémoire ${ramGo} Go`),
-        ...(disqueGo === null ? [] : [creer("span", "info-pc", `Disque ${disqueGo} Go libres`)])
-    );
-    dessinerFiltres();
-    $("#modeles-etat").textContent = ollamaLa ? "" : "Ollama ne répond pas : lance-le pour télécharger un modèle.";
-    const liste = $("#modeles-liste");
-    liste.replaceChildren();
-    // Dans l'ordre utile : le conseillé, les rapides, les lents, puis ceux qui ne tiennent pas ; les plus gros d'abord
-    const rang = (m) => (m.conseille ? 0 : ["ok", "lent", "trop"].indexOf(m.avis) + 1);
-    const garde = (m) => usageChoisi === "tous" || (usageChoisi === "installes" ? installes.includes(m.modele) : m.usage === usageChoisi);
-    for (const m of modeles.filter(garde).sort((a, b) => rang(a) - rang(b) || b.taille - a.taille)) {
-        liste.appendChild(ligneModele({ modele: m.modele, detail: `${go(m.taille)} Go · ${m.raison}`, avis: m.conseille ? "conseille" : m.avis, action: actionModele(m) }));
-    }
-    // Ceux que l'utilisateur a installés lui-même, hors de la liste connue
-    if (usageChoisi === "tous" || usageChoisi === "installes") {
-        const connus = modeles.map((m) => m.modele);
-        for (const nom of [...installes, enTelechargement].filter((n, i, tous) => n && !connus.includes(n) && tous.indexOf(n) === i)) {
-            const enCours = nom === enTelechargement && !installes.includes(nom);
-            liste.appendChild(ligneModele({ modele: nom, detail: "Ajouté par toi", avis: null, action: enCours ? etatModele("En cours") : etatModele("Installé", "is-installe") }));
-        }
-    }
-    if (!liste.children.length) liste.appendChild(creer("li", "modele modele--vide", "Rien ici pour l'instant."));
+function carteCatalogue(m) {
+    const installe = installes.includes(m.modele);
+    const carte = creer('li', 'modele carte-modele');
+    const identite = creer('div', 'carte-modele__identite');
+    const pictogramme = creer('span', 'carte-modele__icone');
+    pictogramme.innerHTML = icone(m.pictogramme);
+    identite.append(pictogramme);
+    const description = creer('div', 'carte-modele__description');
+    const titre = creer('div', 'carte-modele__titre');
+    const nom = creer('h3', 'carte-modele__nom');
+    nom.append(lienExterne(m.modele, 'https://ollama.com/library/' + m.modele, 'carte-modele__lien'));
+    titre.append(nom);
+    const avis = creer('span', 'avis ' + m.evaluation.classe, m.evaluation.label);
+    avis.title = m.evaluation.detail;
+    titre.append(avis);
+    const actif = installe && reglages.actif === 'ollama' && modelSel.value === m.modele;
+    description.append(titre, creer('p', 'carte-modele__specialite', m.raison));
+    identite.append(description);
+    carte.append(identite);
+    const pied = creer('div', 'carte-modele__pied');
+    const infos = creer('div', 'carte-modele__infos');
+    const poids = m.tailleMax ? go(m.taille) + '–' + go(m.tailleMax) : go(m.taille);
+    infos.append(creer('span', '', poids + ' Go à télécharger'));
+    infos.append(creer('small', '', '≈ ' + m.vram + ' Go de VRAM'));
+    if (m.ramCPU) infos.append(creer('small', '', 'CPU · ≈ ' + m.ramCPU + ' Go de RAM'));
+    let action;
+    if (actif) action = etatModele('Actif', 'is-installe');
+    else if (installe) {
+        action = creer('button', 'bouton-calme', 'Utiliser');
+        action.type = 'button';
+        action.setAttribute('aria-label', 'Utiliser ' + m.modele);
+        action.addEventListener('click', async () => {
+            if (streaming) { $("#modeles-etat").textContent = 'Attends la fin de la réponse avant de changer de modèle.'; return; }
+            try {
+                const r = await window.api.choisirFournisseur({ id: "ollama", modele: m.modele });
+                if (!r.ok) throw new Error(r.erreur || 'Choix impossible.');
+                reglages = r.reglages;
+                fournisseurSel.value = "ollama";
+                await loadModels(m.modele);
+                if (modelSel.value !== m.modele) throw new Error("Ce modèle n’est plus disponible dans Ollama.");
+                voirPage('discussion');
+            } catch (err) { $("#modeles-etat").textContent = err.message; }
+        });
+    } else action = actionModele(m);
+    pied.append(infos, action);
+    carte.append(pied);
+    return carte;
 }
 
 async function telechargerDepuisPage(modele) {
@@ -344,42 +426,25 @@ async function telechargerDepuisPage(modele) {
     enTelechargement = modele;
     telechargement = true; // la carte de l'accueil ne doit pas se redessiner pendant ce temps
     dessinerModeles();
-    const r = await window.api.telechargerModele(modele);
-    enTelechargement = "";
-    telechargement = false;
-    $("#autre-modele-etat").textContent = r.ok ? `${modele} est installé.` : `Le téléchargement de ${modele} a échoué : ${r.erreur}`;
+    let r;
+    try { r = await window.api.telechargerModele(modele); }
+    catch (err) { r = { ok: false, erreur: err.message }; }
+    finally { enTelechargement = ""; telechargement = false; }
+    $("#modeles-progression").textContent = r.ok ? `${modele} est installé.` : `Le téléchargement de ${modele} a échoué : ${r.erreur}`;
     await loadModels();
     await ouvrirModeles();
 }
 
-// Même progression que sur l'accueil, affichée dans la ligne du modèle
-window.api.onProgressionOllama(({ statut = "", fait = 0, total }) => {
-    if (!ligneEnCours) return;
-    const part = total ? Math.floor((fait / total) * 100) : 0;
-    if (total) ligneEnCours.barre.style.width = `${part}%`;
-    ligneEnCours.texte.textContent = total
-        ? `${part} % de ${go((total / 1e9).toFixed(1))} Go`
-        : statut === "success" ? "Terminé." : /verif/i.test(statut) ? "Vérification…" : "Préparation…";
+// Même progression que sur l'accueil.
+window.api.onProgressionOllama(({ fait = 0, total }) => {
+    if (enTelechargement) $("#modeles-progression").textContent = `${enTelechargement} · ${total ? Math.floor(fait / total * 100) + ' %' : 'Préparation…'}`;
 });
-
-$("#autre-modele").addEventListener("submit", (e) => {
-    e.preventDefault();
-    const nom = $("#autre-modele-nom").value.trim().toLowerCase();
-    const etat = $("#autre-modele-etat");
-    if (!/^[\w.-]+(:[\w.-]+)?$/.test(nom)) { etat.textContent = "Écris le nom comme sur ollama.com, par exemple gemma3:4b."; return; }
-    if (installes.includes(nom)) { etat.textContent = `${nom} est déjà installé.`; return; }
-    if (!ollamaLa) { etat.textContent = "Ollama ne répond pas."; return; }
-    if (enTelechargement || telechargement) { etat.textContent = "Un téléchargement est déjà en cours."; return; }
-    etat.textContent = "";
-    $("#autre-modele-nom").value = "";
-    usageChoisi = "tous";
-    telechargerDepuisPage(nom);
-});
-
-$("#lien-ollama").appendChild(lienExterne("Voir ollama.com", "https://ollama.com/search", "lien lien--petit"));
 
 async function ouvrirModeles() {
+    const ouverture = ++ouvertureCatalogue;
+    $("#modeles-etat").textContent = 'Chargement de la bibliothèque…';
     const [cat, liste] = await Promise.all([window.api.catalogueModeles(), window.api.models("ollama")]);
+    if (ouverture !== ouvertureCatalogue) return;
     catalogue = cat;
     ollamaLa = liste.ok;
     installes = liste.ok ? liste.models : [];
