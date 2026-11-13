@@ -84,7 +84,8 @@
       ],
       "language": "1036",
       "createDesktopShortcut": true,
-      "runAfterFinish": true
+      "runAfterFinish": true,
+      "include": "build/installateur.nsh"
     },
     "linux": {
       "target": "AppImage",
