@@ -16,36 +16,110 @@ const optionsOllama = (modele) => ({ num_ctx: 8192, ...(String(modele).startsWit
 // qwen3:8b), et on attend devant « Miaou réfléchit ». Ollama accepte ce réglage aussi pour les modèles qui ne réfléchissent pas.
 const sansReflexion = () => false;
 
+// Langue d'un début de réponse, d'après ses petits mots les plus courants : 'fr', 'en', ou null si on ne sait pas encore
+const MOTS_FR = new Set(['le', 'la', 'les', 'des', 'est', 'et', 'pour', 'dans', 'un', 'une', 'du', 'tu', 'ton', 'ta', 'tes', 'qui', 'sont', 'avec', 'je', 'que', 'pas', 'sur', 'voici', 'ce', 'il']);
+const MOTS_EN = new Set(['the', 'is', 'and', 'for', 'in', 'of', 'you', 'your', 'are', 'with', 'this', 'that', 'let', "let's", "i've", "i'll", 'okay', 'here', 'it', 'to', 'i', "it's", 'has', 'have', 'now', 'see', 'look']);
+// On ne compte que la phrase elle-même : le code (for, in, of, this…) et les citations (un README en anglais)
+// faisaient prendre une réponse française pour de l'anglais. Un bloc de code pas encore fermé compte aussi comme du code.
+const sansCodeNiCitation = (texte) => String(texte)
+  .replace(/```[\s\S]*?(```|$)/g, ' ')
+  .replace(/`[^`\n]*`?/g, ' ')
+  .replace(/«[^»]*(»|$)/g, ' ')
+  .replace(/"[^"\n]*("|$)/g, ' ')
+  .replace(/^\s*\|.*$/gm, ' ');
+function langueProbable(texte) {
+  const mots = sansCodeNiCitation(texte).toLowerCase().replace(/’/g, "'").match(/[a-zàâçéèêëîïôûùüÿœ']+/g) || [];
+  const fr = mots.filter((m) => MOTS_FR.has(m)).length;
+  const en = mots.filter((m) => MOTS_EN.has(m)).length;
+  if (en >= 3 && en > fr * 2) return 'en';
+  if (fr >= 3 && fr >= en) return 'fr';
+  return null;
+}
+
+// Juste après le résultat d'un outil, qwen3 sans réflexion (think: false) se met souvent à « penser tout haut » en
+// anglais dans sa réponse (« Okay, let me look at… ») : mesuré 12 fois sur 12 après lister_fichiers, et aucun rappel
+// ni consigne ne l'en empêche. Avec la réflexion, il répond en français, mais 3 à 6 fois plus lentement.
+// Donc : après un outil, le début de la réponse est gardé de côté (DEBUT_A_VERIFIER caractères). S'il est en anglais,
+// on l'arrête et on relance la même étape avec la réflexion ; sinon il est affiché d'un coup et la suite arrive
+// normalement. Le temps de la réflexion n'est payé que quand le modèle dérive.
+const DEBUT_A_VERIFIER = 120;
+// Modèles qui ont refusé la réflexion (erreur 400) : on ne vérifie plus leur langue, la relance ne servirait à rien
+const sansReflexionPossible = new Set();
+// L'utilisateur veut une réponse en anglais (traduction, message de commit…) : rien à corriger
+const ANGLAIS_DEMANDE = /\b(anglais|english|tradui|translat)/i;
+const verifierLangue = (messages, modele) => !sansReflexionPossible.has(modele)
+  && !ANGLAIS_DEMANDE.test(messages.findLast((m) => m.role === 'user')?.content || '');
+
 // ---------- Discussion avec Ollama ----------
 // Envoie la discussion à Ollama et lit la réponse en streaming (JSON ligne par ligne).
 // onMorceau(texte) est appelé pour chaque morceau de texte reçu ; signal permet le bouton stop.
 // options.prof : le mode prof, qui décide si l'outil d'écriture est proposé au modèle.
 // Renvoie { content, toolCalls } : le texte complet et les appels d'outils demandés.
 async function envoyerOllama(messages, modele, onMorceau, signal, options = {}) {
+  if (messages.at(-1)?.role !== 'tool' || !verifierLangue(messages, modele)) return lireOllama(messages, modele, onMorceau, signal, options, sansReflexion(modele), false);
+  const premier = await lireOllama(messages, modele, onMorceau, signal, options, sansReflexion(modele), true);
+  if (!premier.anglais) return premier;
+  try {
+    // Même étape, avec la réflexion : la réponse arrive en français
+    return await lireOllama(messages, modele, onMorceau, signal, options, true, false);
+  } catch (err) {
+    // Un modèle qui ne sait pas réfléchir refuse (400) : on garde la réponse sans réflexion, en anglais plutôt que rien,
+    // et on ne vérifiera plus sa langue (sinon trois demandes à chaque étape, pour rien)
+    if (signal?.aborted || !/répondu 400/.test(err.message)) throw err;
+    sansReflexionPossible.add(modele);
+    return lireOllama(messages, modele, onMorceau, signal, options, sansReflexion(modele), false);
+  }
+}
+
+// Une demande à Ollama. Avec verifier, le début est gardé de côté et sa langue vérifiée : en anglais, la lecture
+// s'arrête (sortir de la boucle ferme la connexion, et Ollama arrête d'écrire) et le résultat est { anglais: true },
+// sans rien avoir affiché.
+async function lireOllama(messages, modele, onMorceau, signal, options, reflexion, verifier) {
   const res = await fetch(`${OLLAMA}/api/chat`, {
     method: 'POST',
     // think: false : qwen3 répond direct au lieu d'écrire une longue réflexion avant
-    body: JSON.stringify({ model: modele, messages, tools: outilsPour(options), stream: true, think: sansReflexion(modele), keep_alive: GARDER_CHARGE, options: optionsOllama(modele) }),
+    body: JSON.stringify({ model: modele, messages, tools: outilsPour(options), stream: true, think: reflexion, keep_alive: GARDER_CHARGE, options: optionsOllama(modele) }),
     signal,
   });
   if (!res.ok) throw new Error(`Ollama a répondu ${res.status}`);
   const decoder = new TextDecoder();
   let buffer = '';
   let content = '';
+  let enAttente = verifier;
   const toolCalls = [];
-  for await (const chunk of res.body) {
-    buffer += decoder.decode(chunk, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop();
-    for (const line of lines) {
-      if (!line.trim()) continue;
-      const data = JSON.parse(line);
-      if (data.message?.content) {
-        content += data.message.content;
-        onMorceau(data.message.content);
+  const ANGLAIS = { anglais: true, content: '', toolCalls: [] };
+  // Le début gardé de côté : en anglais on arrête, sinon il est affiché d'un coup
+  const debutAnglais = () => {
+    enAttente = false;
+    if (langueProbable(content) === 'en') return true;
+    if (content) onMorceau(content);
+    return false;
+  };
+  try {
+    for await (const chunk of res.body) {
+      buffer += decoder.decode(chunk, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        const data = JSON.parse(line);
+        if (data.message?.content) {
+          content += data.message.content;
+          if (!enAttente) onMorceau(data.message.content);
+          else if (content.length >= DEBUT_A_VERIFIER && debutAnglais()) return ANGLAIS;
+        }
+        if (data.message?.tool_calls) toolCalls.push(...data.message.tool_calls);
       }
-      if (data.message?.tool_calls) toolCalls.push(...data.message.tool_calls);
     }
+  } catch (err) {
+    // Stop pendant que le début attendait : on montre ce qui était déjà arrivé, comme sans la vérification
+    if (enAttente && content && langueProbable(content) !== 'en') onMorceau(content);
+    throw err;
+  }
+  // Réponse finie avant DEBUT_A_VERIFIER caractères : vérifiée maintenant (pas avec un appel d'outil, qui n'est pas affiché)
+  if (enAttente) {
+    if (!toolCalls.length && debutAnglais()) return ANGLAIS;
+    if (toolCalls.length && content) onMorceau(content);
   }
   return { content, toolCalls };
 }
@@ -256,4 +330,4 @@ function vulkanUtile(plateforme, env, cartes = []) {
   return vendeurs.includes(AMD) && !vendeurs.includes(NVIDIA);
 }
 
-module.exports = { OLLAMA, GARDER_CHARGE, optionsOllama, sansReflexion, REFLEXION, vulkanUtile, envoyerOllama, envoyerOpenAI, versOpenAI, finirAppels, attenteDemandee, estModeleCasse, messageErreurOpenAI };
+module.exports = { OLLAMA, GARDER_CHARGE, optionsOllama, sansReflexion, langueProbable, DEBUT_A_VERIFIER, REFLEXION, vulkanUtile, envoyerOllama, envoyerOpenAI, versOpenAI, finirAppels, attenteDemandee, estModeleCasse, messageErreurOpenAI };

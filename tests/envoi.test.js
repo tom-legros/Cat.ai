@@ -121,3 +121,99 @@ test('vulkanUtile : seulement sous Windows avec une AMD sans NVIDIA, et jamais c
 test('sansReflexion : aucun modèle Ollama ne réfléchit en silence avant de répondre', () => {
   for (const modele of ['qwen3:8b', 'qwen3.5:4b', 'deepseek-r1:8b', 'gpt-oss:20b', 'qwen2.5-coder:7b']) assert.equal(sansReflexion(modele), false, modele);
 });
+
+// Après un outil : réponse anglaise relancée avec la réflexion, sans rien en afficher
+const { envoyerOllama, langueProbable } = require('../principal/envoi');
+
+test('langueProbable : reconnaît un début en anglais ou en français, et ne tranche pas trop tôt', () => {
+  assert.equal(langueProbable("Okay, let's take a look at the files. I've got a good overview of the project"), 'en');
+  assert.equal(langueProbable('Je vois que ton projet est assez complet : il y a une interface et des tests pour'), 'fr');
+  assert.equal(langueProbable('Okay, je vois le projet. Il a l air d être une application pour'), 'fr');
+  assert.equal(langueProbable('**Cat Ai**'), null);
+});
+
+// Faux Ollama : chaque demande reçoit la réponse suivante de la liste, en morceaux JSON ligne par ligne
+function fauxOllama(reponses) {
+  const demandes = [];
+  const vrai = global.fetch;
+  global.fetch = async (_url, { body }) => {
+    demandes.push(JSON.parse(body));
+    const { morceaux = [], outil } = reponses[demandes.length - 1];
+    const lignes = morceaux.map((t) => JSON.stringify({ message: { content: t } }) + '\n');
+    if (outil) lignes.push(JSON.stringify({ message: { content: '', tool_calls: [{ function: { name: outil, arguments: {} } }] } }) + '\n');
+    return { ok: true, status: 200, body: (async function* () { for (const l of lignes) yield Buffer.from(l); })() };
+  };
+  return { demandes, rendre: () => { global.fetch = vrai; } };
+}
+const APRES_OUTIL = [{ role: 'user', content: 'regarde les fichiers' }, { role: 'assistant', content: '', tool_calls: [] }, { role: 'tool', content: 'a.js\nb.js' }];
+
+test('envoyerOllama : après un outil, un début en anglais n est pas affiché et l étape est relancée avec la réflexion', async () => {
+  const anglais = ['Okay, ', "let's take a look at the files. ", 'I have a good overview of the project and ', 'here is what I see in the code for you: ', 'the main file is'];
+  const f = fauxOllama([{ morceaux: anglais }, { morceaux: ['Voici ', 'ce que je vois dans ton projet.'] }]);
+  const affiche = [];
+  try {
+    const r = await envoyerOllama(APRES_OUTIL, 'qwen3:8b', (t) => affiche.push(t), null, { projet: true });
+    assert.equal(f.demandes.length, 2);
+    assert.equal(f.demandes[0].think, false);
+    assert.equal(f.demandes[1].think, true);
+    assert.equal(affiche.join(''), 'Voici ce que je vois dans ton projet.');
+    assert.equal(r.content, 'Voici ce que je vois dans ton projet.');
+  } finally { f.rendre(); }
+});
+
+test('envoyerOllama : une réponse en français après un outil est affichée une seule fois, sans relance', async () => {
+  const francais = ['Le projet ', 'est une app de chat ', 'avec un chat noir en pixel art qui vit sur ton bureau, ', 'et il y a des tests pour ', 'les outils et la mémoire. ', 'La suite.'];
+  const f = fauxOllama([{ morceaux: francais }]);
+  const affiche = [];
+  try {
+    const r = await envoyerOllama(APRES_OUTIL, 'qwen3:8b', (t) => affiche.push(t), null, { projet: true });
+    assert.equal(f.demandes.length, 1);
+    assert.equal(affiche.join(''), francais.join(''));
+    assert.equal(r.content, francais.join(''));
+  } finally { f.rendre(); }
+});
+
+test('envoyerOllama : un court texte avec un appel d outil, ou un message sans outil avant, ne sont jamais relancés', async () => {
+  const f = fauxOllama([{ morceaux: ["Let's read it."], outil: 'lire_fichier' }, { morceaux: ['Okay, let me see what you have here, it is the file that you sent'] }]);
+  const affiche = [];
+  try {
+    const r = await envoyerOllama(APRES_OUTIL, 'qwen3:8b', (t) => affiche.push(t), null, { projet: true });
+    assert.equal(r.toolCalls[0].function.name, 'lire_fichier');
+    await envoyerOllama([{ role: 'user', content: 'salut' }], 'qwen3:8b', (t) => affiche.push(t), null, {});
+    assert.equal(f.demandes.length, 2);
+    assert.equal(affiche.join(''), "Let's read it.Okay, let me see what you have here, it is the file that you sent");
+  } finally { f.rendre(); }
+});
+
+test('langueProbable : le code et les citations en anglais ne font pas prendre une réponse française pour de l anglais', () => {
+  assert.notEqual(langueProbable('```js\nfor (const f of fichiers) {\n  if (f.nom in index) this.ajouter(f);\n}\n```\nVoilà, c est corrigé.'), 'en');
+  assert.notEqual(langueProbable('```python\nfor i in range(10):\n    if x is None and y'), 'en');
+  assert.notEqual(langueProbable('Le fichier README.md dit : « This is a desktop assistant for you and your files, and it is free »'), 'en');
+});
+
+test('envoyerOllama : pas de vérification quand l utilisateur demande de l anglais, ni pour un modèle qui refuse la réflexion', async () => {
+  const anglais = ['Here is your README translated: ', 'This is a desktop assistant for you and your files, ', 'it is free and it works with the models that you have'];
+  const traduction = [{ role: 'user', content: 'lis le README et traduis-le en anglais' }, ...APRES_OUTIL.slice(1)];
+  let f = fauxOllama([{ morceaux: anglais }]);
+  try {
+    await envoyerOllama(traduction, 'qwen3:8b', () => {}, null, { projet: true });
+    assert.equal(f.demandes.length, 1);
+  } finally { f.rendre(); }
+  // Modèle sans réflexion : 400 sur think:true, la réponse anglaise est gardée, puis plus de vérification pour lui
+  const vrai = global.fetch;
+  const demandes = [];
+  global.fetch = async (_url, { body }) => {
+    const corps = JSON.parse(body);
+    demandes.push(corps);
+    if (corps.think === true) return { ok: false, status: 400, body: null };
+    return { ok: true, status: 200, body: (async function* () { yield Buffer.from(JSON.stringify({ message: { content: anglais.join('') } }) + '\n'); })() };
+  };
+  try {
+    const affiche = [];
+    await envoyerOllama(APRES_OUTIL, 'llama3.2:3b', (t) => affiche.push(t), null, { projet: true });
+    assert.deepEqual(demandes.map((d) => d.think), [false, true, false]);
+    assert.equal(affiche.join(''), anglais.join(''));
+    await envoyerOllama(APRES_OUTIL, 'llama3.2:3b', () => {}, null, { projet: true });
+    assert.equal(demandes.length, 4);
+  } finally { global.fetch = vrai; }
+});
