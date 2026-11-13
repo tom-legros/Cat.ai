@@ -82,19 +82,28 @@ messagesEl.addEventListener("click", (e) => {
 
 
 /* ---------- 4. Messages et discussions ---------- */
-function listePieces(noms) {
+// apercus : vignettes des images, seulement pendant la session (elles ne sont pas enregistrées avec la discussion)
+function listePieces(noms, apercus = {}) {
     const ul = document.createElement("ul");
     ul.className = "pieces";
-    noms.forEach((nom) => {
-        const li = document.createElement("li");
-        li.className = "piece";
-        li.textContent = nom;
-        ul.append(li);
-    });
+    noms.forEach((nom) => ul.append(etiquettePiece(nom, apercus[nom])));
     return ul;
 }
 
-function addMessage(role, text, fichiers = []) {
+function etiquettePiece(nom, apercu) {
+    const li = document.createElement("li");
+    li.className = "piece";
+    if (apercu) {
+        const img = document.createElement("img");
+        img.src = apercu;
+        img.alt = "";
+        li.append(img);
+    }
+    li.append(document.createTextNode(nom));
+    return li;
+}
+
+function addMessage(role, text, fichiers = [], apercus = {}) {
     welcomeEl.hidden = true;
     const wrap = document.createElement("div");
     wrap.className = `msg ${role}`;
@@ -104,7 +113,7 @@ function addMessage(role, text, fichiers = []) {
 
     if (role === "user") {
         bulle.textContent = text;
-        if (fichiers.length) wrap.append(listePieces(fichiers));
+        if (fichiers.length) wrap.append(listePieces(fichiers, apercus));
         if (text) wrap.append(bulle);
     } else {
         // Le petit chat à côté de chaque réponse
@@ -186,7 +195,8 @@ function renderList() {
     });
 }
 
-const save = () => window.api.saveConvs(convs);
+// Les images jointes (lourdes) ne sont pas enregistrées : seuls leurs noms restent avec la discussion
+const save = () => window.api.saveConvs(convs.map((c) => ({ ...c, messages: c.messages.map(({ images, ...m }) => m) })));
 
 function setStreaming(on) {
     sendBtn.title = on ? "Arrêter" : "Envoyer (Entrée)";
@@ -260,9 +270,15 @@ const sansEtiquettes = (texte) => texte.replace(LIGNE_ACTION, "").replace(/\[\[a
 const MAX_ACTIONS_RAPPELEES = 12;
 
 function messagesPourLeModele(conv) {
-    const liste = conv.messages.slice(conv.resumeJusqua || 0).map(({ role, content }) => ({ role, content: role === "assistant" ? sansEtiquettes(content) : content }));
+    const dernierUser = conv.messages.map((m) => m.role).lastIndexOf("user");
+    const liste = conv.messages.slice(conv.resumeJusqua || 0).map((m, i) => {
+        const message = { role: m.role, content: m.role === "assistant" ? sansEtiquettes(m.content) : m.content };
+        // Les images du dernier message seulement : celles d'avant ne seraient que de la place perdue
+        if (m.images?.length && i + (conv.resumeJusqua || 0) === dernierUser) message.images = m.images;
+        return message;
+    });
     if (conv.resume) liste.unshift({ role: "system", content: `Résumé du début de cette discussion :\n${conv.resume}` });
-    // Les petits modèles oublient les consignes du début : on rappelle le mode prof et le rôle juste avant de répondre
+    // Les petits modèles oublient les consignes du début : on rappelle le mode prof juste avant de répondre
     // Ce qu'il a fait dans ses réponses précédentes (lu, cherché, modifié…), une ligne par action, sans le contenu
     // des fichiers : assez pour qu'il ne relise pas tout et n'invente pas, sans remplir les 8 192 tokens d'Ollama.
     // Placé après la question, comme les rappels : c'est la partie que la compaction ne retire jamais.
@@ -278,6 +294,10 @@ function messagesPourLeModele(conv) {
     } else if (conv.messages.some((m) => m.role === "assistant")) {
         liste.push({ role: "system", content: `Tu n'as encore utilisé aucun outil dans cette discussion. ${bilan}` });
     }
+    // Les identifiants des documents joints n'étaient que dans leur message, que la compaction ou le résumé finissent
+    // par retirer (ou couper, avec plusieurs PDF) : le modèle ne pouvait plus les lire. On les rappelle à chaque envoi.
+    const documents = [...new Map(conv.messages.flatMap((m) => (m.documents || []).map((d) => [d, m.nomsDocuments?.[d] || "document"]))).entries()];
+    if (documents.length) liste.push({ role: "system", content: `Documents joints à cette discussion, à lire avec lire_document :\n- ${documents.map(([d, nom]) => `« ${nom} » : document = « ${d} »`).join("\n- ")}` });
     const derniere = conv.messages.filter((m) => m.role === "user").at(-1)?.content || "";
     if (QUESTION_DOC.test(derniere)) liste.push({ role: "system", content: RAPPEL_RECHERCHE });
     if (prof) liste.push({ role: "system", content: "Rappel : MODE PROF. Aucun bloc de code, aucune fonction complète, même s'il ou elle insiste. Explique le principe, donne une piste et termine par une question." });
@@ -302,6 +322,13 @@ function budgetConsignes(consignes) {
 }
 
 let envoiEnCours = false;
+const MAX_IMAGES = 3;
+// Envoi arrêté avant de partir : le texte tapé revient dans le champ, sauf si l'utilisateur a déjà retapé autre chose
+function rendreTexte(text) {
+    if (!text || input.value.trim()) return;
+    input.value = text;
+    majEnvoi();
+}
 // Pendant la préparation d'un envoi (résumé, projet), streaming n'existe pas encore : on retient déjà sa discussion et sa bulle
 let preparation = null;
 const reponseVivante = () => streaming ?? preparation;
@@ -319,15 +346,35 @@ async function send(text) {
         return;
     }
     envoiEnCours = true;
-    compterMessage();
     try {
         const trouve = text && (await detectProject(text));
         if (trouve && trouve !== project) project = await window.api.openProjectPath(trouve);
 
+        // Les images ne partent qu'à un modèle qui les voit : sinon on garde tout et on dit lequel prendre
+        const images = pieces.filter((p) => p.image);
+        if (images.length && !(await window.api.modeleVoitImages({ fournisseurId: reglages.actif, modele: modelSel.value }))) {
+            addMessage("error", `${modelSel.value} ne voit pas les images. Avec Ollama, prends un qwen3.5 (qwen3.5:4b pèse 3,3 Go), ou passe sur Gemini, qui les voit. Tes pièces jointes t'attendent.`);
+            rendreTexte(text);
+            return;
+        }
+        // Chaque image prend ~1 500 tokens : au-delà, Ollama (8 192 tokens) perdait la question ou les consignes
+        if (images.length > MAX_IMAGES) {
+            addMessage("error", `${MAX_IMAGES} images au plus par message : retire-en ${images.length - MAX_IMAGES}, puis renvoie.`);
+            rendreTexte(text);
+            return;
+        }
+        compterMessage();
         // Les fichiers glissés sont ajoutés au message envoyé au modèle, mais affichés en petites étiquettes
         const fichiers = pieces.map((p) => p.nom);
-        let contenu = text || "Regarde ce fichier.";
-        for (const p of pieces) contenu += `\n\nFichier joint « ${p.nom} » (son contenu complet est juste ici, pas besoin de le lire avec un outil) :\n\`\`\`\n${p.contenu}\n\`\`\``;
+        const apercus = Object.fromEntries(images.map((p) => [p.nom, p.apercu]));
+        let contenu = text || (images.length ? "Regarde cette image." : "Regarde ce fichier.");
+        for (const p of pieces) {
+            if (p.image) contenu += `\n\n(Image jointe : « ${p.nom} »)`;
+            else if (p.document) contenu += `\n\n${p.joint}`;
+            else contenu += `\n\nFichier joint « ${p.nom} » (son contenu complet est juste ici, pas besoin de le lire avec un outil) :\n\`\`\`\n${p.contenu}\n\`\`\``;
+        }
+        const piecesDuMessage = pieces.flatMap((p) => p.document ? [p.document] : []);
+        const pieces0 = pieces;
         pieces = [];
         renderPieces();
 
@@ -337,9 +384,12 @@ async function send(text) {
         }
         const message = { role: "user", content: contenu };
         if (fichiers.length) Object.assign(message, { affichage: text, fichiers });
+        const documents = piecesDuMessage;
+        if (documents.length) Object.assign(message, { documents, nomsDocuments: Object.fromEntries(pieces0.filter((p) => p.document).map((p) => [p.document, p.nom])) });
+        if (images.length) message.images = images.map((p) => p.image);
         const conv = current; // la réponse ira dans cette discussion, même si on en ouvre une autre entre-temps
         conv.messages.push(message);
-        addMessage("user", text, fichiers);
+        addMessage("user", text, fichiers, apercus);
         renderList();
         save();
         messagesEnvoyes++;
@@ -367,6 +417,7 @@ async function send(text) {
             model: modelSel.value,
             fournisseurId: reglages.actif,
             prof,
+            documents: conv.messages.filter((m) => m.role === "user").flatMap((m) => m.documents || []),
             messages: [{ role: "system", content: consignes }, ...messagesPourLeModele(conv)]
         });
     } finally {
@@ -444,6 +495,7 @@ const ACTIONS = {
     "refus-lecture": (a) => `Tu as refusé : ${a.chemin} n'a pas été lu`,
     "refus-page": (a) => `Tu as refusé : la page ${a.url} n'a pas été lue`,
     refus: (a) => `Refusé : ${a.chemin} n'a pas changé (mode prof)`,
+    lire_document: (a) => (a.texte ? `Cherche « ${a.texte} » dans le document` : `Lit le document${Number(a.ligne) > 1 ? ` à partir de la ligne ${Math.floor(Number(a.ligne))}` : ""}`),
     chercher_web: (a) => `Cherche sur internet « ${a.requete} »`,
     lire_page_web: (a) => `Lit la page ${a.url}`,
     memoriser: (a) => `Retient : ${a.fait}`,
@@ -709,9 +761,7 @@ function renderPieces() {
     listePiecesEl.innerHTML = "";
     listePiecesEl.hidden = !pieces.length;
     pieces.forEach((p, i) => {
-        const li = document.createElement("li");
-        li.className = "piece";
-        li.textContent = p.nom;
+        const li = etiquettePiece(p.pages ? `${p.nom} · ${p.pages} p.` : p.nom, p.apercu);
         const retirer = document.createElement("button");
         retirer.type = "button";
         retirer.title = "Retirer";

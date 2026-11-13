@@ -85,6 +85,22 @@ const TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'lire_document',
+      description: "Lit un document joint par l'utilisateur (PDF, cours, long texte) : un morceau à partir d'une ligne, ou les passages qui contiennent un texte. L'identifiant du document est écrit dans le message où il a été joint.",
+      parameters: {
+        type: 'object',
+        properties: {
+          document: { type: 'string', description: 'Identifiant du document (16 lettres et chiffres), donné dans le message' },
+          ligne: { type: 'number', description: 'Facultatif : première ligne à lire (1 = début)' },
+          texte: { type: 'string', description: 'Facultatif : texte à chercher dans le document, au lieu de lire à partir d\'une ligne' },
+        },
+        required: ['document'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'chercher_web',
       description: "Cherche sur internet et renvoie les meilleurs résultats (titre, adresse, extrait). À utiliser pour une doc (Linux, une commande, un langage), une erreur, ou une info récente. Ensuite, lis les pages utiles avec lire_page_web. Quelques mots-clés suffisent, sans info personnelle.",
       parameters: { type: 'object', properties: { requete: { type: 'string', description: 'Les mots à chercher, comme dans un moteur de recherche' } }, required: ['requete'] },
@@ -110,6 +126,7 @@ const peutEcrire = ({ prof } = {}) => !prof;
 const OUTILS_PROJET = new Set(['lister_fichiers', 'lire_fichier', 'chercher', 'ecrire_fichier', 'remplacer_texte']);
 const outilsPour = (mode) => TOOLS.filter(({ function: { name } }) => {
   if (mode?.projet === false && OUTILS_PROJET.has(name)) return false;
+  if (mode?.documents === false && name === 'lire_document') return false;
   return peutEcrire(mode) || !OUTILS_ECRITURE.has(name);
 });
 
@@ -226,6 +243,9 @@ function resumerAction(nom, args = {}, resultat = '') {
       if (r.startsWith('Fichier modifié')) return `a modifié ${chemin}`;
       if (r.startsWith("L'utilisateur a refusé")) return `voulait modifier ${chemin}, mais la modification a été refusée : le fichier n'a pas changé`;
       return `n'a pas pu modifier ${chemin} : le fichier n'a pas changé`;
+    case 'lire_document':
+      if (/^(Identifiant|Ce document)/.test(r)) return "n'a pas pu lire le document joint";
+      return args.texte ? `a cherché « ${args.texte} » dans le document joint` : `a lu le document joint${Number(args.ligne) > 1 ? ` à partir de la ligne ${Math.floor(Number(args.ligne))}` : ''}`;
     case 'chercher_web': {
       if (!r.startsWith('Résultats de recherche')) return `n'a rien trouvé en cherchant « ${args.requete} » sur internet`;
       const nombre = (r.match(/^\d+\. /gm) || []).length;

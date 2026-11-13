@@ -356,6 +356,8 @@ select {
 /* Fichiers joints, au-dessus de la saisie et dans les messages */
 .pieces { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .pieces[hidden] { display: none; }
+/* Vignette d'une image jointe, carrée et nette comme le reste */
+.piece img { width: 22px; height: 22px; object-fit: cover; image-rendering: pixelated; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
 .piece {
     display: inline-flex;
     align-items: center;

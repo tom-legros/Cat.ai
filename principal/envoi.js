@@ -200,6 +200,9 @@ function versOpenAI(messages) {
       const [id] = position >= 0 ? enAttente.splice(position, 1) : [];
       return { role: 'tool', tool_call_id: m.tool_call_id || id || 'appel_inconnu', content: m.content };
     }
+    if (m.images?.length) {
+      return { role: m.role, content: [{ type: 'text', text: m.content || '' }, ...m.images.map((b64) => ({ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${b64}` } }))] };
+    }
     return { role: m.role, content: m.content };
   });
 }

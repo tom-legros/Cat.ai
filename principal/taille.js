@@ -25,7 +25,10 @@ const MAX_JOINT = 9000;
 // Estimation grossière : ~3 caractères par token pour du code et du français
 const estimerTokens = (texte) => Math.ceil(texte.length / 3);
 
-const taille = (m) => (m.content || '').length + (m.tool_calls ? JSON.stringify(m.tool_calls).length : 0);
+// Une image compte pour ~1 500 tokens chez un modèle qui voit (qwen3.5, gemma3) : on la compte comme 4 500 caractères,
+// sinon une discussion avec des photos dépasserait le contexte d'Ollama sans que compacter le voie
+const TAILLE_IMAGE = 4500;
+const taille = (m) => (m.content || '').length + (m.tool_calls ? JSON.stringify(m.tool_calls).length : 0) + (m.images?.length || 0) * TAILLE_IMAGE;
 
 // Coupe un texte trop long, avec une note qui dit au modèle où reprendre s'il s'agit d'un fichier
 function raccourcir(texte, max) {
@@ -33,9 +36,12 @@ function raccourcir(texte, max) {
   const garde = texte.slice(0, max);
   // Un morceau de lire_fichier commence par « (x.js : lignes D à F sur N. …) » : on compte à partir de la ligne D
   const n = garde.split('\n').length;
-  const entete = /^\([^\n]* : lignes (\d+) à \d+ sur \d+\./.exec(garde);
-  const suite = entete ? Number(entete[1]) + n - 2 : n;
-  return `${garde}\n[… coupé ici pour tenir dans la limite du modèle. Si c'est un fichier, la suite commence à la ligne ${suite} : relis-le avec lire_fichier et ligne = ${suite}.]`;
+  const entete = /^\(([^\n]*) : lignes (\d+) à \d+ sur \d+\./.exec(garde);
+  const suite = entete ? Number(entete[2]) + n - 2 : n;
+  // Un morceau de document joint (lire_document) s'appelle « document <identifiant> » : la suite se lit avec le même outil
+  const doc = entete && /^document ([a-f0-9]{16})$/.exec(entete[1]);
+  const relire = doc ? `lire_document, document = « ${doc[1]} » et ligne = ${suite}` : `lire_fichier et ligne = ${suite}`;
+  return `${garde}\n[… coupé ici pour tenir dans la limite du modèle. Si c'est un fichier, la suite commence à la ligne ${suite} : relis-le avec ${relire}.]`;
 }
 
 // Ramène l'historique sous `total` caractères, sans casser le lien entre un appel d'outil et son résultat :
@@ -92,4 +98,4 @@ function listeCourte(fichiers, max = MAX_LISTE) {
   return { fichiers: gardes, coupee: gardes.length < fichiers.length };
 }
 
-module.exports = { LIMITES_TAILLE, LIMITES_OLLAMA, MAX_JOINT, MAX_LISTE, limitesTaille, estimerTokens, taille, raccourcir, compacter, listeCourte };
+module.exports = { TAILLE_IMAGE, LIMITES_TAILLE, LIMITES_OLLAMA, MAX_JOINT, MAX_LISTE, limitesTaille, estimerTokens, taille, raccourcir, compacter, listeCourte };

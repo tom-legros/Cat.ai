@@ -44,6 +44,7 @@ contextBridge.exposeInMainWorld('api', {
   onPrechauffage: (cb) => ipcRenderer.on('prechauffage', (_e, etat) => cb(etat)),
   installerOllama: () => ipcRenderer.invoke('ollama-installer'),
   conseilMateriel: () => ipcRenderer.invoke('conseil-materiel'),
+  modeleVoitImages: (choix) => ipcRenderer.invoke('modele-voit-images', choix),
   onProgressionOllama: (cb) => ipcRenderer.on('ollama-progression', (_e, p) => cb(p)),
   // Touches personnelles facultatives (perso.json dans le dossier des données)
   perso: () => ipcRenderer.invoke('perso'),

@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; font-src 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:">
   <title>Cat Ai</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -195,15 +195,15 @@
   <script src="node_modules/dompurify/dist/purify.min.js"></script>
   <script src="node_modules/@highlightjs/cdn-assets/highlight.min.js"></script>
   <script src="node_modules/diff/dist/diff.min.js"></script>
+  <script src="node_modules/katex/dist/katex.min.js"></script>
   <script src="chat.js"></script>
   <!-- L'interface, dans l'ordre : chaque fichier peut utiliser ce que les précédents déclarent -->
   <script src="interface/icones.js"></script>
   <script src="interface/personnalite.js"></script>
+  <script src="interface/maths.js"></script>
   <script src="interface/markdown.js"></script>
   <script src="interface/modeles.js"></script>
-  <script src="node_modules/katex/dist/katex.min.js"></script>
   <script src="interface/difference.js"></script>
   <script src="renderer.js"></script>
 </body>
 </html>
-  <script src="interface/maths.js"></script>

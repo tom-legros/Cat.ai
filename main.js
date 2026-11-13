@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, nativeImage } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
@@ -13,6 +13,9 @@ const { configurerMiseAJour } = require('./principal/miseajour');
 const { REFUS_PAGE, urlsDans, memePage, verifierUrl, lirePageWeb, chercherWeb } = require('./principal/web');
 const { integrerMenu } = require('./principal/menu-linux');
 const { conseilMateriel } = require('./principal/materiel');
+const { BINAIRES, lireTexteDocument, texteJointDocument, lireDocument, idValide } = require('./principal/documents');
+// Textes extraits des PDF et longs fichiers glissés dans la discussion
+const DOSSIER_DOCUMENTS = () => path.join(app.getPath('userData'), 'documents');
 const { OLLAMA, GARDER_CHARGE, optionsOllama, sansReflexion, REFLEXION, envoyerOllama, envoyerOpenAI, vulkanUtile } = require('./principal/envoi');
 const {
   FOURNISSEURS_DE_BASE, lireReglagesFournisseurs, infosFournisseur, configFournisseur, versInterface,
@@ -174,6 +177,10 @@ async function runTool(name, args, mode) {
       if (!reponse.startsWith('Fichier modifié') || !partout) return reponse;
       return `${reponse} (${resultat.fois} remplacement${resultat.fois > 1 ? 's' : ''})`;
     }
+    case 'lire_document': {
+      if (!mode.documentsJoints.has(args.document)) return "Ce document n'est pas joint à cette discussion.";
+      return lireDocument(DOSSIER_DOCUMENTS(), args, mode.maxExtrait);
+    }
     case 'chercher_web': {
       // Les pages trouvées par la recherche pourront être lues sans redemander : c'est elle qui les a proposées
       const { texte, urls } = await chercherWeb(args.requete, mode.signal);
@@ -272,7 +279,8 @@ function verifierGratuit(fournisseurId, modele) {
   }
 }
 
-ipcMain.on('chat', async (event, { id, model, messages, prof, fournisseurId = 'ollama' }) => {
+ipcMain.on('chat', async (event, { id, model, messages, prof, documents = [], fournisseurId = 'ollama' }) => {
+  const documentsJoints = new Set(Array.isArray(documents) ? documents.filter(idValide) : []);
   const controller = new AbortController();
   controllers.set(id, controller);
   const history = [...messages];
@@ -293,7 +301,7 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, fournisseurId = 'o
       const aEnvoyer = limites ? compacter(history, limites.total) : history;
       // onPause : affiche une étiquette pendant que l'app attend la fin de la limite par minute
       const onPause = (secondes) => event.sender.send('chat-tool', { id, name: 'pause', args: { secondes } });
-      let { content, toolCalls } = await envoyer(aEnvoyer, model, onMorceau, controller.signal, { prof, onPause, projet: !!projectDir });
+      let { content, toolCalls } = await envoyer(aEnvoyer, model, onMorceau, controller.signal, { prof, onPause, projet: !!projectDir, documents: documentsJoints.size > 0 });
       if (!toolCalls.length && content.includes('"name"')) {
         const parsed = parseTextToolCalls(content);
         if (parsed.length) {
@@ -326,7 +334,7 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, fournisseurId = 'o
         try {
           result = appelRepete(appelsFaits, name, args)
             ? BOUCLE
-            : await runTool(name, args || {}, { prof, fournisseurId, liensDonnes, signal: controller.signal, maxExtrait: limites ? limites.resultatOutil - 500 : 20000 });
+            : await runTool(name, args || {}, { prof, fournisseurId, liensDonnes, documentsJoints, signal: controller.signal, maxExtrait: limites ? limites.resultatOutil - 500 : 20000 });
         } catch (err) {
           result = `Erreur : ${err.message}`;
         }
@@ -404,18 +412,56 @@ ${texte}`;
 });
 
 // Fichier glissé dans la fenêtre : on lit son texte (le chemin vient de preload.js)
-ipcMain.handle('read-dropped', (_e, chemin) => {
+// Fichier glissé : une image (pour un modèle qui voit), un PDF ou un long texte (rangé, lu par morceaux),
+// ou un petit fichier texte joint en entier
+// nativeImage ne décode que PNG et JPEG (et ICO sous Windows) : les autres formats sont refusés avec un conseil
+const IMAGES = /\.(png|jpe?g|ico)$/i;
+const MAX_IMAGE = 20 * 1024 * 1024;
+const COTE_IMAGE = 1280; // une photo de téléphone est réduite : assez pour lire un cours, sans remplir le modèle
+
+// Le JPEG n'a pas de transparence : les zones transparentes d'un PNG (schéma, formule) devenaient noires, et un
+// texte noir disparaissait. On pose l'image sur du blanc. Les pixels de Chromium sont en BGRA à alpha prémultiplié :
+// sur du blanc, chaque couleur gagne ce qui manque d'opacité.
+function surFondBlanc(image) {
+  const pixels = image.toBitmap();
+  let transparent = false;
+  for (let i = 3; i < pixels.length && !transparent; i += 4) transparent = pixels[i] < 255;
+  if (!transparent) return image;
+  for (let i = 0; i < pixels.length; i += 4) {
+    const manque = 255 - pixels[i + 3];
+    for (let c = 0; c < 3; c++) pixels[i + c] = Math.min(255, pixels[i + c] + manque);
+    pixels[i + 3] = 255;
+  }
+  return nativeImage.createFromBitmap(pixels, image.getSize());
+}
+
+ipcMain.handle('read-dropped', async (_e, chemin) => {
   try {
+    chemin = fs.realpathSync(chemin);
     const stat = fs.statSync(chemin);
     if (stat.isDirectory()) return { dossier: true, chemin };
-    // Une image, un PDF ou un document Office n'est pas du texte : le dire clairement, avant de parler de taille
-    if (/\.(png|jpe?g|gif|webp|bmp|heic|heif|avif|tiff?|ico|svg)$/i.test(chemin)) {
-      return { erreur: `${path.basename(chemin)} est une image : je ne sais pas encore les regarder. Décris-moi ce qu'il y a dessus, ou copie son texte ici.` };
+    const nom = path.basename(chemin);
+    if (!stat.isFile()) return { erreur: "Cette pièce jointe n'est pas un fichier ordinaire." };
+    if (estSensible(chemin)) return { erreur: 'Ce fichier est sensible. Pour le lire, ouvre son dossier et demande au chat de le lire : une confirmation sera affichée.' };
+    if (/\.(heic|heif|tiff?|svg|gif|webp|bmp|avif)$/i.test(chemin)) return { erreur: `${nom} : ce format d'image n'est pas lu. Enregistre-la en JPG ou en PNG, puis glisse-la à nouveau.` };
+    if (IMAGES.test(chemin)) {
+      if (stat.size > MAX_IMAGE) return { erreur: `${nom} est trop grosse (${Math.round(stat.size / 1024 / 1024)} Mo).` };
+      let image = nativeImage.createFromPath(chemin);
+      if (image.isEmpty()) return { erreur: `${nom} n'a pas pu être ouverte comme image.` };
+      const { width, height } = image.getSize();
+      if (Math.max(width, height) > COTE_IMAGE) image = image.resize(width >= height ? { width: COTE_IMAGE } : { height: COTE_IMAGE }, 'best');
+      image = surFondBlanc(image);
+      const apercu = image.resize({ height: 64 }).toDataURL();
+      return { nom, chemin, image: image.toJPEG(85).toString('base64'), apercu };
     }
-    if (/\.(pdf|docx?|odt|pptx?|xlsx?|ods|zip|rar|7z|exe|mp3|mp4|mov|avi)$/i.test(chemin)) {
-      return { erreur: `${path.basename(chemin)} n'est pas un fichier texte : je ne sais pas encore le lire. Copie son texte ici, ou enregistre-le en .txt.` };
+    if (BINAIRES.test(chemin)) {
+      return { erreur: `${nom} n'est pas un PDF ni un fichier texte : je ne sais pas encore le lire. Enregistre-le en PDF, ou copie son texte ici.` };
     }
-    if (stat.size > MAX_FILE) return { erreur: `${path.basename(chemin)} est trop gros (${Math.round(stat.size / 1024)} Ko, max 100 Ko).` };
+    // PDF, ou fichier texte trop long pour partir en entier : texte extrait et rangé, le modèle le lit par morceaux
+    if (/\.pdf$/i.test(chemin) || stat.size > MAX_FILE) {
+      const doc = await lireTexteDocument(chemin, DOSSIER_DOCUMENTS());
+      return doc.erreur ? doc : { nom, chemin, document: doc.document, joint: texteJointDocument(doc), pages: doc.pages };
+    }
     const contenu = fs.readFileSync(chemin, 'utf8');
     if (contenu.includes('\u0000')) return { erreur: `${path.basename(chemin)} n'est pas un fichier texte.` };
     return { nom: path.basename(chemin), chemin, contenu };
@@ -530,6 +576,8 @@ async function prechaufferAuDemarrage() {
 }
 
 // Télécharge un modèle dans Ollama depuis l'accueil (clic de l'utilisateur), en envoyant la progression
+// Le modèle choisi voit-il les images ? Ollama le dit (capacité « vision ») ; Gemini flash les voit toujours.
+// Pour les autres fournisseurs on ne sait pas : on répond non, l'interface conseille alors un modèle qui voit.
 let installationOllama = false;
 ipcMain.handle('ollama-installer', async () => {
   if (process.platform !== 'win32') return { erreur: 'Ouvre le site officiel pour installer Ollama sur ce système.' };
@@ -556,6 +604,19 @@ ipcMain.handle('ollama-installer', async () => {
     await demarrerOllama();
     return { ok: true };
   } finally { installationOllama = false; }
+});
+
+ipcMain.handle('modele-voit-images', async (_e, { fournisseurId, modele }) => {
+  const config = infosFournisseur(fournisseurId);
+  if (!config || config.type === 'ollama') {
+    try {
+      const res = await fetch(`${OLLAMA}/api/show`, { method: 'POST', body: JSON.stringify({ model: modele }), signal: AbortSignal.timeout(5000) });
+      return !!(await res.json()).capabilities?.includes('vision');
+    } catch {
+      return false;
+    }
+  }
+  return hote(config.baseUrl) === 'generativelanguage.googleapis.com';
 });
 
 // Le Qwen conseillé selon la mémoire de la carte graphique (principal/materiel.js), pour l'accueil

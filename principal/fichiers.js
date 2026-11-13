@@ -154,7 +154,8 @@ function fichiersCites(message, fichiers) {
 
 // Un morceau d'un long fichier pour lire_fichier : les lignes à partir de `ligne`, tant qu'elles tiennent dans `max`
 // caractères, avec un en-tête qui dit quoi demander pour la suite. Un fichier court revient en entier.
-function extraitLignes(contenu, chemin, ligne = 1, max = 20000) {
+// `suiteDe` écrit l'appel à faire pour la suite : lire_fichier par défaut, lire_document pour un document joint.
+function extraitLignes(contenu, chemin, ligne = 1, max = 20000, suiteDe = (n) => `lire_fichier avec ligne = ${n}`) {
   // Le saut de ligne de la fin n'est pas une ligne de plus
   const lignes = contenu.replace(/\r?\n$/, '').split('\n');
   const debut = Math.max(1, Math.floor(Number(ligne)) || 1);
@@ -166,7 +167,7 @@ function extraitLignes(contenu, chemin, ligne = 1, max = 20000) {
   while (fin < lignes.length && (fin === debut - 1 || taille + lignes[fin].length + 1 <= max)) taille += lignes[fin++].length + 1;
   const texte = lignes.slice(debut - 1, fin).join('\n');
   const coupee = texte.length > max ? ` La ligne ${debut} est trop longue : seuls ses ${max} premiers caractères sont montrés, le reste ne peut pas être lu.` : '';
-  const suite = fin < lignes.length ? ` Pour la suite : lire_fichier avec ligne = ${fin + 1}.` : " C'est la fin du fichier.";
+  const suite = fin < lignes.length ? ` Pour la suite : ${suiteDe(fin + 1)}.` : " C'est la fin du fichier.";
   return `(${chemin} : lignes ${debut} à ${fin} sur ${lignes.length}.${coupee}${suite})\n${texte.slice(0, max)}`;
 }
 

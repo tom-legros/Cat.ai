@@ -150,11 +150,10 @@ test('resumerAction : recherche sur internet, avec ou sans résultat', () => {
   assert.equal(resumerAction('chercher_web', { requete: 'xyz' }, 'Aucun résultat pour « xyz ».'), "n'a rien trouvé en cherchant « xyz » sur internet");
 });
 
-test('outilsPour : sans dossier ouvert, pas d outils de fichiers (moins de texte à lire pour Ollama)', () => {
-  const noms = (mode) => outilsPour(mode).map((t) => t.function.name);
-  assert.ok(!noms({ projet: false }).some((n) => ['lister_fichiers', 'lire_fichier', 'chercher', 'ecrire_fichier', 'remplacer_texte'].includes(n)));
-  assert.ok(noms({ projet: false }).includes('ouvrir_dossier'));
-  assert.ok(noms({ projet: true }).includes('remplacer_texte'));
-  assert.ok(!noms({ projet: true, prof: true }).includes('remplacer_texte'));
-  assert.ok(JSON.stringify(outilsPour({ projet: false })).length < JSON.stringify(outilsPour({ projet: true })).length / 2);
+
+test('sans projet ni document, seuls les outils utilisables sont proposés', () => {
+  assert.deepEqual(noms({ projet: false, documents: false }), ['ouvrir_dossier', 'chercher_web', 'lire_page_web']);
+  assert.ok(noms({ projet: false, documents: true }).includes('lire_document'));
+  assert.ok(!noms({ projet: false, documents: true }).includes('lire_fichier'));
+  assert.ok(!noms({ projet: true, documents: false }).includes('lire_document'));
 });

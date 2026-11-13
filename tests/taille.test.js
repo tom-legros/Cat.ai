@@ -136,3 +136,14 @@ test('raccourcir : un morceau de lire_fichier recoupé garde le bon numéro de l
   const gardees = coupe.split('\n[…')[0].split('\n').length - 1;
   assert.match(coupe, new RegExp(`ligne = ${201 + gardees - 1}\\.`));
 });
+
+test('raccourcir : un morceau de document coupé dit de relire avec lire_document et son identifiant', () => {
+  const morceau = `(document 0123456789abcdef : lignes 11 à 400 sur 900. Pour la suite : lire_document avec document = « 0123456789abcdef » et ligne = 401.)\n${'x'.repeat(50)}\n`.repeat(40);
+  const coupe = raccourcir(morceau, 800);
+  assert.match(coupe, /relis-le avec lire_document, document = « 0123456789abcdef » et ligne = \d+\.\]$/);
+});
+
+test('taille : une image compte, pour que compacter tienne dans le contexte d Ollama', () => {
+  const { TAILLE_IMAGE } = require('../principal/taille');
+  assert.equal(taille({ role: 'user', content: 'abc', images: ['x', 'y'] }), 3 + 2 * TAILLE_IMAGE);
+});

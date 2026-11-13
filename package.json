@@ -24,7 +24,8 @@
     "dompurify": "^3.4.17",
     "electron-updater": "6.8.10",
     "katex": "0.16.47",
-    "marked": "^18.1.1"
+    "marked": "^18.1.1",
+    "pdfjs-dist": "5.7.284"
   },
   "desktopName": "cat-ai.desktop",
   "build": {
