@@ -88,12 +88,20 @@ async function envoyerOllama(messages, modele, onMorceau, signal, options = {}) 
 // s'arrête (sortir de la boucle ferme la connexion, et Ollama arrête d'écrire) et le résultat est { anglais: true },
 // sans rien avoir affiché.
 async function lireOllama(messages, modele, onMorceau, signal, options, reflexion, verifier) {
-  const res = await fetch(`${OLLAMA}/api/chat`, {
+  const corps = { model: modele, messages: rappelsPourOllama(messages), tools: outilsPour(options), stream: true, think: reflexion, keep_alive: GARDER_CHARGE, options: optionsOllama(modele) };
+  const envoyer = () => fetch(`${OLLAMA}/api/chat`, {
     method: 'POST',
     // think: false : qwen3 répond direct au lieu d'écrire une longue réflexion avant
-    body: JSON.stringify({ model: modele, messages: rappelsPourOllama(messages), tools: outilsPour(options), stream: true, think: reflexion, keep_alive: GARDER_CHARGE, options: optionsOllama(modele) }),
+    body: JSON.stringify(corps),
     signal,
   });
+  let res = await envoyer();
+  // Les modèles de discussion seuls restent utilisables. Le premier appel a été refusé,
+  // aucune génération ni aucun outil n'a eu lieu. Ne jamais réessayer une autre erreur.
+  if (res.status === 400 && /does not support tools/i.test(await res.clone().text())) {
+    delete corps.tools;
+    res = await envoyer();
+  }
   if (!res.ok) throw new Error(`Ollama a répondu ${res.status}`);
   const decoder = new TextDecoder();
   let buffer = '';

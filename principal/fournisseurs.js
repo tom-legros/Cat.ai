@@ -26,12 +26,13 @@ function marquerModeleCasse(fournisseurId, modele) {
 }
 // Ollama : GET /api/tags ; compatible OpenAI : GET {baseUrl}/models.
 // Renvoie toujours { ok, models, erreur? } : la liste est rafraîchie toutes les 10 s, on ne lève jamais d'erreur.
-async function listerModeles(config) {
+async function listerModeles(config, { embeddings = false } = {}) {
   if (!config || config.type === 'ollama') {
     try {
       const res = await fetch(`${OLLAMA}/api/tags`, { signal: AbortSignal.timeout(5000) });
       const data = await res.json();
-      return { ok: true, models: data.models.map((m) => m.name) };
+      const models = data.models.map(m => m.name).filter(nom => embeddings || !/^qwen3-embedding(?::|$)/i.test(nom));
+      return { ok: true, models };
     } catch {
       return { ok: false, models: [], erreur: 'Ollama ne répond pas.' };
     }

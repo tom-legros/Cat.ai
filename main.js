@@ -238,7 +238,7 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, documents = [], fo
     if (!fini) event.sender.send('chat-tool', { id, name: 'limite', args: { etapes: MAX_STEPS } });
     event.sender.send('chat-done', { id });
   } catch (err) {
-    if (err.name === 'AbortError') event.sender.send('chat-done', { id });
+    if (err.name === 'AbortError') event.sender.send('chat-done', { id, interrompu: true });
     else {
       if (err.modeleCasse) marquerModeleCasse(fournisseurId, model);
       event.sender.send('chat-error', { id, error: err.message, modeleCasse: err.modeleCasse ? model : null });
@@ -535,6 +535,7 @@ ipcMain.handle('equipe-remettre', () => changerEquipe(() => ({ equipe: equipePar
 
 ipcMain.handle('ollama-telecharger', async (event, modele) => {
   if (!/^[\w.-]+(:[\w.-]+)?$/.test(String(modele))) return { ok: false, erreur: 'Nom de modèle invalide.' };
+  if (/[-:]cloud(?:$|-)/i.test(modele)) return { ok: false, erreur: 'Choisis une variante locale d’Ollama.' };
   try {
     const res = await fetch(`${OLLAMA}/api/pull`, { method: 'POST', body: JSON.stringify({ model: modele, stream: true }) });
     if (!res.ok || !res.body) return { ok: false, erreur: `Ollama a répondu ${res.status}.` };
@@ -556,10 +557,10 @@ ipcMain.handle('ollama-telecharger', async (event, modele) => {
   }
 });
 
-ipcMain.handle('models', async (_e, fournisseurId = 'ollama') => {
+ipcMain.handle('models', async (_e, fournisseurId = 'ollama', options) => {
   const config = await configFournisseur(fournisseurId);
   if (!config) return { ok: false, models: [], erreur: 'Fournisseur inconnu.' };
-  return listerModeles(config);
+  return listerModeles(config, { embeddings: options?.embeddings === true });
 });
 
 // ---------- Projet ----------
@@ -699,6 +700,47 @@ ipcMain.handle('save-memory', (_e, memory) => {
 ipcMain.handle('load-convs', () => readJson('conversations.json', []));
 ipcMain.handle('save-convs', (_e, convs) => writeJson('conversations.json', convs));
 ipcMain.handle('alertes-stockage', () => prendreAlertes());
+
+ipcMain.handle('choisir-fichier', async (_e, { titre }) => {
+  const choix = await dialog.showOpenDialog(win, {
+    title: titre || 'Choisir un fichier',
+    properties: ['openFile'],
+    filters: [{ name: 'Markdown', extensions: ['md', 'txt'] }]
+  });
+  return choix.canceled ? null : choix.filePaths[0];
+});
+
+ipcMain.handle('lancer-chantier', async (_e, { plan }) => {
+  if (!projectDir) return { ok: false, erreur: 'Aucun projet ouvert.' };
+  try {
+    const { lancerChantier } = require('./principal/chantier');
+    const reglages = lireReglagesFournisseurs();
+    const fournisseurChef = reglages.actif || 'ollama';
+    const modeleChef = reglages.modeles?.[fournisseurChef] || 'qwen2.5-coder:7b';
+    const envoyerChef = await envoyeurPour(fournisseurChef);
+
+    const r = await lancerChantier({
+      projet: projectDir,
+      plan: path.resolve(projectDir, plan || 'plan.md'),
+      chef: { envoyer: envoyerChef, modele: modeleChef },
+      codeurs: [{
+        nom: 'Codeur',
+        envoyer: await envoyeurPour('ollama'),
+        modele: reglages.modeles?.['ollama'] || 'qwen2.5-coder:7b',
+        controles: [{ type: 'tests' }]
+      }],
+      dossierCopies: path.join(app.getPath('userData'), 'chantiers'),
+      ev: {
+        info: (d) => win?.webContents.send('chantier-info', d),
+        etape: (d) => win?.webContents.send('chantier-etape', d),
+        morceau: (d) => win?.webContents.send('chantier-morceau', d)
+      }
+    });
+    return r;
+  } catch (err) {
+    return { ok: false, erreur: err.message };
+  }
+});
 
 // Une seule app ouverte à la fois : deux fenêtres liraient et enregistreraient chacune leur version
 // des discussions et des réglages, et la dernière qui enregistre effacerait le travail de l'autre.

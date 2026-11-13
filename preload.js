@@ -2,7 +2,7 @@ const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
   // Sans argument : modèles d'Ollama, comme avant
-  models: (fournisseurId) => ipcRenderer.invoke('models', fournisseurId),
+  models: (fournisseurId, options) => ipcRenderer.invoke('models', fournisseurId, options),
   // Fournisseurs : l'interface ne reçoit jamais les clés, seulement aCle (vrai / faux)
   lireFournisseurs: () => ipcRenderer.invoke('fournisseurs-lire'),
   enregistrerFournisseur: (payload) => ipcRenderer.invoke('fournisseurs-enregistrer', payload),
@@ -45,6 +45,7 @@ contextBridge.exposeInMainWorld('api', {
   etatPrechauffage: () => ipcRenderer.invoke('etat-prechauffage'),
   onPrechauffage: (cb) => ipcRenderer.on('prechauffage', (_e, etat) => cb(etat)),
   installerOllama: () => ipcRenderer.invoke('ollama-installer'),
+  choisirFichier: (options) => ipcRenderer.invoke('choisir-fichier', options),
   conseilMateriel: () => ipcRenderer.invoke('conseil-materiel'),
   // Pages Modèles et Agents
   catalogueModeles: () => ipcRenderer.invoke('modeles-catalogue'),
@@ -55,6 +56,9 @@ contextBridge.exposeInMainWorld('api', {
   remettreEquipe: () => ipcRenderer.invoke('equipe-remettre'),
   modeleVoitImages: (choix) => ipcRenderer.invoke('modele-voit-images', choix),
   onProgressionOllama: (cb) => ipcRenderer.on('ollama-progression', (_e, p) => cb(p)),
+  lancerChantier: (payload) => ipcRenderer.invoke('lancer-chantier', payload),
+  onChantierInfo: (cb) => ipcRenderer.on('chantier-info', (_e, d) => cb(d)),
+  onChantierEtape: (cb) => ipcRenderer.on('chantier-etape', (_e, d) => cb(d)),
   // Touches personnelles facultatives (perso.json dans le dossier des données)
   perso: () => ipcRenderer.invoke('perso'),
   // Rôles créés dans Réglages : [{ nom, consigne }]

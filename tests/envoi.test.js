@@ -3,6 +3,22 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { versOpenAI, finirAppels, attenteDemandee, estModeleCasse, messageErreurOpenAI, vulkanUtile, sansReflexion, rappelsPourOllama, NOTE_APP } = require('../principal/envoi');
 
+test('Ollama sans outils : réessaie en discussion simple uniquement après refus explicite', async (t) => {
+  const { envoyerOllama } = require('../principal/envoi');
+  const corps = [];
+  t.mock.method(globalThis, 'fetch', async (_url, options) => {
+    corps.push(JSON.parse(options.body));
+    return corps.length === 1
+      ? new Response(JSON.stringify({ error: 'model does not support tools' }), { status: 400 })
+      : new Response(JSON.stringify({ message: { content: 'Bonjour !' }, done: true }) + '\n');
+  });
+  const r = await envoyerOllama([{ role: 'user', content: 'Salut' }], 'gemma3:4b', () => {}, undefined, {});
+  assert.equal(r.content, 'Bonjour !');
+  assert.ok(corps[0].tools.length);
+  assert.equal(corps[1].tools, undefined);
+  assert.equal(corps.length, 2);
+});
+
 test('versOpenAI : arguments en texte JSON, et chaque résultat relié à son appel', () => {
   const ollama = [
     { role: 'user', content: 'lis a.js' },
@@ -205,7 +221,7 @@ test('envoyerOllama : pas de vérification quand l utilisateur demande de l angl
   global.fetch = async (_url, { body }) => {
     const corps = JSON.parse(body);
     demandes.push(corps);
-    if (corps.think === true) return { ok: false, status: 400, body: null };
+    if (corps.think === true) return new Response(JSON.stringify({ error: 'model does not support thinking' }), { status: 400 });
     return { ok: true, status: 200, body: (async function* () { yield Buffer.from(JSON.stringify({ message: { content: anglais.join('') } }) + '\n'); })() };
   };
   try {

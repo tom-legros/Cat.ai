@@ -10,18 +10,22 @@ const { execFile } = require('child_process');
 // Du plus gros au plus petit. vram : mémoire vidéo nécessaire (le modèle, plus la place pour la discussion).
 // Les poids sont ceux du téléchargement sur ollama.com (novembre 2026).
 const MODELES_QWEN = [
-  { modele: 'qwen3.6:27b', taille: 17.8, vram: 22, raison: 'le plus fort, excellent en code et en raisonnement' },
+  { modele: 'qwen3.6:27b', taille: 18, tailleMax: 19, vram: 22, raison: 'code avec outils et raisonnement' },
   { modele: 'qwen3:14b', taille: 9.3, vram: 12, raison: 'très bon partout, sans être trop lent' },
   { modele: 'qwen3.5:9b', taille: 6.6, vram: 10, raison: 'récent et bon en code' },
   { modele: 'qwen3:8b', taille: 5.2, vram: 7, raison: 'le meilleur qui tient dans 8 Go' },
-  { modele: 'qwen3.5:4b', taille: 3.3, vram: 5, raison: 'léger, pour les petites cartes graphiques' },
-  { modele: 'qwen3.5:2b', taille: 2.7, vram: 0, raison: 'le plus léger, il tourne même sans carte graphique mais reste limité' },
+  { modele: 'qwen3.5:4b', taille: 3.3, tailleMax: 4, vram: 5, raison: 'léger, pour les petites cartes graphiques' },
+  { modele: 'qwen3.5:2b', taille: 2.7, tailleMax: 3.1, vram: 0, raison: 'petit modèle utilisable sans carte graphique' },
 ];
 
 // Les autres modèles les plus utiles d'Ollama, proposés dans la page Modèles (jamais conseillés d'office : le chat
 // est réglé pour Qwen). Tous savent se servir des outils du chat. Tailles lues sur ollama.com (novembre 2026).
 // usage : ce pour quoi on le prend, affiché en filtre.
 const AUTRES_MODELES = [
+  { modele: 'qwen3:0.6b', taille: 0.523, vram: 2, usage: 'general', raison: 'texte simple avec très peu de mémoire' },
+  { modele: 'qwen3.6:35b', taille: 23, vram: 28, usage: 'code', raison: 'code et outils sur une grosse carte' },
+  { modele: 'qwen3.5:0.8b', taille: 1.2, tailleMax: 1.3, vram: 3, usage: 'general', raison: 'petites tâches de texte et d’image' },
+  { modele: 'qwen3:4b', taille: 2.5, vram: 4, usage: 'general', raison: 'discussion et texte léger' },
   { modele: 'gpt-oss:20b', taille: 14, vram: 16, usage: 'reflexion', raison: "le modèle ouvert d'OpenAI" },
   { modele: 'gemma4:12b', taille: 8, vram: 11, usage: 'images', raison: 'Google, voit les images' },
   { modele: 'mistral-nemo:12b', taille: 7.1, vram: 10, usage: 'general', raison: 'Mistral, très bon en français' },
@@ -29,7 +33,7 @@ const AUTRES_MODELES = [
   { modele: 'deepseek-r1:8b', taille: 5.2, vram: 7, usage: 'reflexion', raison: 'réfléchit avant de répondre' },
   { modele: 'llama3.1:8b', taille: 4.9, vram: 7, usage: 'general', raison: 'Meta, le plus téléchargé' },
   { modele: 'qwen2.5-coder:7b', taille: 4.7, vram: 7, usage: 'code', raison: 'spécialisé en code' },
-  { modele: 'gemma4:e2b', taille: 4.6, vram: 7, usage: 'images', raison: 'Google, léger, voit les images' },
+  { modele: 'gemma4:e2b', taille: 4.6, tailleMax: 7.5, vram: 8, usage: 'images', raison: 'Google, léger, voit les images' },
   { modele: 'llama3.2:3b', taille: 2, vram: 4, usage: 'general', raison: 'petit et rapide' },
 ];
 // Ce pour quoi on prend chaque Qwen
