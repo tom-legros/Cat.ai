@@ -789,3 +789,64 @@ optgroup { background: var(--surface); color: var(--texte-3); font-style: normal
     .suggestions { margin-top: 20px; }
     .suggestion { padding-top: 10px; padding-bottom: 10px; }
 }
+
+/* ---------- Pages : navigation, Agents, Modèles (interface/pages.js) ---------- */
+.nav { display: flex; flex-direction: column; gap: 2px; }
+.nav__lien { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: var(--rayon-petit); font-size: 14px; color: var(--texte-2); text-align: left; transition: background .15s ease, color .15s ease; }
+.nav__lien:hover { background: var(--surface); color: var(--texte); }
+.nav__lien.is-actif { background: var(--surface-2); color: var(--lumiere); }
+.nav__lien.is-actif .icone-px { color: var(--oeil); }
+.nav__lien .icone-px, .agent .icone-px, .schema__fleche .icone-px { width: 16px; height: 16px; fill: currentColor; stroke: none; }
+
+/* Une page prend la place de la discussion */
+.principal.is-page > .messages, .principal.is-page > .saisie { display: none; }
+.page { position: relative; z-index: 1; flex: 1; overflow-y: auto; padding: 40px 32px; }
+.page[hidden] { display: none; }
+.page__contenu { width: 100%; max-width: 760px; margin: 0 auto; animation: arrivee .25s ease-out both; }
+.page .discret { max-width: 620px; }
+
+/* Le schéma des agents : trois cases cliquables reliées par des flèches */
+.schema { display: flex; align-items: stretch; gap: 10px; margin-top: 26px; }
+.schema__fleche { display: grid; place-items: center; color: var(--texte-3); flex-shrink: 0; }
+.agent { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 16px; text-align: left; background: var(--surface); border: 1px solid var(--ligne); border-radius: var(--rayon); transition: border-color .15s ease, background .15s ease, transform .15s ease; }
+.agent:hover { border-color: var(--ligne-2); transform: translateY(-1px); }
+.agent.is-ouvert { border-color: rgba(var(--oeil-rvb), .6); background: rgba(var(--oeil-rvb), .06); }
+.agent__nom { display: flex; align-items: center; gap: 8px; font: 500 16px var(--police-titre); color: var(--lumiere); }
+.agent.is-ouvert .agent__nom .icone-px { color: var(--oeil); }
+.agent__qui { font: 12px var(--police-mono); color: var(--texte-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.schema__boucle { margin: 12px 0 0; font-size: 13px; color: var(--texte-3); }
+
+.fiche { margin-top: 22px; padding: 20px; background: var(--surface); border: 1px solid var(--ligne); border-radius: var(--rayon); }
+.fiche__titre { margin: 0 0 4px; font: 500 20px var(--police-titre); }
+.fiche__choix { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 16px; }
+.fiche__choix select { width: 100%; }
+.fiche .conseil { margin: 12px 0 0; font-size: 13px; }
+.commande { margin: 12px 0; padding: 12px 14px; background: #000; border: 1px solid var(--ligne); border-radius: var(--rayon-petit); font: 13px var(--police-mono); color: var(--oeil); user-select: all; }
+
+/* Les modèles : le PC en haut, puis une ligne par modèle */
+.infos-pc { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 6px; }
+.info-pc { padding: 5px 12px; font: 12px var(--police-mono); color: var(--texte-2); background: var(--surface); border: 1px solid var(--ligne); border-radius: var(--rayon-petit); }
+.modeles { list-style: none; margin: 10px 0 0; padding: 0; }
+.modele { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding: 14px 0; border-top: 1px solid var(--ligne); }
+.modele__texte { flex: 1; min-width: 0; }
+.modele__nom { margin: 0; font: 14px var(--police-mono); color: var(--lumiere); }
+.modele__detail { margin: 2px 0 0; font-size: 13px; color: var(--texte-3); }
+.modele__etat { min-width: 110px; text-align: center; font-size: 13px; color: var(--texte-3); }
+.modele__suivi { flex-basis: 100%; }
+.bouton--petit { min-width: 110px; padding: 7px 12px; font-size: 11px; }
+.avis { padding: 3px 10px; font-size: 12px; border-radius: var(--rayon-petit); white-space: nowrap; }
+.avis--conseille { color: rgb(var(--jaune)); background: rgba(var(--jaune), .13); }
+.avis--ok { color: rgb(var(--vert)); background: rgba(var(--vert), .13); }
+.avis--lent { color: rgb(var(--rose)); background: rgba(var(--rose), .13); }
+.avis--trop { color: var(--texte-3); background: var(--surface-2); }
+.barre { height: 4px; background: var(--surface-2); border-radius: 2px; overflow: hidden; }
+.barre__pleine { width: 0; height: 100%; background: var(--oeil); transition: width .3s ease; }
+.lien--texte { padding: 0; color: var(--texte); text-decoration: underline; }
+#autre-modele { margin-top: 12px; }
+#autre-modele input { padding: 8px 10px; font-size: 13px; }
+
+@media (max-width: 900px) {
+    .schema { flex-direction: column; }
+    .schema__fleche { transform: rotate(90deg); }
+}
+@media (prefers-reduced-motion: reduce) { .page__contenu { animation: none; } }

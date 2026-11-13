@@ -13,6 +13,13 @@
       <span class="logo__nom">Cat Ai</span>
     </div>
 
+    <!-- Les pages de l'app. Les icônes sont posées par interface/pages.js -->
+    <nav class="nav" aria-label="Pages">
+      <button class="nav__lien is-actif" data-page="discussion" type="button"><span data-icone="bulle"></span>Discussion</button>
+      <button class="nav__lien" data-page="agents" type="button"><span data-icone="agents"></span>Agents</button>
+      <button class="nav__lien" data-page="modeles" type="button"><span data-icone="boite"></span>Modèles</button>
+    </nav>
+
     <button id="new-chat" class="bouton bouton--nouveau"><svg class="icone icone-px" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="3" y="0" width="2" height="1"/><rect x="3" y="1" width="2" height="1"/><rect x="3" y="2" width="2" height="1"/><rect x="0" y="3" width="8" height="1"/><rect x="0" y="4" width="8" height="1"/><rect x="3" y="5" width="2" height="1"/><rect x="3" y="6" width="2" height="1"/><rect x="3" y="7" width="2" height="1"/></svg>Nouvelle discussion</button>
 
     <p class="etiquette">Discussions</p>
@@ -114,6 +121,49 @@
       </div>
     </form>
 
+    <!-- Page Agents : qui fait quoi dans le mode chantier (interface/pages.js) -->
+    <section id="page-agents" class="page" hidden>
+      <div class="page__contenu">
+        <p class="etiquette">Mode chantier</p>
+        <h2 class="fenetre__titre">Les agents</h2>
+        <p class="discret">Pendant un chantier, le chat code tout seul à partir de ton plan. Trois agents se relaient. Clique sur un agent pour choisir qui le fait tourner.</p>
+        <div class="schema" id="schema"></div>
+        <p class="schema__boucle">Étape refusée : l'ouvrier recommence, trois essais au plus. Rien ne touche ton projet : tout se passe dans une copie à part.</p>
+        <div class="fiche">
+          <h3 class="fiche__titre" id="agent-titre"></h3>
+          <p class="discret" id="agent-role"></p>
+          <div class="fiche__choix">
+            <div class="bloc"><label class="etiquette" for="agent-fournisseur">Fournisseur</label><select id="agent-fournisseur"></select></div>
+            <div class="bloc"><label class="etiquette" for="agent-modele">Modèle</label><select id="agent-modele"></select></div>
+          </div>
+          <p class="conseil" id="agent-conseil" aria-live="polite"></p>
+        </div>
+        <h2 class="fenetre__titre fenetre__titre--suite">Lancer un chantier</h2>
+        <p class="discret">Écris ton plan dans un fichier, ouvre un terminal dans ton projet (il doit être suivi par git), puis tape :</p>
+        <pre class="commande"><code>catai chantier plan.md</code></pre>
+        <p class="discret">À la fin, tu lis le rapport et tu gardes ou tu jettes le travail.</p>
+      </div>
+    </section>
+
+    <!-- Page Modèles : ce que le PC peut faire tourner, et les téléchargements (interface/pages.js) -->
+    <section id="page-modeles" class="page" hidden>
+      <div class="page__contenu">
+        <p class="etiquette">Ollama, sur ton PC</p>
+        <h2 class="fenetre__titre">Les modèles</h2>
+        <p class="discret">Un modèle qui tient dans ta carte graphique répond vite. S'il déborde, il marche encore, mais lentement.</p>
+        <div class="infos-pc" id="infos-pc"></div>
+        <p class="conseil" id="modeles-etat" aria-live="polite"></p>
+        <ul class="modeles" id="modeles-liste"></ul>
+        <h2 class="fenetre__titre fenetre__titre--suite">Un autre modèle</h2>
+        <p class="discret">Copie son nom depuis <span id="lien-ollama"></span>, par exemple « gemma3:4b ».</p>
+        <form id="autre-modele" class="enregistrer">
+          <input id="autre-modele-nom" aria-label="Nom du modèle à télécharger" placeholder="nom:taille" autocomplete="off" spellcheck="false">
+          <button class="bouton" type="submit">Télécharger</button>
+        </form>
+        <p class="conseil" id="autre-modele-etat" aria-live="polite"></p>
+      </div>
+    </section>
+
     <div id="depot" class="depot" hidden>
       <p class="depot__texte">Lâche le fichier, je le lis.</p>
     </div>
@@ -211,5 +261,6 @@
   <script src="interface/modeles.js"></script>
   <script src="interface/difference.js"></script>
   <script src="renderer.js"></script>
+  <script src="interface/pages.js"></script>
 </body>
 </html>
