@@ -202,6 +202,15 @@ async function executerOutil(name, args, ctx) {
 //   action(texte)           une ligne gardée dans l'historique (« a lu main.js »)
 //   pause(secondes)         le fournisseur demande d'attendre
 // Renvoie { fini, historique } : fini est faux si toutes les étapes ont été utilisées sans réponse finale.
+// Un raisonnement qui a fui dans la réponse : qwen3 et deepseek écrivent parfois leur réflexion (souvent en anglais)
+// puis « </think> » avant la vraie réponse. Tout ce qui précède est retiré ; une réflexion jamais refermée aussi.
+function sansPensee(texte) {
+  const t = String(texte || '');
+  const fin = t.lastIndexOf('</think>');
+  if (fin >= 0) return t.slice(fin + '</think>'.length).replace(/^\s+/, '');
+  return /^\s*<think>/.test(t) ? '' : t;
+}
+
 async function discuter({ messages, modele, envoyer, limites, ctx, ev = {}, options = {} }) {
   const historique = [...messages];
   const appelsFaits = new Map();
@@ -213,13 +222,22 @@ async function discuter({ messages, modele, envoyer, limites, ctx, ev = {}, opti
     const filtre = ctx.prof ? creerFiltreCode(afficher) : null;
     let { content, toolCalls } = await envoyer(aEnvoyer, modele, filtre ? filtre.morceau : afficher, ctx.signal, { prof: ctx.prof, onPause: ev.pause, ...options });
     filtre?.fin();
+    // Ce qui est à l'écran pour cette réponse, pour pouvoir l'effacer
+    let affiche = filtre ? filtre.longueur() : content.length;
+    if (sansPensee(content) !== content) {
+      ev.annuler?.(affiche);
+      content = sansPensee(content);
+      const visible = filtre ? retirerCode(content) : content;
+      if (visible) afficher(visible);
+      affiche = visible.length;
+    }
     // Un appel d'outil écrit en texte (souvent dans un bloc ```json) est cherché dans la réponse complète, avant le filtre
     const brut = content;
     if (filtre) content = retirerCode(content);
     if (!toolCalls.length && brut.includes('"name"')) {
       const trouves = parseTextToolCalls(brut);
       if (trouves.length) {
-        ev.annuler?.(filtre ? filtre.longueur() : content.length);
+        ev.annuler?.(affiche);
         toolCalls = trouves;
         content = '';
       }
@@ -259,4 +277,4 @@ async function discuter({ messages, modele, envoyer, limites, ctx, ev = {}, opti
   return { fini: false, historique };
 }
 
-module.exports = { MAX_STEPS, REFUS_ECRITURE, executerOutil, discuter, ecrireAvecAccord };
+module.exports = { sansPensee, MAX_STEPS, REFUS_ECRITURE, executerOutil, discuter, ecrireAvecAccord };

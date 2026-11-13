@@ -34,7 +34,7 @@ marked.use({
 const DEBUT_ACTION = "";
 const FIN_ACTION = "";
 const LIGNE_ACTION = new RegExp(`${DEBUT_ACTION}[^${FIN_ACTION}]*${FIN_ACTION}`, "g");
-const etiquetteAction = (texte) => `\n\n${DEBUT_ACTION}${texte.replace(/[]/g, "")}${FIN_ACTION}\n\n`;
+const etiquetteAction = (texte) => `\n\n${DEBUT_ACTION}${texte.replace(/[]/g, "")} ${FIN_ACTION}\n\n`;
 
 // Les formules mises de côté par protegerMaths (interface/maths.js), dessinées par KaTeX en MathML : Chromium les
 // affiche lui-même, sans style intégré (que la CSP de la fenêtre interdit) ni police à embarquer.
@@ -56,6 +56,8 @@ function renderMarkdown(src) {
     src = src.replace(/<think>[\s\S]*?(<\/think>|$)/g, "");
     const { texte, formules } = protegerMaths(src);
     const html = afficherMaths(marked.parse(texte), formules)
-        .replace(new RegExp(`<p>${DEBUT_ACTION}(.*?)${FIN_ACTION}</p>`, "g"), '<p><span class="action">$1</span></p>');
+        .replace(new RegExp(`<p>${DEBUT_ACTION}(.*?)\\s*${FIN_ACTION}</p>`, "g"), '<p><span class="action">$1</span></p>')
+        // Un caractère de repère resté seul ne doit jamais s'afficher
+        .replace(new RegExp(`[${DEBUT_ACTION}${FIN_ACTION}]`, "g"), "");
     return DOMPurify.sanitize(html);
 }

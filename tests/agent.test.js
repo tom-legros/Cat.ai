@@ -83,3 +83,20 @@ test('discuter : en mode prof, les blocs de code ne sont ni affichés ni gardés
   assert.doesNotMatch(affiche, /const x/);
   assert.doesNotMatch(historique.at(-1).content, /const x/);
 });
+
+test('sansPensee : le raisonnement qui a fui avant </think> est retiré, le reste ne bouge pas', () => {
+  const { sansPensee } = require('../principal/agent');
+  assert.equal(sansPensee('Okay, the user wants a plan.\n</think>\n\nVoici le plan.'), 'Voici le plan.');
+  assert.equal(sansPensee('<think>hmm</think>Bonjour'), 'Bonjour');
+  assert.equal(sansPensee('<think>jamais refermé'), '');
+  assert.equal(sansPensee('Une réponse normale.'), 'Une réponse normale.');
+});
+
+test('discuter : un raisonnement affiché puis refermé par </think> est effacé de l écran et de l historique', async () => {
+  const { discuter } = require('../principal/agent');
+  let ecran = '';
+  const envoyer = async (_m, _modele, onMorceau) => { const t = 'Let me think about it.\n</think>\n\nBonjour.'; onMorceau(t); return { content: t, toolCalls: [] }; };
+  const r = await discuter({ messages: [{ role: 'user', content: 'salut' }], modele: 'm', envoyer, ctx: { prof: false }, ev: { morceau: (t) => { ecran += t; }, annuler: (n) => { ecran = ecran.slice(0, -n); } } });
+  assert.equal(ecran, 'Bonjour.');
+  assert.equal(r.historique.at(-1).content, 'Bonjour.');
+});
