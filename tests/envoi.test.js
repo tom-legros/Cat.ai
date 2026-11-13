@@ -1,7 +1,7 @@
 // Envoi au modèle : conversion des formats Ollama / OpenAI, reconnaissance des erreurs des fournisseurs
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { versOpenAI, finirAppels, attenteDemandee, estModeleCasse, messageErreurOpenAI, vulkanUtile } = require('../principal/envoi');
+const { versOpenAI, finirAppels, attenteDemandee, estModeleCasse, messageErreurOpenAI, vulkanUtile, sansReflexion } = require('../principal/envoi');
 
 test('versOpenAI : arguments en texte JSON, et chaque résultat relié à son appel', () => {
   const ollama = [
@@ -116,4 +116,8 @@ test('vulkanUtile : seulement sous Windows avec une AMD sans NVIDIA, et jamais c
   assert.equal(vulkanUtile('win32', {}, []), false);
   assert.equal(vulkanUtile('linux', {}, [amd]), false);
   assert.equal(vulkanUtile('win32', { OLLAMA_VULKAN: '0' }, [amd]), false);
+});
+
+test('sansReflexion : aucun modèle Ollama ne réfléchit en silence avant de répondre', () => {
+  for (const modele of ['qwen3:8b', 'qwen3.5:4b', 'deepseek-r1:8b', 'gpt-oss:20b', 'qwen2.5-coder:7b']) assert.equal(sansReflexion(modele), false, modele);
 });

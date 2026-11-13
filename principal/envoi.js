@@ -11,7 +11,10 @@ const OLLAMA = 'http://127.0.0.1:11434';
 //   temperature 0.7, top_p 0.8, top_k 20 (ceux d'Ollama par défaut sont prévus pour le mode réflexion).
 const GARDER_CHARGE = '30m';
 const optionsOllama = (modele) => ({ num_ctx: 8192, ...(String(modele).startsWith('qwen3') ? { temperature: 0.7, top_p: 0.8, top_k: 20 } : {}) });
-const sansReflexion = (modele) => (String(modele).startsWith('qwen3') ? false : undefined);
+// Pas de phase de réflexion, pour tous les modèles : sans ce réglage, un modèle qui sait réfléchir (qwen3, deepseek-r1,
+// gpt-oss…) écrit d'abord des centaines de mots invisibles dans Cat Ai (plus de 4 fois plus de texte mesuré avec
+// qwen3:8b), et on attend devant « Miaou réfléchit ». Ollama accepte ce réglage aussi pour les modèles qui ne réfléchissent pas.
+const sansReflexion = () => false;
 
 // ---------- Discussion avec Ollama ----------
 // Envoie la discussion à Ollama et lit la réponse en streaming (JSON ligne par ligne).
