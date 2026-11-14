@@ -101,7 +101,7 @@ function garderChantier(dossier, nom) {
   const racine = git(dossier, 'rev-parse', '--show-toplevel');
   if (git(racine, 'status', '--porcelain', '--untracked-files=no')) return { ok: false, erreur: 'Ton projet a des changements en cours : enregistre-les (commit) ou annule-les avant de garder le travail du chantier.' };
   try {
-    git(racine, '-c', 'user.name=Cat Ai', '-c', 'user.email=chantier@cat-ai.invalid', 'merge', '--no-edit', branche);
+    git(racine, '-c', 'user.name=Cat Ai', '-c', 'user.email=chantier@cat-ai.invalid', 'merge', '--no-edit', '--no-overwrite-ignore', branche);
     return { ok: true };
   } catch (err) {
     try { git(racine, 'merge', '--abort'); } catch { /* aucune fusion en cours */ }

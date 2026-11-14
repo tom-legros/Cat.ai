@@ -107,3 +107,25 @@ test('agentsDuChantier : un codeur en ligne garde ses limites, puis prend celles
   assert.equal(codeurs[0].limites, local);
   assert.equal(codeurs[0].modele, 'qwen3:8b');
 });
+
+test('garderChantier : un fichier local ignoré par git n est jamais écrasé par la fusion', () => {
+  const d = dossier();
+  fs.writeFileSync(path.join(d, '.gitignore'), 'secret.json\n');
+  fs.writeFileSync(path.join(d, 'a.txt'), 'un\n');
+  git(d, 'init', '-q');
+  git(d, 'add', '-A');
+  git(d, ...identite, 'commit', '-qm', 'depart');
+  const principale = git(d, 'rev-parse', '--abbrev-ref', 'HEAD');
+  // Le chantier retire la règle et ajoute lui-même un secret.json
+  git(d, 'checkout', '-q', '-b', 'catai/chantier-ignore');
+  fs.writeFileSync(path.join(d, '.gitignore'), '');
+  fs.writeFileSync(path.join(d, 'secret.json'), 'du chantier\n');
+  git(d, 'add', '-A');
+  git(d, ...identite, 'commit', '-qm', 'etape');
+  git(d, 'checkout', '-q', principale);
+  // Dans le projet, l'utilisateur a son propre secret.json, ignoré
+  fs.writeFileSync(path.join(d, 'secret.json'), 'le mien\n');
+  const r = garderChantier(d, 'ignore');
+  assert.equal(r.ok, false);
+  assert.equal(fs.readFileSync(path.join(d, 'secret.json'), 'utf8'), 'le mien\n');
+});

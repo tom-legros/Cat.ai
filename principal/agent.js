@@ -210,18 +210,26 @@ function sansCloture(contenu, chemin = '') {
   if (!m) return contenu;
   const [, langage, dedans] = m;
   const extension = String(chemin).split('.').pop().toLowerCase();
-  const duFichier = { md: ['markdown', 'md'], markdown: ['markdown', 'md'] }[extension] || [];
-  if (dedans.includes('```') && !duFichier.includes(langage.toLowerCase())) return contenu;
-  return `${dedans}\n`;
+  // Dans un fichier Markdown, un bloc de code est du contenu normal : seul un emballage annoncé « markdown » part
+  if (['md', 'markdown'].includes(extension)) return ['markdown', 'md'].includes(langage.toLowerCase()) ? `${dedans}\n` : contenu;
+  return dedans.includes('```') ? contenu : `${dedans}\n`;
 }
 
 // Un raisonnement qui a fui dans la réponse : qwen3 et deepseek écrivent parfois leur réflexion (souvent en anglais)
 // puis « </think> » avant la vraie réponse. Tout ce qui précède est retiré ; une réflexion jamais refermée aussi.
 function sansPensee(texte) {
   const t = String(texte || '');
-  const fin = t.lastIndexOf('</think>');
-  if (fin >= 0) return t.slice(fin + '</think>'.length).replace(/^\s+/, '');
-  return /^\s*<think>/.test(t) ? '' : t;
+  // Une réflexion ouverte au tout début : elle va jusqu'à sa fermeture, ou jusqu'au bout si elle n'est jamais refermée
+  if (/^\s*<think>/.test(t)) {
+    const fin = t.indexOf('</think>');
+    return fin < 0 ? '' : t.slice(fin + '</think>'.length).replace(/^\s+/, '');
+  }
+  // Sans ouverture, la fuite se reconnaît à un « </think> » seul sur sa ligne. Le mot cité dans une phrase ou dans
+  // un exemple de code n'en est pas une : la réponse reste entière.
+  const seules = [...t.matchAll(/(?:^|\n)[ \t]*<\/think>[ \t]*(?=\n|$)/g)];
+  if (!seules.length) return t;
+  const derniere = seules.at(-1);
+  return t.slice(derniere.index + derniere[0].length).replace(/^\s+/, '');
 }
 
 async function discuter({ messages, modele, envoyer, limites, ctx, ev = {}, options = {} }) {

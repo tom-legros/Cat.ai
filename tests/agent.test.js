@@ -112,3 +112,12 @@ test('sansCloture : un fichier emballé dans un bloc de code est écrit sans l e
   assert.equal(sansCloture(readme, 'README.md'), readme);
   assert.equal(sansCloture('const a = 1;\n', 'a.js'), 'const a = 1;\n');
 });
+
+test('sansPensee et sansCloture : un contenu légitime reste entier (relecture croisée)', () => {
+  const { sansPensee, sansCloture } = require('../principal/agent');
+  assert.equal(sansPensee('La balise fermante est </think>. Voici son usage.'), 'La balise fermante est </think>. Voici son usage.');
+  assert.equal(sansPensee('<think>a</think>La fin est </think> aussi.'), 'La fin est </think> aussi.');
+  const readme = '```js\nconsole.log(1);\n```';
+  assert.equal(sansCloture(readme, 'README.md'), readme);
+  assert.equal(sansCloture('```\nun bloc\n```', 'notes.md'), '```\nun bloc\n```');
+});
