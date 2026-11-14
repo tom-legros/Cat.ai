@@ -10,9 +10,11 @@ const { equipeDepuis, planDeTravail } = require('./equipe');
 //   envoyerEnLigne    (fournisseurId) => envoyer(messages, modele, …) ; c'est lui qui vérifie la gratuité et la clé
 //   limitesLocales    LIMITES_OLLAMA
 //   dire(texte)       pour prévenir quand un agent en ligne est remplacé
-//   chefForce         fournisseur du chef imposé (catai --chef), modeleForce : modèle du premier codeur (catai -m)
+//   limitesEnLigne    (fournisseurId) => limites de taille de ce fournisseur, ou null s'il n'en a pas
+//   chefForce         fournisseur du chef imposé (catai --chef), modeleForce : modèle du premier codeur (catai -m),
+//                     codeurForce : fournisseur de tous les codeurs (catai --codeur)
 // Renvoie { chef, codeurs, resume } ; resume est une ligne lisible : qui fait quoi.
-function agentsDuChantier({ reglages, infos, envoyerLocal, envoyerEnLigne, limitesLocales, dire = () => {}, chefForce, modeleForce }) {
+function agentsDuChantier({ reglages, infos, envoyerLocal, envoyerEnLigne, limitesLocales, limitesEnLigne = () => null, dire = () => {}, chefForce, modeleForce, codeurForce }) {
   const equipe = planDeTravail(equipeDepuis(reglages, infos));
   const modeleLocal = modeleForce || equipe.codeurs[0].modele || reglages.modeles?.ollama || 'qwen3:8b';
   const secours = { envoyer: envoyerLocal, modele: modeleLocal };
@@ -25,6 +27,7 @@ function agentsDuChantier({ reglages, infos, envoyerLocal, envoyerEnLigne, limit
     return {
       get modele() { return agent.modele; },
       nom: () => (agent === secours || local ? agent.modele : `${choix.fournisseur} ${agent.modele}`),
+      surLePc: () => local || agent === secours,
       envoyer: async (...args) => {
         try { return await agent.envoyer(args[0], agent.modele, ...args.slice(2)); } catch (err) {
           if (err.name === 'AbortError' || agent === secours) throw err;
@@ -39,15 +42,26 @@ function agentsDuChantier({ reglages, infos, envoyerLocal, envoyerEnLigne, limit
   const dejaFaits = new Map();
   const agentDe = (a) => dejaFaits.get(a.id) || dejaFaits.set(a.id, agentSur(a.nom, a)).get(a.id);
   const chef = chefForce ? agentSur('Chef', { fournisseur: chefForce, modele: reglages.modeles?.[chefForce] }) : agentDe(equipe.chef);
-  const codeurs = equipe.codeurs.map((c, i) => ({
-    nom: c.nom, specialite: c.specialite, envoyer: envoyerLocal, limites: limitesLocales,
-    modele: (i === 0 ? modeleLocal : c.modele) || modeleLocal,
-    controles: c.controles.map((k) => (k.type === 'tests'
+  const codeurs = equipe.codeurs.map((c, i) => {
+    const controles = c.controles.map((k) => (k.type === 'tests'
       ? { type: 'tests', logs: k.logs ? agentDe(k.logs) : null }
-      : { type: 'relecture', nom: k.nom, envoyer: agentDe(k.agent).envoyer, modele: k.agent.modele })),
-  }));
+      : { type: 'relecture', nom: k.nom, envoyer: agentDe(k.agent).envoyer, modele: k.agent.modele }));
+    const choix = codeurForce ? { fournisseur: codeurForce, modele: reglages.modeles?.[codeurForce] } : c;
+    if (choix.fournisseur === 'ollama') {
+      const modele = (i === 0 ? modeleLocal : choix.modele) || modeleLocal;
+      return { nom: c.nom, specialite: c.specialite, envoyer: envoyerLocal, limites: limitesLocales, modele, local: true, qui: () => modele, controles };
+    }
+    // Un codeur en ligne : plus fort, mais s'il n'a plus de quota le modèle du PC reprend, avec ses propres limites
+    const agent = agentSur(c.nom, choix);
+    return {
+      nom: c.nom, specialite: c.specialite, envoyer: agent.envoyer, controles, qui: agent.nom,
+      get modele() { return agent.modele; },
+      get limites() { return agent.surLePc() ? limitesLocales : limitesEnLigne(choix.fournisseur); },
+      get local() { return agent.surLePc(); },
+    };
+  });
   const autres = [...new Set([...dejaFaits.values()].filter((a) => a !== chef).map((a) => a.nom()))];
-  const quiCode = codeurs.length > 1 ? `codeurs ${codeurs.map((c) => `${c.nom} (${c.modele})`).join(', ')}` : `codeur ${codeurs[0].modele}`;
+  const quiCode = codeurs.length > 1 ? `codeurs ${codeurs.map((c) => `${c.nom} (${c.qui()})`).join(', ')}` : `codeur ${codeurs[0].qui()}`;
   return { chef, codeurs, resume: `chef ${chef.nom()} · ${quiCode}${autres.length ? ` · contrôles : ${autres.join(', ')}` : ''}` };
 }
 

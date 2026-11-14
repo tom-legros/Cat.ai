@@ -84,6 +84,16 @@ Le JSON devient : [{"titre": "...", "consigne": "...", "agent": "nom du codeur"}
 const CONSIGNE_LOGS = `Des tests échouent après le changement d'un autre modèle. Lis leur sortie et le changement.
 Réponds en 5 lignes au plus, sans réécrire le code : quel test casse, pourquoi, et quoi corriger précisément (fichier, fonction).`;
 
+// Le détail des tests ratés, tel que Node l'écrit après « failing tests: » : le nom du test, l'erreur, et surtout
+// la différence entre ce qui était attendu et ce qui a été obtenu. Sans elle, le codeur corrige à l'aveugle.
+function detailEchec(sortie) {
+  const t = String(sortie);
+  const debut = t.indexOf('failing tests:');
+  if (debut < 0) return '';
+  return t.slice(debut + 'failing tests:'.length).split('\n').map((l) => l.trimEnd())
+    .filter((l) => l.trim() && !/^\s*at |node:internal|^ℹ/.test(l)).slice(0, 30).join('\n').slice(0, 1800);
+}
+
 // Dans la sortie des tests, les lignes qui disent ce qui casse : le nom du test raté et l'erreur
 function lignesEchec(sortie) {
   const utiles = String(sortie).split('\n').map((l) => l.trim())
@@ -148,7 +158,7 @@ async function lancerChantier({ projet, plan, chef, codeurs, ouvrier, verificate
   const ctxPour = (codeur) => ({
     projet: () => copie, ouvrirProjet: () => {}, reglages: () => ({}), dossierDocuments: copie, prof: false,
     liensDonnes: [], documentsJoints: new Set(), signal, maxExtrait: codeur.limites ? codeur.limites.resultatOutil - 500 : 20000,
-    fournisseurLocal: true, nomFournisseur: '',
+    fournisseurLocal: codeur.local !== false, nomFournisseur: '',
     ui: { demander: async () => false, confirmerEcriture: async () => true, choisirExecutable: async () => null },
   });
   // Le codeur nommé par le chef, sinon le premier
@@ -175,7 +185,8 @@ async function lancerChantier({ projet, plan, chef, codeurs, ouvrier, verificate
           ev.info?.(`  logs : pas de diagnostic (${err.message})`);
         }
       }
-      const resume = diagnostic ? `Diagnostic :\n${diagnostic}` : echec ? `En bref :\n${echec}` : '';
+      const detail = detailEchec(bilan);
+      const resume = [diagnostic && `Diagnostic :\n${diagnostic}`, detail ? `Ce qui a raté :\n${detail}` : echec && `En bref :\n${echec}`].filter(Boolean).join('\n\n');
       return `Les tests échouent après ton changement. ${resume ? `${resume}\n\nSortie complète :\n` : ''}${bilan.slice(0, 3000)}`;
     }
     const avis = avisDepuis(await demander(controle.envoyer, controle.modele, [
@@ -273,4 +284,4 @@ function horodatage(d = new Date()) {
   return `${d.getFullYear()}${z(d.getMonth() + 1)}${z(d.getDate())}-${z(d.getHours())}${z(d.getMinutes())}`;
 }
 
-module.exports = { lancerChantier, jeterChantier, lignesEchec, etapesDepuis, avisDepuis, lireJson, rapportChantier, OUTILS_OUVRIER, ESSAIS_PAR_ETAPE };
+module.exports = { detailEchec, lancerChantier, jeterChantier, lignesEchec, etapesDepuis, avisDepuis, lireJson, rapportChantier, OUTILS_OUVRIER, ESSAIS_PAR_ETAPE };

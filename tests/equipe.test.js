@@ -31,7 +31,7 @@ test('equipeDepuis : une équipe enregistrée abîmée est remplacée par celle 
   assert.equal(equipeDepuis({ equipe: bonne }), bonne);
 });
 
-test('equipeDepuis : un fichier modifié à la main ne fait ni planter, ni garder un modèle payant ou un codeur en ligne', () => {
+test('equipeDepuis : un fichier modifié à la main ne fait ni planter, ni garder un modèle payant', () => {
   const depart = ['chef', 'codeur', 'testeur', 'relecteur'];
   const base = equipeParDefaut({ modeles: { ollama: 'qwen3:8b' } });
   const avec = (changer) => ({ equipe: { agents: base.agents.map((a) => ({ ...a, ...changer(a) })) } });
@@ -42,7 +42,9 @@ test('equipeDepuis : un fichier modifié à la main ne fait ni planter, ni garde
   assert.equal(equipeValide(payant.equipe, infos), false);
   assert.equal(equipeDepuis(payant, infos).agents[0].fournisseur, 'ollama');
   const codeurEnLigne = avec((a) => (a.id === 'codeur-1' ? { fournisseur: 'gemini', modele: 'gemini-flash' } : {}));
-  assert.equal(equipeValide(codeurEnLigne.equipe, infos), false);
+  assert.equal(equipeValide(codeurEnLigne.equipe, infos), true);
+  const codeurPayant = avec((a) => (a.id === 'codeur-1' ? { fournisseur: 'gemini', modele: 'gemini-pro' } : {}));
+  assert.equal(equipeValide(codeurPayant.equipe, infos), false);
   const deuxTesteurs = { agents: [...base.agents, { id: 'testeur-2', type: 'testeur', nom: 'Testeur 2', parent: 'chef' }] };
   assert.equal(equipeValide(deuxTesteurs, infos), false);
   assert.equal(equipeValide(avec((a) => (a.id === 'chef' ? { fournisseur: 'gemini', modele: 'gemini-flash' } : {})).equipe, infos), true);
@@ -77,9 +79,10 @@ test('retirerAgent : tout ce qui est dessous part avec, mais il reste un chef et
   assert.deepEqual(types(retirerAgent(e, 'codeur-1').equipe), ['chef', 'relecteur', 'codeur']);
 });
 
-test("modifierAgent : un codeur reste sur le PC, et aucun modèle payant n'est retenu", () => {
+test("modifierAgent : aucun modèle payant n'est retenu, et un codeur peut être en ligne s'il est gratuit", () => {
   const e = equipeParDefaut();
-  assert.match(modifierAgent(e, 'codeur-1', { fournisseur: 'gemini', modele: 'gemini-flash' }, infos).erreur, /sur ton PC/);
+  assert.equal(modifierAgent(e, 'codeur-1', { fournisseur: 'gemini', modele: 'gemini-flash' }, infos).equipe.agents[1].fournisseur, 'gemini');
+  assert.match(modifierAgent(e, 'codeur-1', { fournisseur: 'gemini', modele: 'gemini-pro' }, infos).erreur, /pas gratuit/);
   assert.match(modifierAgent(e, 'chef', { fournisseur: 'gemini', modele: 'gemini-pro' }, infos).erreur, /pas gratuit/);
   assert.match(modifierAgent(e, 'testeur-1', { fournisseur: 'ollama', modele: 'x' }, infos).erreur, /pas de modèle/);
   assert.match(modifierAgent(e, 'chef', { fournisseur: 'inconnu', modele: 'x' }, infos).erreur, /inconnu/);

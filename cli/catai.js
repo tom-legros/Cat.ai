@@ -65,7 +65,8 @@ Chaque modification de fichier est montrée avant d'être écrite, et attend ton
 Mode chantier (dans un projet git) : Cat Ai code seule, étape par étape, à partir d'un plan.
   catai chantier plan.md             l'équipe de la page Agents : le chef découpe, les codeurs codent, les contrôles vérifient
   catai chantier plan.md --chef gemini   le chef (sinon celui de la page Agents de l'app)
-  catai chantier plan.md -m qwen3:8b     le codeur (un modèle Ollama)
+  catai chantier plan.md -m qwen3:8b     le modèle du codeur sur ce PC (Ollama)
+  catai chantier plan.md --codeur gemini le codeur en ligne : plus fort, mais il prend sur le quota gratuit
   catai chantier --jeter <nom>       supprime la copie et la branche d'un chantier
 Tout se passe dans une copie (une branche à part) : tes fichiers ne bougent pas. À la fin, un rapport
 dit ce qui a été fait, et tu gardes ce que tu veux (git merge).`;
@@ -296,6 +297,7 @@ async function chantier(argv) {
   const o = { chef: null, modele: null, dossier: process.cwd(), plan: null, jeter: null };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--chef') o.chef = argv[++i];
+    else if (argv[i] === '--codeur') o.codeur = argv[++i];
     else if (argv[i] === '-m' || argv[i] === '--modele') o.modele = argv[++i];
     else if (argv[i] === '-d' || argv[i] === '--dossier') o.dossier = path.resolve(argv[++i] || '.');
     else if (argv[i] === '--jeter') o.jeter = argv[++i];
@@ -309,11 +311,11 @@ async function chantier(argv) {
   if (!o.plan || !fs.existsSync(o.plan)) { process.stderr.write(rouge('Donne le fichier du plan : catai chantier plan.md\n')); return 1; }
   const arret = new AbortController();
   process.on('SIGINT', () => { process.stdout.write(jaune('\nArrêt du chantier demandé…\n')); arret.abort(); });
-  return faireChantier({ dossier: o.dossier, plan: fs.readFileSync(o.plan, 'utf8'), chefForce: o.chef, modeleForce: o.modele, signal: arret.signal });
+  return faireChantier({ dossier: o.dossier, plan: fs.readFileSync(o.plan, 'utf8'), chefForce: o.chef, modeleForce: o.modele, codeurForce: o.codeur, signal: arret.signal });
 }
 
 // Lance l'équipe de la page Agents sur un plan, dans une copie du dossier. Renvoie 0 si le chantier a tourné.
-async function faireChantier({ dossier, plan, chefForce, modeleForce, signal }) {
+async function faireChantier({ dossier, plan, chefForce, modeleForce, codeurForce, signal }) {
   const { lancerChantier } = require(path.join(racine, 'principal/chantier'));
   const depot = etatDepot(dossier);
   if (!depot.pret) { process.stderr.write(rouge(`${MESSAGES_DEPOT[depot.raison]}\n`) + gris('Dans ce dossier : git init, puis git add -A, puis git commit -m "départ".\n')); return 1; }
@@ -321,7 +323,7 @@ async function faireChantier({ dossier, plan, chefForce, modeleForce, signal }) 
   // L'équipe composée dans l'app (page Agents) ; --chef et -m passent devant
   const { chef, codeurs, resume } = agentsDuChantier({
     reglages: lireReglagesFournisseurs(), infos: infosFournisseur, envoyerLocal: envoyerOllama, envoyerEnLigne: envoyeurParApp,
-    limitesLocales: LIMITES_OLLAMA, chefForce, modeleForce,
+    limitesLocales: LIMITES_OLLAMA, limitesEnLigne: (id) => limitesTaille(infosFournisseur(id)), chefForce, modeleForce, codeurForce,
     dire: (texte) => process.stdout.write(jaune(`${texte}\n`)),
   });
   if (depot.modifs) process.stdout.write(jaune(`Attention : ${depot.modifs} fichier(s) modifié(s) mais pas enregistré(s) dans git ne seront pas dans la copie.\n`));

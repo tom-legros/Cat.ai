@@ -2,8 +2,8 @@
 // Que des fonctions pures, sur le contenu de fournisseurs.json : elles sont faciles à tester.
 //
 //   chef        en haut, un seul : il découpe le plan en étapes et les donne aux codeurs
-//   codeur      il écrit le code d'une étape. Toujours un modèle du PC (Ollama) : il travaille des heures,
-//               le quota gratuit d'un modèle en ligne y passerait
+//   codeur      il écrit le code d'une étape. Sur le PC (Ollama) par défaut : sans limite, mais un petit modèle
+//               cale vite. Un modèle en ligne gratuit code mieux, au prix du quota du jour
 //   testeur     il lance les tests du projet après chaque étape (pas de modèle : c'est un programme)
 //   logs        sous un testeur : quand les tests cassent, il lit leur sortie et dit au codeur quoi corriger
 //   relecteur   il compare le changement à la consigne, et accepte ou refuse l'étape
@@ -14,7 +14,7 @@ const { modeleGratuit } = require('./gratuit');
 
 const TYPES = {
   chef: { nom: 'Chef', modele: true, enfants: ['codeur', 'testeur', 'relecteur'] },
-  codeur: { nom: 'Codeur', modele: true, local: true, enfants: ['testeur', 'relecteur'] },
+  codeur: { nom: 'Codeur', modele: true, enfants: ['testeur', 'relecteur'] },
   testeur: { nom: 'Testeur', modele: false, enfants: ['logs'], unParParent: true },
   logs: { nom: 'Lecteur de logs', modele: true, enfants: [], unParParent: true },
   relecteur: { nom: 'Relecteur', modele: true, enfants: [] },
@@ -37,7 +37,7 @@ function equipeParDefaut(reglages = {}) {
 
 // Une équipe enregistrée n'est gardée que si elle tient debout : le fichier a pu être abîmé ou modifié à la main.
 // Un chef, au moins un codeur, des parents permis, un nom partout. Avec infos(id) (le fournisseur, ou null), les
-// modèles sont vérifiés aussi : un codeur sur le PC, et jamais de modèle payant, même déjà enregistré.
+// modèles sont vérifiés aussi : jamais de modèle payant, même déjà enregistré.
 function equipeValide(equipe, infos) {
   const agents = Array.isArray(equipe?.agents) ? equipe.agents : [];
   if (!agents.length || agents.length > MAX_AGENTS) return false;
@@ -50,7 +50,7 @@ function equipeValide(equipe, infos) {
     if (type.modele) {
       if (typeof a.fournisseur !== 'string' || typeof a.modele !== 'string') return false;
       const config = infos ? infos(a.fournisseur) : undefined;
-      if (infos && (!config || (type.local && config.type !== 'ollama') || (a.modele && !modeleGratuit(config, a.modele)))) return false;
+      if (infos && (!config || (a.modele && !modeleGratuit(config, a.modele)))) return false;
     }
     if (a.type === 'chef') return a.parent === null;
     const parent = parId.get(a.parent);
@@ -117,7 +117,6 @@ function modifierAgent(equipe, id, changement, infos) {
     const modele = String(changement.modele ?? '');
     const config = infos(fournisseur);
     if (!config) return { erreur: 'Fournisseur inconnu.' };
-    if (TYPES[agent.type].local && config.type !== 'ollama') return { erreur: 'Un codeur tourne sur ton PC, avec Ollama.' };
     if (!modele) return { erreur: 'Il faut choisir un modèle.' };
     // Un modèle payant n'est jamais retenu
     if (!modeleGratuit(config, modele)) return { erreur: "Ce modèle n'est pas gratuit." };

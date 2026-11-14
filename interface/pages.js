@@ -124,7 +124,7 @@ function dessinerToile() {
 function conseilAgent(agent) {
     if (!agent.avecModele) return "";
     if (!agent.modele) return "Aucun modèle : installe-en un dans la page Modèles.";
-    if (agent.fournisseur !== "ollama") return "En ligne : plus malin, mais chaque étape prend sur ton quota gratuit.";
+    if (agent.fournisseur !== "ollama") return agent.type === "codeur" ? "En ligne : il code mieux, mais un long chantier peut vider ton quota gratuit du jour. Le modèle du PC prend alors le relais." : "En ligne : plus malin, mais chaque étape prend sur ton quota gratuit.";
     const locaux = new Set(equipe.agents.filter((a) => a.fournisseur === "ollama" && a.modele).map((a) => a.modele));
     return locaux.size > 1 ? "Plusieurs modèles sur ton PC : Ollama les échange, c'est plus lent." : "";
 }
@@ -164,8 +164,7 @@ function dessinerFiche() {
 
     if (agent.avecModele) {
         const selFournisseur = creer("select");
-        // Un codeur reste sur le PC : sinon un long chantier viderait le quota gratuit du jour
-        const possibles = reglages.fournisseurs.filter((f) => !agent.local || f.type === "ollama");
+        const possibles = reglages.fournisseurs;
         selFournisseur.innerHTML = possibles.map((f) => `<option value="${escape(f.id)}"${f.aCle ? "" : " disabled"}>${escape(f.nom)}${f.aCle ? "" : " (pas de clé)"}</option>`).join("");
         selFournisseur.value = agent.fournisseur;
         selFournisseur.disabled = possibles.length < 2;

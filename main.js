@@ -519,7 +519,7 @@ ipcMain.handle('modeles-catalogue', () => catalogueMateriel());
 // Page Agents : l'arbre d'agents du mode chantier (principal/equipe.js). L'interface reçoit l'arbre, et pour
 // chaque agent ce qu'on peut encore ajouter dessous ; toutes les règles restent ici.
 const vueEquipe = (equipe) => ({
-  agents: equipe.agents.map((a) => ({ ...a, avecModele: TYPES[a.type].modele, local: !!TYPES[a.type].local, ajouts: ajoutsPossibles(equipe, a.id) })),
+  agents: equipe.agents.map((a) => ({ ...a, avecModele: TYPES[a.type].modele, ajouts: ajoutsPossibles(equipe, a.id) })),
   types: Object.fromEntries(Object.entries(TYPES).map(([id, t]) => [id, t.nom])),
 });
 function changerEquipe(changer) {
@@ -759,6 +759,7 @@ ipcMain.handle('chantier-lancer', async (_e, { plan } = {}) => {
   try {
     const { chef, codeurs, resume } = agentsDuChantier({
       reglages: lireReglagesFournisseurs(), infos: infosFournisseur, envoyerLocal: envoyerOllama, limitesLocales: LIMITES_OLLAMA,
+      limitesEnLigne: (id) => limitesTaille(infosFournisseur(id)),
       // Dernier garde-fou avant chaque appel en ligne : jamais de modèle payant
       envoyerEnLigne: (id) => async (messages, modele, ...reste) => { verifierGratuit(id, modele); return (await envoyeurPour(id))(messages, modele, ...reste); },
       dire: (t) => direChantier({ type: 'info', texte: t }),

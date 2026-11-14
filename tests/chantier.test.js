@@ -73,3 +73,13 @@ test('lignesEchec : le test raté et son erreur, sans le bilan', () => {
   const sortie = "✔ somme (0.4ms)\n✖ produit (1.2ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  12 !== 7\nℹ tests 2\nℹ fail 1";
   assert.equal(lignesEchec(sortie), '✖ produit (1.2ms)\nAssertionError [ERR_ASSERTION]: Expected values to be strictly equal:');
 });
+
+test('detailEchec : ce qui suit « failing tests: », avec la différence attendu / obtenu, sans la pile d appels', () => {
+  const { detailEchec } = require('../principal/chantier');
+  const sortie = "✖ produit (1ms)\nℹ tests 2\nℹ fail 1\n\n✖ failing tests:\n\ntest at a.test.js:5:1\n✖ produit (1ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n  7 !== 12\n\n      at TestContext.<anonymous> (a.test.js:6:10)\n      at node:internal/test_runner/test:1\n";
+  const detail = detailEchec(sortie);
+  assert.match(detail, /✖ produit/);
+  assert.match(detail, /7 !== 12/);
+  assert.doesNotMatch(detail, /node:internal|TestContext/);
+  assert.equal(detailEchec('tout va bien'), '');
+});
