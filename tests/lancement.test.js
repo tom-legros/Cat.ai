@@ -76,9 +76,10 @@ test('agentsDuChantier : les codeurs sur le PC, les autres en ligne, et le modè
   equipe = ajouterAgent(equipe, 'testeur-1', 'logs').equipe;
   const appels = [];
   const dits = [];
+  let horloge = 0;
   const envoyerLocal = async (_m, modele) => { appels.push(`local ${modele}`); return { content: 'ok', toolCalls: [] }; };
   const envoyerEnLigne = (id) => async (_m, modele) => { appels.push(`${id} ${modele}`); throw new Error('Limite atteinte (429)'); };
-  const { chef, codeurs, resume } = agentsDuChantier({ reglages: { equipe, modeles: { ollama: 'qwen3:8b' } }, infos, envoyerLocal, envoyerEnLigne, limitesLocales: { total: 1 }, dire: (t) => dits.push(t) });
+  const { chef, codeurs, resume } = agentsDuChantier({ reglages: { equipe, modeles: { ollama: 'qwen3:8b' } }, infos, envoyerLocal, envoyerEnLigne, limitesLocales: { total: 1 }, dire: (t) => dits.push(t), pause: async () => {}, maintenant: () => horloge });
   assert.match(resume, /^chef gemini gemini-flash-lite · codeur qwen3:8b · contrôles : gemini gemini-flash-lite$/);
   assert.equal(codeurs[0].envoyer, envoyerLocal);
   assert.deepEqual(codeurs[0].controles.map((c) => c.type), ['tests', 'relecture']);
@@ -86,8 +87,14 @@ test('agentsDuChantier : les codeurs sur le PC, les autres en ligne, et le modè
   // Le chef en ligne tombe : le modèle du PC répond à sa place, et les fois suivantes directement
   assert.equal((await chef.envoyer([], 'ignoré')).content, 'ok');
   await chef.envoyer([], 'ignoré');
-  assert.deepEqual(appels, ['gemini gemini-flash-lite', 'local qwen3:8b', 'local qwen3:8b']);
-  assert.match(dits[0], /Chef indisponible \(Limite atteinte \(429\)\) : qwen3:8b le remplace/);
+  // Trois essais en ligne (deux pauses), puis le PC ; l'appel suivant va droit au PC
+  assert.deepEqual(appels, ['gemini gemini-flash-lite', 'gemini gemini-flash-lite', 'gemini gemini-flash-lite', 'local qwen3:8b', 'local qwen3:8b']);
+  assert.match(dits[0], /Chef : limite du fournisseur, pause de 70 s/);
+  assert.match(dits[2], /Chef indisponible \(Limite atteinte \(429\)\) : qwen3:8b le remplace pendant un quart d'heure/);
+  // Un quart d'heure plus tard, on retente en ligne
+  horloge = 16 * 60 * 1000;
+  await chef.envoyer([], 'ignoré');
+  assert.equal(appels[5], 'gemini gemini-flash-lite');
 });
 
 test('agentsDuChantier : un codeur en ligne garde ses limites, puis prend celles du PC quand le quota saute', async () => {
@@ -96,7 +103,7 @@ test('agentsDuChantier : un codeur en ligne garde ses limites, puis prend celles
   const envoyerLocal = async () => ({ content: 'local', toolCalls: [] });
   let enPanne = false;
   const envoyerEnLigne = () => async () => { if (enPanne) throw new Error('quota'); return { content: 'en ligne', toolCalls: [] }; };
-  const { codeurs, resume } = agentsDuChantier({ reglages: { equipe, modeles: { ollama: 'qwen3:8b', gemini: 'gemini-flash-lite' } }, infos, envoyerLocal, envoyerEnLigne, limitesLocales: local, limitesEnLigne: () => null, codeurForce: 'gemini' });
+  const { codeurs, resume } = agentsDuChantier({ reglages: { equipe, modeles: { ollama: 'qwen3:8b', gemini: 'gemini-flash-lite' } }, infos, envoyerLocal, envoyerEnLigne, limitesLocales: local, limitesEnLigne: () => null, codeurForce: 'gemini', pause: async () => {} });
   assert.match(resume, /codeur gemini gemini-flash-lite/);
   assert.equal(codeurs[0].local, false);
   assert.equal(codeurs[0].limites, null);

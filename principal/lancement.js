@@ -3,6 +3,15 @@
 const { execFileSync } = require('child_process');
 const { equipeDepuis, planDeTravail } = require('./equipe');
 
+// Pauses, en secondes, quand un agent en ligne bute sur une limite ; puis délai avant de le retenter
+const ATTENTES = [70, 140];
+const RETOUR_EN_LIGNE = 15 * 60 * 1000;
+// Une attente qui s'arrête tout de suite si le chantier est arrêté
+const attendre = (ms, signal) => new Promise((ok, rate) => {
+  const minuterie = setTimeout(ok, ms);
+  signal?.addEventListener('abort', () => { clearTimeout(minuterie); rate(Object.assign(new Error('Arrêté'), { name: 'AbortError' })); }, { once: true });
+});
+
 // opts :
 //   reglages          contenu de fournisseurs.json
 //   infos(id)         { type, baseUrl } d'un fournisseur, ou null
@@ -14,7 +23,7 @@ const { equipeDepuis, planDeTravail } = require('./equipe');
 //   chefForce         fournisseur du chef imposé (catai --chef), modeleForce : modèle du premier codeur (catai -m),
 //                     codeurForce : fournisseur de tous les codeurs (catai --codeur)
 // Renvoie { chef, codeurs, resume } ; resume est une ligne lisible : qui fait quoi.
-function agentsDuChantier({ reglages, infos, envoyerLocal, envoyerEnLigne, limitesLocales, limitesEnLigne = () => null, dire = () => {}, chefForce, modeleForce, codeurForce }) {
+function agentsDuChantier({ reglages, infos, envoyerLocal, envoyerEnLigne, limitesLocales, limitesEnLigne = () => null, dire = () => {}, chefForce, modeleForce, codeurForce, pause = attendre, maintenant = Date.now }) {
   const equipe = planDeTravail(equipeDepuis(reglages, infos));
   const modeleLocal = modeleForce || equipe.codeurs[0].modele || reglages.modeles?.ollama || 'qwen3:8b';
   const secours = { envoyer: envoyerLocal, modele: modeleLocal };
@@ -23,17 +32,34 @@ function agentsDuChantier({ reglages, infos, envoyerLocal, envoyerEnLigne, limit
   // S'il ne répond pas (clé illisible, quota du jour), le modèle du PC prend sa place, et on le dit.
   const agentSur = (nom, choix) => {
     const local = choix.fournisseur === 'ollama';
-    let agent = local ? { envoyer: envoyerLocal, modele: choix.modele || modeleLocal } : { envoyer: envoyerEnLigne(choix.fournisseur), modele: choix.modele };
+    const origine = local ? { envoyer: envoyerLocal, modele: choix.modele || modeleLocal } : { envoyer: envoyerEnLigne(choix.fournisseur), modele: choix.modele };
+    let agent = origine;
+    let retour = 0; // quand retenter l'agent en ligne après une limite (0 : jamais, la panne n'est pas une limite)
     return {
       get modele() { return agent.modele; },
       nom: () => (agent === secours || local ? agent.modele : `${choix.fournisseur} ${agent.modele}`),
       surLePc: () => local || agent === secours,
       envoyer: async (...args) => {
-        try { return await agent.envoyer(args[0], agent.modele, ...args.slice(2)); } catch (err) {
-          if (err.name === 'AbortError' || agent === secours) throw err;
-          dire(`${nom} indisponible (${String(err.message).split('\n')[0].slice(0, 160)}) : ${modeleLocal} le remplace.`);
-          agent = secours;
-          return agent.envoyer(args[0], agent.modele, ...args.slice(2));
+        const appeler = (a) => a.envoyer(args[0], a.modele, ...args.slice(2));
+        if (local) return appeler(agent);
+        if (agent === secours && retour && maintenant() >= retour) { agent = origine; dire(`${nom} : nouvel essai en ligne.`); }
+        if (agent === secours) return appeler(agent);
+        for (let essai = 0; ; essai++) {
+          try { return await appeler(agent); } catch (err) {
+            if (err.name === 'AbortError') throw err;
+            // Une limite par minute passe en attendant : un chantier a le temps. Le quota du jour, lui, ne revient
+            // pas : après deux attentes, le modèle du PC prend le relais, et on retente en ligne un quart d'heure après.
+            const limite = /429|limite atteinte|rate.?limit|quota/i.test(String(err.message));
+            if (limite && essai < ATTENTES.length) {
+              dire(`${nom} : limite du fournisseur, pause de ${ATTENTES[essai]} s.`);
+              await pause(ATTENTES[essai] * 1000, args[3]);
+              continue;
+            }
+            dire(`${nom} indisponible (${String(err.message).split('\n')[0].slice(0, 160)}) : ${modeleLocal} le remplace${limite ? " pendant un quart d'heure" : ''}.`);
+            agent = secours;
+            retour = limite ? maintenant() + RETOUR_EN_LIGNE : 0;
+            return appeler(agent);
+          }
         }
       },
     };
