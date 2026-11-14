@@ -129,10 +129,16 @@
         <header class="page__tete">
           <div>
             <h2 class="page__titre">Agents</h2>
-            <p class="page__resume">Ton équipe pour coder sans toi. Clique sur un agent pour le régler, sur + pour en ajouter un dessous.</p>
+            <p class="page__resume">Compose ton équipe puis vérifie le plan avant le lancement.</p>
           </div>
           <button id="equipe-remettre" class="bouton-calme" type="button">Équipe de départ</button>
         </header>
+        <div class="equipe-actions">
+          <button id="equipe-dev" class="bouton-calme" type="button">Ajouter un dev</button>
+          <button id="equipe-auteur-tests" class="bouton-calme" type="button">Ajouter un auteur de tests</button>
+          <button id="equipe-plan" class="bouton" type="button">Lancer un chantier</button>
+          <p id="equipe-statut" class="conseil" aria-live="polite"></p>
+        </div>
         <div class="atelier">
           <div class="toile" id="toile" role="region" aria-label="Arbre des agents" tabindex="0"></div>
           <aside class="fiche" id="fiche" aria-live="polite"></aside>
@@ -143,11 +149,15 @@
           <p class="chantier__dossier" id="chantier-dossier"></p>
           <textarea id="chantier-plan" class="chantier__plan" rows="5" spellcheck="true" lang="fr" placeholder="Ton plan, une étape par ligne. Par exemple :&#10;1. Ajoute une fonction produit(a, b) dans calcul.js&#10;2. Ajoute son test dans calcul.test.js"></textarea>
           <div class="chantier__actions">
-            <button id="chantier-lancer" class="bouton" type="button">Lancer</button>
+            <button id="chantier-lancer" class="bouton" type="button">Préparer le plan</button>
             <button id="chantier-importer" class="bouton-calme" type="button">Importer un plan</button>
             <button id="chantier-preparer" class="bouton-calme" type="button" hidden>Préparer le dossier</button>
             <p id="chantier-statut" class="chantier__statut" aria-live="polite"></p>
           </div>
+          <section id="chantier-apercu" class="chantier__apercu" hidden>
+            <h4>Étapes et responsables</h4>
+            <ol id="chantier-affectations"></ol>
+          </section>
           <div class="chantier__suivi" id="chantier-suivi" hidden>
             <!-- En direct : qui a la main et depuis quand, puis l'état de chaque étape -->
             <div class="direct">
@@ -166,6 +176,8 @@
             <pre class="chantier__rapport" id="chantier-rapport"></pre>
             <div class="chantier__actions">
               <button id="chantier-garder" class="bouton" type="button">Garder le travail</button>
+              <select id="chantier-nouveau-dev" aria-label="Dev pour la prochaine étape" hidden></select>
+              <button id="chantier-reprendre" class="bouton-calme" type="button" hidden>Relancer l’étape</button>
               <button id="chantier-jeter" class="bouton-calme" type="button">Jeter</button>
               <p id="chantier-suite" class="chantier__statut" aria-live="polite"></p>
             </div>
@@ -184,7 +196,12 @@
           </div>
           <div class="infos-pc" id="infos-pc"></div>
         </header>
-        <button class="bouton-calme" id="modeles-adaptes" type="button" aria-pressed="false" aria-controls="modeles-liste" hidden>Adaptés à mon PC</button>
+        <!-- Trouver vite : une recherche par nom, un usage, et « Adaptés à mon PC » à la demande -->
+        <div class="modeles-outils">
+          <input id="modeles-recherche" class="modeles-recherche" type="search" placeholder="Chercher un modèle, par exemple qwen3:8b" aria-label="Chercher un modèle par son nom" autocomplete="off" spellcheck="false">
+          <div class="filtres" id="modeles-usages" role="group" aria-label="Usage"></div>
+          <button class="bouton-calme" id="modeles-adaptes" type="button" aria-pressed="false" aria-controls="modeles-liste" hidden>Adaptés à mon PC</button>
+        </div>
         <p class="conseil" id="modeles-filtre-etat" aria-live="polite"></p>
         <p class="conseil" id="modeles-etat" aria-live="polite"></p>
         <p class="conseil" id="modeles-progression" aria-live="polite"></p>
@@ -300,6 +317,7 @@
   <script src="interface/modeles.js"></script>
   <script src="interface/difference.js"></script>
   <script src="interface/saisie.js"></script>
+  <script src="interface/sprites.js"></script>
   <script src="renderer.js"></script>
   <script src="interface/pages.js"></script>
 </body>

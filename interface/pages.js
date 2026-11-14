@@ -45,12 +45,25 @@ const GENRES = {
     codeur: { icone: "code", couleur: "bleu", role: "Écrit le code de ses étapes, dans une copie de ton projet." },
     testeur: { icone: "coche", couleur: "vert", role: "Lance les tests de ton projet après chaque étape." },
     logs: { icone: "serveur", couleur: "gris", role: "Quand un test casse, il lit la sortie et dit quoi corriger." },
-    relecteur: { icone: "lunettes", couleur: "rose", role: "Compare le changement à la consigne : il accepte ou refuse." }
+    relecteur: { icone: "lunettes", couleur: "rose", role: "Compare le changement à la consigne : il accepte ou refuse." },
+    auteur: { icone: "livre", couleur: "bleu", role: "Écrit les tests qui prouvent que le travail des devs marche." }
 };
+// Sous un agent : les devs d'abord, puis l'auteur de tests, puis les contrôles
+const ORDRE_ROLES = ["codeur", "auteur", "testeur", "logs", "relecteur"];
 let equipe = null;          // { agents: [{ id, type, nom, parent, fournisseur, modele, ajouts… }], types }
 let agentOuvert = "chef";
 let menuAjout = "";         // id de l'agent dont le menu « + » est ouvert
 const modelesParFournisseur = {}; // demandés une fois par ouverture de la page
+
+// Le chat d'un agent : son rôle donne l'accessoire. Un codeur chargé des tests a le carnet de l'auteur de tests.
+// Plusieurs agents qui ont le même chat se distinguent par la couleur du collier, dans l'ordre de l'équipe : la
+// couleur reste la même d'une ouverture à l'autre.
+const roleSprite = (agent) => (agent.type === "codeur" && /test/i.test(`${agent.nom} ${agent.specialite || ""}`) ? "auteur" : agent.type);
+function chatDe(agent) {
+    const role = roleSprite(agent);
+    const memes = (equipe?.agents || []).filter((a) => roleSprite(a) === role);
+    return spriteAgent(role, Math.max(0, memes.findIndex((a) => a.id === agent.id)));
+}
 
 const nomFournisseur = (id) => reglages.fournisseurs.find((f) => f.id === id)?.nom.replace(/ \(local\)$/, "") || id;
 const agentDe = (id) => equipe.agents.find((a) => a.id === id);
@@ -73,14 +86,13 @@ function sousTitre(agent) {
 
 function dessinerNoeud(agent) {
     const li = creer("li");
-    const genre = GENRES[agent.type];
     const carte = creer("div", "noeud" + (agent.id === agentOuvert ? " is-ouvert" : ""));
     carte.dataset.id = agent.id;
     const bouton = creer("button", "noeud__carte");
     bouton.type = "button";
     bouton.title = `${agent.nom} · ${sousTitre(agent)}`;
     bouton.setAttribute("aria-pressed", String(agent.id === agentOuvert));
-    bouton.innerHTML = `<span class="menu-icone menu-icone--${genre.couleur}">${icone(genre.icone)}</span>`
+    bouton.innerHTML = chatDe(agent)
         + `<span class="noeud__texte"><span class="noeud__nom">${escape(agent.nom)}</span><span class="noeud__qui">${escape(sousTitre(agent))}</span></span>`;
     bouton.addEventListener("click", () => { agentOuvert = agent.id; menuAjout = ""; dessinerAgents(); });
     carte.appendChild(bouton);
@@ -97,7 +109,7 @@ function dessinerNoeud(agent) {
             for (const type of agent.ajouts) {
                 const choix = creer("button", "noeud__choix");
                 choix.type = "button";
-                choix.innerHTML = `<span class="menu-icone menu-icone--petite menu-icone--${GENRES[type].couleur}">${icone(GENRES[type].icone)}</span>${escape(equipe.types[type])}`;
+                choix.innerHTML = `${spriteAgent(type)}${escape(equipe.types[type])}`;
                 choix.title = GENRES[type].role;
                 choix.addEventListener("click", () => changerEquipe(window.api.ajouterAgent(agent.id, type), true));
                 menu.appendChild(choix);
@@ -106,7 +118,8 @@ function dessinerNoeud(agent) {
         }
     }
     li.appendChild(carte);
-    const dessous = equipe.agents.filter((a) => a.parent === agent.id);
+    const dessous = equipe.agents.filter((a) => a.parent === agent.id)
+        .sort((a, b) => ORDRE_ROLES.indexOf(roleSprite(a)) - ORDRE_ROLES.indexOf(roleSprite(b)));
     if (dessous.length) {
         const ul = creer("ul");
         dessous.forEach((a) => ul.appendChild(dessinerNoeud(a)));
@@ -117,8 +130,11 @@ function dessinerNoeud(agent) {
 
 function dessinerToile() {
     const arbre = creer("ul", "arbre");
-    arbre.appendChild(dessinerNoeud(equipe.agents.find((a) => a.type === "chef")));
-    $("#toile").replaceChildren(arbre);
+    const chef = equipe.agents.find((a) => a.type === "chef");
+    arbre.appendChild(dessinerNoeud(chef));
+    const toile = $("#toile");
+    toile.classList.toggle("toile--compacte", equipe.agents.filter((a) => a.parent === chef.id).length > 4);
+    toile.replaceChildren(arbre);
 }
 
 // Une ligne de conseil, seulement quand le choix a une conséquence
@@ -138,10 +154,10 @@ function champ(etiquette, controle) {
 
 function dessinerFiche() {
     const agent = agentDe(agentOuvert) || agentDe("chef");
-    const genre = GENRES[agent.type];
+    const genre = GENRES[roleSprite(agent)];
     const fiche = $("#fiche");
     const tete = creer("div", "fiche__tete");
-    tete.innerHTML = `<span class="menu-icone menu-icone--${genre.couleur}">${icone(genre.icone)}</span><span><span class="fiche__genre">${escape(equipe.types[agent.type])}</span><span class="fiche__role">${escape(genre.role)}</span></span>`;
+    tete.innerHTML = `${chatDe(agent)}<span><span class="fiche__genre">${escape(roleSprite(agent) === "auteur" ? "Auteur de tests" : equipe.types[agent.type])}</span><span class="fiche__role">${escape(genre.role)}</span></span>`;
     const erreur = creer("p", "fiche__erreur");
     const modifier = async (changement) => {
         const ok = await changerEquipe(window.api.modifierAgent(agent.id, changement));
@@ -209,10 +225,30 @@ function dessinerAgents() {
     dessinerFiche();
 }
 
+for (const [id, tests] of [["#equipe-dev", false], ["#equipe-auteur-tests", true]]) {
+    $(id).addEventListener("click", async () => {
+        const chef = equipe?.agents.find((a) => a.type === "chef");
+        if (!chef || chantierTourne) return;
+        $(id).disabled = true;
+        try {
+            const ok = await changerEquipe(window.api.ajouterAgent(chef.id, "codeur", tests), true);
+            $("#equipe-statut").textContent = ok === true ? "" : ok;
+            if (ok === true) await donnerModelesManquants();
+        } finally {
+            $(id).disabled = false;
+        }
+    });
+}
+$("#equipe-plan").addEventListener("click", () => {
+    $("#chantier").scrollIntoView({ block: "start" });
+    $("#chantier-plan").focus({ preventScroll: true });
+});
+
 // Applique la réponse de l'app à une demande de changement. Renvoie true, ou le message d'erreur.
 async function changerEquipe(demande, ouvrirNouveau = false) {
     const r = await demande;
     if (!r.ok) return r.erreur || "Ça n'a pas marché.";
+    invaliderPreparation();
     equipe = r;
     menuAjout = "";
     if (ouvrirNouveau && r.id) agentOuvert = r.id;
@@ -254,15 +290,31 @@ async function ouvrirAgents() {
 /* Le chantier : le plan, le suivi en direct, puis le rapport. Tout le travail est fait par le processus principal. */
 let chantierTourne = false;
 let chantierFini = "";       // nom du dernier chantier terminé, tant qu'il n'est ni gardé ni jeté
+let planPrepare = false;
+let arretDemande = false;
 const JOURNAL_MAX = 300;
 
+function invaliderPreparation() {
+    planPrepare = false;
+    $("#chantier-apercu").hidden = true;
+    majChantier();
+}
+
+window.api.onProjectChanged(() => {
+    invaliderPreparation();
+    window.api.etatChantier().then(majChantier);
+});
+
 function majChantier(etat) {
-    $("#chantier-lancer").textContent = chantierTourne ? "Arrêter" : "Lancer";
+    $("#chantier-lancer").textContent = arretDemande ? "Arrêt en cours…" : chantierTourne ? "Arrêter" : planPrepare ? "Lancer les agents" : "Préparer le plan";
+    $("#chantier-lancer").disabled = arretDemande;
+    for (const id of ["#chantier-garder", "#chantier-jeter", "#chantier-reprendre", "#chantier-nouveau-dev"]) $(id).disabled = chantierTourne;
     $("#chantier-lancer").classList.toggle("is-stop", chantierTourne);
     // Pendant un chantier, la page se resserre : l'arbre et la vue en direct tiennent ensemble à l'écran
     $("#page-agents").classList.toggle("is-chantier", chantierTourne);
     $("#chantier-importer").hidden = chantierTourne;
     $("#chantier-plan").readOnly = chantierTourne;
+    for (const id of ["#equipe-dev", "#equipe-auteur-tests", "#equipe-remettre"]) $(id).disabled = chantierTourne;
     if (!etat) return;
     const dossier = $("#chantier-dossier");
     dossier.textContent = etat.projet ? `Dans ${etat.projet}` : "Ouvre d'abord le dossier de ton projet, avec le bouton Dossier sous la saisie.";
@@ -317,7 +369,8 @@ function dessinerDirect() {
     const zone = $("#direct-agent");
     const a = suivi.actif;
     if (a) {
-        zone.innerHTML = `<span class="menu-icone direct__icone">${icone(GENRES[a.role]?.icone || "puce")}</span>`
+        const qui = agentQuiTravaille();
+        zone.innerHTML = `<span class="direct__chat">${qui ? chatDe(qui) : spriteAgent(a.role)}</span>`
             + `<span class="direct__texte"><span class="direct__nom">${escape(a.nom)} ${escape(a.action)}</span>`
             + `<span class="direct__depuis">depuis ${chrono(maintenant - a.depuis)}${a.essai > 1 ? ` · essai ${a.essai} sur 3` : ""}</span></span>`;
     } else zone.replaceChildren();
@@ -353,10 +406,10 @@ function arreterSuivi() {
 }
 
 window.api.onChantier((e) => {
-    if (e.type === "info") { ligneJournal(e.texte, /échec|refusée|abandonnée|indisponible|Attention/.test(e.texte) ? "is-alerte" : ""); return; }
+    if (e.type === "info") { ligneJournal(e.texte, /échec|refusée|abandonnée|indisponible|Attention|Écriture sans changement/.test(e.texte) ? "is-alerte" : ""); return; }
     if (!suivi) return;
     const etape = (n) => (suivi.etapes[n - 1] ??= { titre: `Étape ${n}`, codeur: "", etat: "attente", essais: 0 });
-    if (e.type === "plan") suivi.etapes = e.etapes.map((x) => ({ titre: x.titre, codeur: x.codeur, etat: "attente", essais: 0 }));
+    if (e.type === "plan") suivi.etapes = e.etapes.map((x) => ({ titre: x.titre, codeur: x.codeur, etat: x.fait ? "fait" : "attente", essais: 0 }));
     else if (e.type === "etape") {
         Object.assign(etape(e.i), { etat: "cours", debut: Date.now() });
         $("#chantier-etape").textContent = `Étape ${e.i} sur ${e.n} · ${e.titre}`;
@@ -369,45 +422,88 @@ window.api.onChantier((e) => {
     dessinerDirect();
 });
 
-async function lancerOuArreter() {
+async function lancerOuArreter(reprendre = false) {
     const statut = $("#chantier-statut");
-    if (chantierTourne) { statut.textContent = "Arrêt demandé…"; window.api.arreterChantier(); return; }
+    if (chantierTourne) {
+        arretDemande = true;
+        statut.textContent = "Arrêt demandé…";
+        majChantier();
+        await window.api.arreterChantier();
+        return;
+    }
+    const action = reprendre ? "reprendre" : planPrepare ? "executer" : "preparer";
+    const rapportVisible = !$("#chantier-fin").hidden;
     chantierTourne = true;
     statut.textContent = "";
-    $("#chantier-fin").hidden = true;
+    if (action !== "preparer") {
+        $("#chantier-fin").hidden = true;
+        $("#chantier-apercu").hidden = true;
+    }
     $("#chantier-suivi").hidden = false;
     $("#chantier-journal").replaceChildren();
-    $("#chantier-etape").textContent = "Le chef découpe le plan…";
+    $("#chantier-etape").textContent = action === "preparer" ? "Le chef découpe le plan…" : "Ouverture de la copie de travail…";
     $("#chantier-barre").style.width = "0%";
     majChantier();
     demarrerSuivi();
-    const r = await window.api.lancerChantier($("#chantier-plan").value);
+    if (action !== "preparer") { suivi.actif = null; dessinerDirect(); }
+    let r;
+    try {
+        r = await window.api.lancerChantier($("#chantier-plan").value, action, reprendre ? $("#chantier-nouveau-dev").value : "");
+    } catch (err) {
+        r = { ok: false, erreur: err.message };
+    }
     chantierTourne = false;
+    arretDemande = false;
     arreterSuivi();
     majChantier(await window.api.etatChantier());
     if (!r.ok) {
         statut.textContent = r.erreur;
+        $("#chantier-fin").hidden = !rapportVisible;
+        if (r.modelesManquants) statut.append(" ", boutonAction("Ouvrir Modèles", "lien", () => voirPage("modeles")));
+        if (planPrepare) $("#chantier-apercu").hidden = false;
         if (!$("#chantier-journal").children.length) $("#chantier-suivi").hidden = true;
         return;
     }
+    if (r.preparation) {
+        planPrepare = true;
+        $("#chantier-affectations").replaceChildren(...r.preparation.map(({ titre, codeur, modele }) => {
+            const ligne = creer("li", "", titre);
+            ligne.append(creer("small", "", `${codeur} · ${modele}`));
+            return ligne;
+        }));
+        $("#chantier-apercu").hidden = false;
+        $("#chantier-suivi").hidden = true;
+        majChantier();
+        return;
+    }
+    invaliderPreparation();
     const faites = r.etapes.filter((e) => e.ok).length;
-    $("#chantier-barre").style.width = `${r.etapes.length ? Math.round((faites / r.etapes.length) * 100) : 0}%`;
-    $("#chantier-etape").textContent = `${r.arrete ? "Arrêté" : "Terminé"} en ${chrono(suivi.fin - suivi.debut)} · ${faites} étape${faites > 1 ? "s" : ""} faite${faites > 1 ? "s" : ""}`;
+    $("#chantier-barre").style.width = `${r.total ? Math.round((faites / r.total) * 100) : 0}%`;
+    $("#chantier-etape").textContent = `${r.arrete ? "Arrêté" : r.incomplet ? "Bloqué" : "Terminé"} · ${faites} / ${r.total ?? r.etapes.length} étapes validées · ${chrono(suivi.fin - suivi.debut)}`;
     // Dans l'app, les commandes git du rapport ne servent pas : les boutons Garder et Jeter les remplacent
     $("#chantier-rapport").textContent = r.rapport.split("\n\nLe travail est sur la branche")[0].replace(/^# Rapport du chantier\n+/, "") + (r.changements ? `\n\nFichiers changés :\n${r.changements}` : "");
     $("#chantier-suite").textContent = "";
     $("#chantier-garder").hidden = !faites;
+    $("#chantier-reprendre").hidden = !r.incomplet;
+    const choix = $("#chantier-nouveau-dev");
+    choix.hidden = !r.incomplet;
+    choix.replaceChildren(new Option("Même dev", ""), ...equipe.agents.filter((a) => a.type === "codeur").map((a) => new Option(a.nom, a.nom)));
     $("#chantier-fin").hidden = false;
     chantierFini = r.nom;
 }
 
-$("#chantier-lancer").addEventListener("click", lancerOuArreter);
+$("#chantier-plan").addEventListener("input", invaliderPreparation);
+$("#chantier-lancer").addEventListener("click", () => lancerOuArreter());
+$("#chantier-reprendre").addEventListener("click", () => {
+    if (!chantierTourne) lancerOuArreter(true);
+});
 
 $("#chantier-importer").addEventListener("click", async () => {
     const plan = await window.api.importerPlan();
     if (!plan) return;
     if (plan.erreur) { $("#chantier-statut").textContent = plan.erreur; return; }
     $("#chantier-plan").value = plan.texte;
+    invaliderPreparation();
     $("#chantier-statut").textContent = `${plan.nom} chargé.`;
 });
 
@@ -419,7 +515,7 @@ $("#chantier-preparer").addEventListener("click", async () => {
 });
 
 async function finirChantier(action, fait) {
-    if (!chantierFini) return;
+    if (!chantierFini || chantierTourne) return;
     const r = await action(chantierFini);
     if (r.annule) return;
     if (!r.ok) { $("#chantier-suite").textContent = r.erreur; return; }
@@ -455,8 +551,31 @@ const MODELES_SELECTION = [
     ["qwen3.6:35b", "Code avec outils et analyse d’images", "modeleQwen"]
 ];
 
+// À quoi sert chaque modèle de la sélection, pour les filtres
+const USAGE_MODELE = {
+    "qwen2.5-coder:7b": "code", "qwen3.5:9b": "code", "qwen3.6:27b": "code", "qwen3.6:35b": "code",
+    "gemma4:e2b": "images", "qwen3.5:0.8b": "images",
+    "deepseek-r1:8b": "reflexion", "gpt-oss:20b": "reflexion", "qwen3:14b": "reflexion"
+};
+const USAGES = { tous: "Tous", general: "Général", code: "Code", images: "Images", reflexion: "Réflexion", installes: "Installés" };
+let usageChoisi = "tous";
+
 const go = (n) => String(n).replace(".", ",");
 const filtreAdaptes = $("#modeles-adaptes");
+$("#modeles-recherche").addEventListener("input", () => dessinerModeles());
+// Échap vide la recherche
+$("#modeles-recherche").addEventListener("keydown", (e) => { if (e.key === "Escape" && e.target.value) { e.target.value = ""; dessinerModeles(); } });
+
+function dessinerUsages() {
+    const zone = $("#modeles-usages");
+    zone.replaceChildren(...Object.entries(USAGES).map(([id, texte]) => {
+        const b = creer("button", "filtre" + (id === usageChoisi ? " is-actif" : ""), texte);
+        b.type = "button";
+        b.setAttribute("aria-pressed", String(id === usageChoisi));
+        b.addEventListener("click", () => { usageChoisi = id; dessinerModeles(); });
+        return b;
+    }));
+}
 filtreAdaptes.addEventListener("click", () => {
     const actif = filtreAdaptes.getAttribute("aria-pressed") !== "true";
     filtreAdaptes.setAttribute("aria-pressed", String(actif));
@@ -514,14 +633,26 @@ function dessinerModeles() {
         const m = { ...fiche, modele, raison, pictogramme, ramCPU, vram: budgetVRAM ?? fiche.vram };
         return { ...m, evaluation: evaluerModele(m, catalogue) };
     });
-    filtreAdaptes.hidden = false;
-    const filtre = filtreAdaptes.getAttribute("aria-pressed") === "true";
-    const visibles = filtre ? selection.filter(m => m.evaluation.adapte) : selection;
-    $("#modeles-filtre-etat").textContent = filtre ? visibles.length + " modèles adaptés sur " + selection.length + "." : "";
-    $("#modeles-liste").replaceChildren(...visibles.map(carteCatalogue));
-    if (!visibles.length) {
-        $("#modeles-liste").append(creer("li", "modele", "Aucun modèle adapté détecté. Désactive le filtre pour tout voir."));
+    // Les modèles installés que la sélection ne connaît pas restent visibles et utilisables
+    for (const nom of installes.filter((n) => !modelesConnus.has(n) && !MODELES_SELECTION.some(([m]) => m === n))) {
+        selection.push({ modele: nom, raison: "Installé par toi", pictogramme: "puce", taille: null, vram: null, evaluation: { label: "À vérifier", classe: "avis--trop", detail: "Pas dans la sélection : besoin en mémoire inconnu", adapte: false } });
     }
+    for (const m of selection) m.usage = USAGE_MODELE[m.modele] || "general";
+    filtreAdaptes.hidden = false;
+    dessinerUsages();
+    const filtre = filtreAdaptes.getAttribute("aria-pressed") === "true";
+    const cherche = $("#modeles-recherche").value.trim().toLowerCase();
+    const visibles = selection.filter((m) => (!filtre || m.evaluation.adapte)
+        && (usageChoisi === "tous" || (usageChoisi === "installes" ? installes.includes(m.modele) : m.usage === usageChoisi))
+        && (!cherche || `${m.modele} ${m.raison}`.toLowerCase().includes(cherche)));
+    const actifs = [filtre && "adaptés à ton PC", usageChoisi !== "tous" && USAGES[usageChoisi].toLowerCase(), cherche && `« ${cherche} »`].filter(Boolean);
+    $("#modeles-filtre-etat").textContent = actifs.length ? `${visibles.length} sur ${selection.length} · ${actifs.join(", ")}` : "";
+    const effacer = creer("button", "lien lien--petit", "Tout afficher");
+    effacer.type = "button";
+    effacer.addEventListener("click", () => { $("#modeles-recherche").value = ""; usageChoisi = "tous"; filtreAdaptes.setAttribute("aria-pressed", "false"); dessinerModeles(); });
+    if (actifs.length) $("#modeles-filtre-etat").append(" ", effacer);
+    $("#modeles-liste").replaceChildren(...visibles.map(carteCatalogue));
+    if (!visibles.length) $("#modeles-liste").append(creer("li", "modele modele--vide", "Aucun modèle ne correspond. « Tout afficher » enlève les filtres."));
 }
 
 function carteCatalogue(m) {
@@ -545,9 +676,11 @@ function carteCatalogue(m) {
     carte.append(identite);
     const pied = creer('div', 'carte-modele__pied');
     const infos = creer('div', 'carte-modele__infos');
-    const poids = m.tailleMax ? go(m.taille) + '–' + go(m.tailleMax) : go(m.taille);
-    infos.append(creer('span', '', poids + ' Go à télécharger'));
-    infos.append(creer('small', '', '≈ ' + m.vram + ' Go de VRAM'));
+    if (m.taille != null) {
+        const poids = m.tailleMax ? go(m.taille) + '–' + go(m.tailleMax) : go(m.taille);
+        infos.append(creer('span', '', poids + ' Go à télécharger'));
+        infos.append(creer('small', '', '≈ ' + m.vram + ' Go de VRAM pour tourner'));
+    }
     if (m.ramCPU) infos.append(creer('small', '', 'CPU · ≈ ' + m.ramCPU + ' Go de RAM'));
     let action;
     if (actif) action = etatModele('Actif', 'is-installe');

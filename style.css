@@ -13,6 +13,14 @@
 @font-face { font-family: "Marcellus"; font-weight: 400; font-display: swap; src: url("fonts/marcellus-latin.woff2") format("woff2"); }
 @font-face { font-family: "JetBrains Mono"; font-weight: 400; font-display: swap; src: url("fonts/jetbrainsmono-latin.woff2") format("woff2"); }
 
+.equipe-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 16px; }
+.equipe-actions #equipe-plan { margin-inline-start: auto; }
+.equipe-actions .conseil { flex-basis: 100%; margin: 0; }
+.chantier__apercu { margin-top: 16px; padding: 12px 16px; border: 1px solid var(--ligne-2); border-radius: var(--rayon); background: var(--bg); }
+.chantier__apercu h4 { margin: 0 0 8px; color: var(--lumiere); font-size: 14px; }
+.chantier__apercu ol { display: grid; gap: 8px; margin: 0; padding-inline-start: 22px; }
+.chantier__apercu small { display: block; color: var(--texte-2); }
+
 /* ---------- 1. Couleurs et réglages ---------- */
 :root {
     /* Trois niveaux de fond : la barre de gauche, la page, puis ce qui est posé dessus */
@@ -473,6 +481,14 @@ optgroup, option { background: var(--surface); color: var(--texte); font-style: 
 .arbre ul li::after { right: auto; left: 50%; border-left: 1px solid var(--ligne-2); }
 .arbre ul li:first-child::before, .arbre ul li:last-child::after { border-top: 0; }
 .arbre ul li:only-child::before { display: none; }
+.toile--compacte { min-height: 300px; }
+.toile--compacte .arbre > li > ul { flex-wrap: wrap; width: 100%; gap: 12px 4px; padding-top: 18px; }
+.toile--compacte .arbre { width: 100%; }
+.toile--compacte .arbre > li { width: 100%; }
+.toile--compacte .arbre > li > ul > li { padding-top: 0; padding-bottom: 10px; }
+.toile--compacte .arbre > li > ul::before,
+.toile--compacte .arbre > li > ul > li::before,
+.toile--compacte .arbre > li > ul > li::after { display: none; }
 
 .noeud { position: relative; }
 .noeud__carte { display: flex; align-items: center; gap: 8px; width: 156px; padding: 9px 10px; text-align: left; background: var(--surface); border: 1px solid var(--ligne-2); border-radius: var(--rayon); transition: border-color .15s ease, background .15s ease, transform .15s ease; }
@@ -694,3 +710,54 @@ input[type=checkbox] { accent-color: var(--oeil); }
 /* Seul l'agent qui travaille est allumé : la case choisie pour le réglage repasse en gris le temps du chantier */
 .is-chantier .noeud.is-ouvert:not(.is-travaille) .noeud__carte { border-color: var(--ligne-2); box-shadow: none; }
 .is-chantier .noeud.is-ouvert:not(.is-travaille) .menu-icone { color: var(--texte-2); background: var(--surface-2); }
+
+/* ---------- Les chats des agents (interface/sprites.js) ---------- */
+/* Une couleur par lettre de la grille. Le pelage et son contour suivent le thème ; le poitrail change d'un agent
+   à l'autre quand plusieurs partagent le même rôle. */
+.sprite { width: 36px; height: 36px; flex-shrink: 0; image-rendering: pixelated; --sp-r: #8a8f9c; }
+.sprite--v1 { --sp-r: #c8643f; }
+.sprite--v2 { --sp-r: #4a8fd0; }
+.sprite--v3 { --sp-r: #5fae5a; }
+.sprite .px-k { fill: var(--chat-pelage); }
+.sprite .px-o { fill: var(--chat-contour); }
+.sprite .px-i { fill: var(--chat-oreille); }
+.sprite .px-n { fill: var(--chat-nez); }
+.sprite .px-e { fill: var(--oeil); }
+.sprite .px-r { fill: var(--sp-r); }
+.sprite .px-g { fill: #e8c547; }
+.sprite .px-p { fill: #efe6d0; }
+.sprite .px-l { fill: #b9bcc6; }
+.sprite .px-c { fill: #4a4d57; }
+.sprite .px-v { fill: #4caf6a; }
+.sprite .px-s { fill: #d9627f; }
+.sprite .px-b { fill: #8fc4e8; }
+
+/* Les chats dans la page Agents : cartes de l'arbre, menu d'ajout, fiche, vue en direct */
+.noeud__carte .sprite { width: 36px; height: 36px; }
+.noeud__choix .sprite { width: 24px; height: 24px; }
+.fiche__tete .sprite { width: 54px; height: 54px; }
+.direct__chat .sprite { width: 44px; height: 44px; }
+.direct__chat { display: grid; place-items: center; width: 52px; height: 52px; flex-shrink: 0; border-radius: var(--rayon-petit); background: rgba(var(--oeil-rvb), .1); animation: pouls 1.6s ease-in-out infinite; }
+/* L'agent qui travaille : un halo doré autour de son chat, et son chat sautille par à-coups, comme un sprite */
+.noeud.is-travaille .sprite { animation: sautille .8s steps(2) infinite; filter: drop-shadow(0 0 4px rgba(var(--oeil-rvb), .55)); }
+@keyframes sautille { 50% { transform: translateY(-2px); } }
+@media (prefers-reduced-motion: reduce) { .noeud.is-travaille .sprite, .direct__chat { animation: none; } }
+
+/* Page Modèles : la recherche, les usages et le filtre matériel sur une ligne ; des lignes de modèle compactes */
+.modeles-outils { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+.modeles-recherche { flex: 1 1 260px; min-width: 200px; }
+#modeles-filtre-etat { display: flex; align-items: center; gap: 8px; }
+.carte-modele__infos { min-width: 168px; white-space: nowrap; text-align: right; }
+.carte-modele__infos span, .carte-modele__infos small { display: block; }
+#modeles-adaptes[aria-pressed="true"] { color: var(--oeil); border-color: rgba(var(--oeil-rvb), .6); background: rgba(var(--oeil-rvb), .08); }
+/* La colonne de droite d'un modèle : sa taille et son bouton, sans rien couper */
+.carte-modele { grid-template-columns: minmax(0, 1fr) auto; }
+.carte-modele__pied { gap: 16px; }
+.carte-modele__infos { min-width: 0; }
+.modeles-recherche { padding: 8px 12px; font-size: 13.5px; color: var(--texte); background: var(--champ); border: 1px solid var(--ligne-2); border-radius: var(--rayon-petit); }
+.modeles-recherche:focus { outline: none; border-color: var(--texte-2); }
+.filtres { display: flex; flex-wrap: wrap; gap: 2px; }
+.filtre { padding: 5px 11px; font-size: 13px; color: var(--texte-3); border-radius: var(--rayon-petit); transition: background .15s ease, color .15s ease; }
+.filtre:hover { color: var(--texte); }
+.filtre.is-actif { color: var(--lumiere); background: var(--surface-2); }
+.filtre:focus-visible, #modeles-adaptes:focus-visible { outline: 2px solid rgba(var(--oeil-rvb), .7); outline-offset: 1px; }
