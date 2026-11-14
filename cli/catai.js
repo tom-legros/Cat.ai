@@ -163,7 +163,9 @@ function entreeClavier() {
     const s = fs.fstatSync(0);
     if (s.isFIFO() || s.isFile()) return process.stdin;
   } catch { /* pas d'entrée standard du tout : la console */ }
-  try { return fs.createReadStream(null, { fd: fs.openSync('CONIN$', 'r'), encoding: 'utf8' }); } catch { return process.stdin; }
+  // Le nom complet du périphérique est obligatoire (« CONIN$ » seul n'est pas trouvé), et il faut un vrai flux de
+  // terminal : l'entrée standard de ce moteur se ferme au bout d'une milliseconde. Vérifié avec l'app installée.
+  try { return new (require('tty').ReadStream)(fs.openSync('\\\\.\\CONIN$', 'r+')); } catch { return process.stdin; }
 }
 
 // Lit une ligne après avoir écrit l'invite. Les lignes arrivées avant d'être demandées attendent leur tour :
@@ -422,7 +424,7 @@ async function principal() {
     return 1;
   }
   const entree = entreeClavier();
-  const rl = readline.createInterface({ input: entree, output: process.stdout, terminal: entree === process.stdin ? undefined : false });
+  const rl = readline.createInterface({ input: entree, output: process.stdout, terminal: entree === process.stdin ? undefined : !!entree.isTTY });
   // Une entrée redirigée ne s'affiche pas : on écrit la réponse après la question (la console, elle, l'affiche déjà)
   const lire = creerLecteur(rl, entree === process.stdin && !process.stdin.isTTY);
   const conversation = [];
