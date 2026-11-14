@@ -149,9 +149,18 @@
             <p id="chantier-statut" class="chantier__statut" aria-live="polite"></p>
           </div>
           <div class="chantier__suivi" id="chantier-suivi" hidden>
+            <!-- En direct : qui a la main et depuis quand, puis l'état de chaque étape -->
+            <div class="direct">
+              <div class="direct__agent" id="direct-agent" aria-live="polite"></div>
+              <p class="direct__total" id="direct-total"></p>
+            </div>
             <p class="chantier__etape" id="chantier-etape"></p>
             <div class="barre"><div class="barre__pleine" id="chantier-barre"></div></div>
-            <ol class="chantier__journal" id="chantier-journal" aria-live="polite"></ol>
+            <ol class="etapes" id="chantier-etapes"></ol>
+            <details class="chantier__detail">
+              <summary>Journal détaillé</summary>
+              <ol class="chantier__journal" id="chantier-journal"></ol>
+            </details>
           </div>
           <div class="chantier__fin" id="chantier-fin" hidden>
             <pre class="chantier__rapport" id="chantier-rapport"></pre>

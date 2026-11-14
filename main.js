@@ -768,7 +768,14 @@ ipcMain.handle('chantier-lancer', async (_e, { plan } = {}) => {
     if (etat.modifs) direChantier({ type: 'info', texte: `Attention : ${etat.modifs} fichier(s) modifié(s) mais pas enregistré(s) dans git ne seront pas dans la copie.` });
     const r = await lancerChantier({
       projet: projectDir, plan: texte, chef, codeurs, dossierCopies, signal: arret.signal,
-      ev: { etape: (i, n, titre) => direChantier({ type: 'etape', i, n, titre }), info: (t) => direChantier({ type: 'info', texte: t }) },
+      ev: {
+        etape: (i, n, titre) => direChantier({ type: 'etape', i, n, titre }),
+        info: (t) => direChantier({ type: 'info', texte: t }),
+        // Pour la vue en direct : le plan découpé, l'agent qui a la main, le résultat de chaque étape
+        plan: (etapes) => direChantier({ type: 'plan', etapes }),
+        activite: (a) => direChantier({ type: 'activite', ...(a || { fini: true }) }),
+        resultat: (r) => direChantier({ type: 'resultat', ...r }),
+      },
     });
     const nom = r.branche.replace('catai/chantier-', '');
     const minutes = Math.max(1, Math.round((Date.now() - debut) / 60000));

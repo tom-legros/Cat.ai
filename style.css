@@ -519,6 +519,35 @@ optgroup, option { background: var(--surface); color: var(--texte); font-style: 
 .chantier__journal .is-etape { margin-top: 6px; color: var(--oeil); }
 .chantier__journal .is-etape:first-child { margin-top: 0; }
 .chantier__journal .is-alerte { color: var(--texte); }
+/* En direct : l'agent qui a la main, le temps écoulé, puis une ligne par étape */
+.direct { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 14px; background: var(--champ); border-radius: var(--rayon-petit); }
+.direct__agent { display: flex; align-items: center; gap: 12px; min-width: 0; min-height: 34px; }
+.direct__icone { color: var(--oeil); background: rgba(var(--oeil-rvb), .12); animation: pouls 1.6s ease-in-out infinite; }
+.direct__texte { display: flex; flex-direction: column; min-width: 0; }
+.direct__nom { font-size: 14.5px; font-weight: 500; color: var(--lumiere); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.direct__depuis, .direct__total { margin: 0; font: 12px var(--police-mono); color: var(--texte-3); white-space: nowrap; }
+@keyframes pouls { 0%, 100% { box-shadow: 0 0 0 0 rgba(var(--oeil-rvb), .45); } 50% { box-shadow: 0 0 0 6px rgba(var(--oeil-rvb), 0); } }
+.etapes { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.etape { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto 56px; align-items: center; gap: 10px; padding: 7px 8px; font-size: 13.5px; color: var(--texte-3); border-radius: var(--rayon-petit); }
+.etape__puce { display: grid; place-items: center; width: 22px; height: 22px; font: 11px var(--police-mono); color: var(--texte-3); background: var(--surface-2); border-radius: 50%; }
+.etape__puce .icone-px { width: 10px; height: 10px; }
+.etape__titre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.etape__info { font-size: 12px; white-space: nowrap; }
+.etape__duree { font: 12px var(--police-mono); text-align: right; }
+.etape.is-cours { color: var(--lumiere); background: rgba(var(--oeil-rvb), .07); }
+.etape.is-cours .etape__puce { color: var(--sur-oeil, #17130a); background: var(--oeil); animation: pouls 1.6s ease-in-out infinite; }
+.etape.is-fait { color: var(--texte-2); }
+.etape.is-fait .etape__puce { color: rgb(var(--vert)); background: rgba(var(--vert), .14); }
+.etape.is-bloque { color: var(--texte); }
+.etape.is-bloque .etape__puce, .etape.is-bloque .etape__info { color: rgb(var(--rose)); }
+.etape.is-bloque .etape__puce { background: rgba(var(--rose), .14); }
+.chantier__detail summary { font-size: 12.5px; color: var(--texte-3); cursor: pointer; }
+.chantier__detail summary:hover { color: var(--texte); }
+.chantier__detail .chantier__journal { margin-top: 8px; }
+/* Dans l'arbre, l'agent qui travaille s'allume */
+.noeud.is-travaille .noeud__carte { border-color: var(--oeil); animation: pouls 1.6s ease-in-out infinite; }
+.noeud.is-travaille .menu-icone { color: var(--oeil); background: rgba(var(--oeil-rvb), .12); }
+.noeud.is-travaille .noeud__qui { color: var(--oeil); }
 .chantier__fin { display: flex; flex-direction: column; gap: 10px; }
 .chantier__rapport { max-height: 300px; margin: 0; padding: 12px 14px; overflow: auto; white-space: pre-wrap; font: 12.5px/1.55 var(--police-mono); color: var(--texte-2); background: var(--champ); border-radius: var(--rayon-petit); }
 
@@ -656,3 +685,12 @@ input[type=checkbox] { accent-color: var(--oeil); }
 
 #modeles-adaptes[aria-pressed="true"] { color: var(--oeil); border-color: var(--oeil); }
 .carte-modele__infos .carte-modele__adapte { color: var(--oeil); }
+
+/* Pendant un chantier : l'arbre se resserre et la fiche de réglage s'efface, pour voir l'équipe et le direct ensemble */
+.is-chantier .atelier { grid-template-columns: minmax(0, 1fr); }
+.is-chantier .fiche, .is-chantier .noeud__plus, .is-chantier .page__tete .bouton-calme { display: none; }
+.is-chantier .toile { min-height: 0; padding-top: 24px; padding-bottom: 28px; }
+.is-chantier .chantier__plan { min-height: 0; height: 56px; color: var(--texte-3); }
+/* Seul l'agent qui travaille est allumé : la case choisie pour le réglage repasse en gris le temps du chantier */
+.is-chantier .noeud.is-ouvert:not(.is-travaille) .noeud__carte { border-color: var(--ligne-2); box-shadow: none; }
+.is-chantier .noeud.is-ouvert:not(.is-travaille) .menu-icone { color: var(--texte-2); background: var(--surface-2); }

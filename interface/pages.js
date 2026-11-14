@@ -75,6 +75,7 @@ function dessinerNoeud(agent) {
     const li = creer("li");
     const genre = GENRES[agent.type];
     const carte = creer("div", "noeud" + (agent.id === agentOuvert ? " is-ouvert" : ""));
+    carte.dataset.id = agent.id;
     const bouton = creer("button", "noeud__carte");
     bouton.type = "button";
     bouton.title = `${agent.nom} · ${sousTitre(agent)}`;
@@ -204,6 +205,7 @@ function dessinerFiche() {
 
 function dessinerAgents() {
     dessinerToile();
+    marquerActif();
     dessinerFiche();
 }
 
@@ -257,6 +259,8 @@ const JOURNAL_MAX = 300;
 function majChantier(etat) {
     $("#chantier-lancer").textContent = chantierTourne ? "Arrêter" : "Lancer";
     $("#chantier-lancer").classList.toggle("is-stop", chantierTourne);
+    // Pendant un chantier, la page se resserre : l'arbre et la vue en direct tiennent ensemble à l'écran
+    $("#page-agents").classList.toggle("is-chantier", chantierTourne);
     $("#chantier-importer").hidden = chantierTourne;
     $("#chantier-plan").readOnly = chantierTourne;
     if (!etat) return;
@@ -274,12 +278,95 @@ function ligneJournal(texte, classe = "") {
     journal.scrollTop = journal.scrollHeight;
 }
 
+/* La vue en direct. suivi : { debut, fin, etapes: [{ titre, codeur, etat, debut, fin, essais }], actif }
+   etat : attente, cours, fait, bloque. actif : { role, nom, action, essai, depuis } de l'agent qui a la main. */
+let suivi = null;
+let horlogeChantier = null;
+
+// 0:42, 12:05, puis 1 h 03
+function chrono(ms) {
+    const s = Math.max(0, Math.round(ms / 1000));
+    const m = Math.floor(s / 60);
+    return m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")}` : `${m}:${String(s % 60).padStart(2, "0")}`;
+}
+
+// L'agent de l'arbre qui correspond à celui qui travaille : même rôle et même nom, sinon le premier de ce rôle
+function agentQuiTravaille() {
+    const a = suivi?.actif;
+    if (!a || !equipe) return null;
+    return equipe.agents.find((x) => x.type === a.role && x.nom === a.nom) || equipe.agents.find((x) => x.type === a.role) || null;
+}
+
+// Dans l'arbre : la case de l'agent actif s'allume et dit ce qu'il fait, les autres reprennent leur texte
+function marquerActif() {
+    const actif = agentQuiTravaille();
+    const depuis = suivi?.actif ? chrono((suivi.fin || Date.now()) - suivi.actif.depuis) : "";
+    document.querySelectorAll("#toile .noeud").forEach((n) => {
+        const agent = equipe?.agents.find((x) => x.id === n.dataset.id);
+        const travaille = !!actif && agent === actif;
+        n.classList.toggle("is-travaille", travaille);
+        const ligne = n.querySelector(".noeud__qui");
+        if (ligne && agent) ligne.textContent = travaille ? `${suivi.actif.action} · ${depuis}` : sousTitre(agent);
+    });
+}
+
+function dessinerDirect() {
+    if (!suivi) return;
+    const maintenant = suivi.fin || Date.now();
+    $("#direct-total").textContent = `${suivi.fin ? "Durée" : "En cours depuis"} ${chrono(maintenant - suivi.debut)}`;
+    const zone = $("#direct-agent");
+    const a = suivi.actif;
+    if (a) {
+        zone.innerHTML = `<span class="menu-icone direct__icone">${icone(GENRES[a.role]?.icone || "puce")}</span>`
+            + `<span class="direct__texte"><span class="direct__nom">${escape(a.nom)} ${escape(a.action)}</span>`
+            + `<span class="direct__depuis">depuis ${chrono(maintenant - a.depuis)}${a.essai > 1 ? ` · essai ${a.essai} sur 3` : ""}</span></span>`;
+    } else zone.replaceChildren();
+    const liste = $("#chantier-etapes");
+    liste.replaceChildren();
+    suivi.etapes.forEach((e, i) => {
+        const li = creer("li", `etape is-${e.etat}`);
+        const duree = e.debut ? chrono((e.fin || maintenant) - e.debut) : "";
+        const info = [e.codeur, e.essais > 1 ? `${e.essais} essais` : "", { fait: "fait", bloque: "bloquée", cours: "en cours", attente: "" }[e.etat]].filter(Boolean).join(" · ");
+        li.append(creer("span", "etape__puce", e.etat === "fait" ? "" : String(i + 1)), creer("span", "etape__titre", e.titre), creer("span", "etape__info", info), creer("span", "etape__duree", duree));
+        if (e.etat === "fait") li.firstChild.innerHTML = icone("coche");
+        liste.appendChild(li);
+    });
+    marquerActif();
+}
+
+function demarrerSuivi() {
+    suivi = { debut: Date.now(), fin: 0, etapes: [], actif: { role: "chef", nom: "Chef", action: "découpe le plan", depuis: Date.now() } };
+    clearInterval(horlogeChantier);
+    horlogeChantier = setInterval(dessinerDirect, 1000);
+    dessinerDirect();
+}
+
+function arreterSuivi() {
+    clearInterval(horlogeChantier);
+    horlogeChantier = null;
+    if (!suivi) return;
+    suivi.fin = Date.now();
+    suivi.actif = null;
+    // Une étape encore en cours à l'arrêt n'a pas été finie
+    for (const e of suivi.etapes) if (e.etat === "cours") { e.etat = "attente"; e.fin = suivi.fin; }
+    dessinerDirect();
+}
+
 window.api.onChantier((e) => {
-    if (e.type === "etape") {
+    if (e.type === "info") { ligneJournal(e.texte, /échec|refusée|abandonnée|indisponible|Attention/.test(e.texte) ? "is-alerte" : ""); return; }
+    if (!suivi) return;
+    const etape = (n) => (suivi.etapes[n - 1] ??= { titre: `Étape ${n}`, codeur: "", etat: "attente", essais: 0 });
+    if (e.type === "plan") suivi.etapes = e.etapes.map((x) => ({ titre: x.titre, codeur: x.codeur, etat: "attente", essais: 0 }));
+    else if (e.type === "etape") {
+        Object.assign(etape(e.i), { etat: "cours", debut: Date.now() });
         $("#chantier-etape").textContent = `Étape ${e.i} sur ${e.n} · ${e.titre}`;
         $("#chantier-barre").style.width = `${Math.round(((e.i - 1) / e.n) * 100)}%`;
         ligneJournal(`Étape ${e.i} : ${e.titre}`, "is-etape");
-    } else if (e.type === "info") ligneJournal(e.texte, /échec|refusée|abandonnée|indisponible|Attention/.test(e.texte) ? "is-alerte" : "");
+    } else if (e.type === "activite") {
+        suivi.actif = e.fini ? null : { role: e.role, nom: e.nom, action: e.action, essai: e.essai || 1, depuis: Date.now() };
+        if (e.etape && e.essai) etape(e.etape).essais = e.essai;
+    } else if (e.type === "resultat") Object.assign(etape(e.etape), { etat: e.ok ? "fait" : "bloque", fin: Date.now(), essais: e.essais });
+    dessinerDirect();
 });
 
 async function lancerOuArreter() {
@@ -293,8 +380,10 @@ async function lancerOuArreter() {
     $("#chantier-etape").textContent = "Le chef découpe le plan…";
     $("#chantier-barre").style.width = "0%";
     majChantier();
+    demarrerSuivi();
     const r = await window.api.lancerChantier($("#chantier-plan").value);
     chantierTourne = false;
+    arreterSuivi();
     majChantier(await window.api.etatChantier());
     if (!r.ok) {
         statut.textContent = r.erreur;
@@ -303,7 +392,7 @@ async function lancerOuArreter() {
     }
     const faites = r.etapes.filter((e) => e.ok).length;
     $("#chantier-barre").style.width = `${r.etapes.length ? Math.round((faites / r.etapes.length) * 100) : 0}%`;
-    $("#chantier-etape").textContent = `${r.arrete ? "Arrêté" : "Terminé"} en ${r.minutes} min · ${faites} étape${faites > 1 ? "s" : ""} faite${faites > 1 ? "s" : ""}`;
+    $("#chantier-etape").textContent = `${r.arrete ? "Arrêté" : "Terminé"} en ${chrono(suivi.fin - suivi.debut)} · ${faites} étape${faites > 1 ? "s" : ""} faite${faites > 1 ? "s" : ""}`;
     // Dans l'app, les commandes git du rapport ne servent pas : les boutons Garder et Jeter les remplacent
     $("#chantier-rapport").textContent = r.rapport.split("\n\nLe travail est sur la branche")[0].replace(/^# Rapport du chantier\n+/, "") + (r.changements ? `\n\nFichiers changés :\n${r.changements}` : "");
     $("#chantier-suite").textContent = "";

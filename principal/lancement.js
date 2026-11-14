@@ -70,7 +70,7 @@ function agentsDuChantier({ reglages, infos, envoyerLocal, envoyerEnLigne, limit
   const chef = chefForce ? agentSur('Chef', { fournisseur: chefForce, modele: reglages.modeles?.[chefForce] }) : agentDe(equipe.chef);
   const codeurs = equipe.codeurs.map((c, i) => {
     const controles = c.controles.map((k) => (k.type === 'tests'
-      ? { type: 'tests', logs: k.logs ? agentDe(k.logs) : null }
+      ? { type: 'tests', nom: k.nom, logs: k.logs ? Object.assign(agentDe(k.logs), { nomAgent: k.logs.nom }) : null }
       : { type: 'relecture', nom: k.nom, envoyer: agentDe(k.agent).envoyer, modele: k.agent.modele }));
     const choix = codeurForce ? { fournisseur: codeurForce, modele: reglages.modeles?.[codeurForce] } : c;
     if (choix.fournisseur === 'ollama') {

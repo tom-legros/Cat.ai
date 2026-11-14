@@ -129,7 +129,10 @@ Les modifications sont appliquées directement. Quand l'étape est faite, répon
 //   ouvrier / verificateur   l'ancienne forme, sans équipe : un codeur, les tests, puis une relecture (par le chef
 //                    si verificateur n'est pas donné)
 //   dossierCopies    où créer la copie de travail
-//   ev               { etape(i, n, titre), info(texte), morceau(texte) } pour suivre l'avancement
+//   ev               pour suivre l'avancement : etape(i, n, titre), info(texte), morceau(texte), et pour une vue
+//                    en direct : plan(etapes) une fois le plan découpé, activite({ role, nom, action, etape, essai })
+//                    à chaque fois qu'un agent prend la main (role : chef, codeur, testeur, logs, relecteur),
+//                    resultat({ etape, ok, essais }) à la fin de chaque étape
 //   signal           pour arrêter
 // Renvoie { branche, copie, etapes: [{ titre, ok, essais, raison? }], rapport }
 async function lancerChantier({ projet, plan, chef, codeurs, ouvrier, verificateur = chef, dossierCopies, ev = {}, signal, nom = horodatage() }) {
@@ -147,6 +150,7 @@ async function lancerChantier({ projet, plan, chef, codeurs, ouvrier, verificate
   const aDesTests = () => listFiles(copie).some((f) => /\.test\.[cm]?js$|(^|\/)test\/.*\.[cm]?js$/.test(f));
 
   ev.info?.(`Copie de travail : ${copie} (branche ${branche})`);
+  ev.activite?.({ role: 'chef', nom: 'Chef', action: 'découpe le plan' });
   const decoupe = await demander(chef.envoyer, chef.modele, [
     { role: 'system', content: CONSIGNE_DECOUPE + (codeurs.length > 1 ? consigneEquipe(codeurs) : '') },
     { role: 'user', content: `Fichiers du projet :\n${listFiles(copie).slice(0, 200).join('\n')}\n\nLe plan :\n${plan}` },
@@ -165,15 +169,17 @@ async function lancerChantier({ projet, plan, chef, codeurs, ouvrier, verificate
   const codeurDe = (etape) => codeurs.find((c) => c.nom.toLowerCase() === etape.agent?.toLowerCase()) || codeurs[0];
 
   // Un contrôle après l'essai d'une étape. Renvoie '' si c'est bon, sinon la remarque pour le codeur.
-  async function controler(controle, etape, diff) {
+  async function controler(controle, etape, diff, ou) {
     if (controle.type === 'tests') {
       if (!aDesTests()) return '';
+      ev.activite?.({ role: 'testeur', nom: controle.nom || 'Testeur', action: 'lance les tests', ...ou });
       const bilan = await lancerTestsNode(copie, signal);
       if (bilan.startsWith('Tests réussis')) { ev.info?.('  tests : réussis'); return ''; }
       const echec = lignesEchec(bilan);
       ev.info?.(`  tests : échec${echec ? ` (${echec.split('\n')[0].slice(0, 100)})` : ''}`);
       let diagnostic = '';
       if (controle.logs) {
+        ev.activite?.({ role: 'logs', nom: controle.logs.nomAgent || 'Lecteur de logs', action: 'lit la sortie des tests', ...ou });
         try {
           diagnostic = (await demander(controle.logs.envoyer, controle.logs.modele, [
             { role: 'system', content: CONSIGNE_LOGS },
@@ -189,6 +195,7 @@ async function lancerChantier({ projet, plan, chef, codeurs, ouvrier, verificate
       const resume = [diagnostic && `Diagnostic :\n${diagnostic}`, detail ? `Ce qui a raté :\n${detail}` : echec && `En bref :\n${echec}`].filter(Boolean).join('\n\n');
       return `Les tests échouent après ton changement. ${resume ? `${resume}\n\nSortie complète :\n` : ''}${bilan.slice(0, 3000)}`;
     }
+    ev.activite?.({ role: 'relecteur', nom: controle.nom || 'Relecteur', action: 'relit le changement', ...ou });
     const avis = avisDepuis(await demander(controle.envoyer, controle.modele, [
       { role: 'system', content: CONSIGNE_RELECTURE },
       { role: 'user', content: `Consigne de l'étape : ${etape.titre}\n${etape.consigne}\n\nLe changement :\n${diff.slice(0, 12000)}` },
@@ -203,6 +210,7 @@ async function lancerChantier({ projet, plan, chef, codeurs, ouvrier, verificate
   for (const [i, etape] of etapes.entries()) {
     if (signal?.aborted) break;
     const codeur = codeurDe(etape);
+    if (i === 0) ev.plan?.(etapes.map((e) => ({ titre: e.titre, codeur: codeurDe(e).nom })));
     ev.etape?.(i + 1, etapes.length, codeurs.length > 1 ? `${etape.titre} (${codeur.nom})` : etape.titre);
     let remarque = '';
     let reussie = false;
@@ -219,6 +227,7 @@ async function lancerChantier({ projet, plan, chef, codeurs, ouvrier, verificate
       if (remarque) remarque += surPlace
         ? '\n\nTon travail est toujours là : relis les fichiers que tu as écrits et corrige seulement ce qui est faux, avec remplacer_texte.'
         : '\n\nTon travail précédent a été effacé : refais l\'étape depuis le début, plus simplement.';
+      ev.activite?.({ role: 'codeur', nom: codeur.nom, action: essais === 1 ? 'écrit le code' : surPlace ? 'corrige son code' : 'recommence', etape: i + 1, essai: essais });
       await discuter({
         messages: [{ role: 'user', content: consigneOuvrier(plan, etape, resultats.filter((r) => r.ok), remarque) }],
         modele: codeur.modele, envoyer: codeur.envoyer, limites: codeur.limites, ctx: ctxPour(codeur),
@@ -230,7 +239,7 @@ async function lancerChantier({ projet, plan, chef, codeurs, ouvrier, verificate
       if (!diff) { remarque = "Rien n'a été modifié. Fais vraiment les changements demandés avec les outils."; continue; }
       remarque = '';
       for (const controle of codeur.controles || []) {
-        remarque = await controler(controle, etape, diff);
+        remarque = await controler(controle, etape, diff, { etape: i + 1, essai: essais });
         if (remarque) break;
       }
       if (remarque) continue;
@@ -238,6 +247,7 @@ async function lancerChantier({ projet, plan, chef, codeurs, ouvrier, verificate
       reussie = true;
     }
     resultats.push({ titre: etape.titre, ok: reussie, essais, raison: reussie ? '' : remarque });
+    ev.resultat?.({ etape: i + 1, ok: reussie, essais });
     ev.info?.(reussie ? `  étape ${i + 1} faite` : `  étape ${i + 1} abandonnée après ${essais} essais`);
     // Une étape ratée : on s'arrête, les suivantes s'appuieraient sur elle
     if (!reussie) break;
@@ -248,6 +258,7 @@ async function lancerChantier({ projet, plan, chef, codeurs, ouvrier, verificate
   }
   git(copie, 'reset', '--hard', '-q');
   git(copie, 'clean', '-fdq', '-e', 'node_modules');
+  ev.activite?.(null);
   const rapport = rapportChantier({ branche, copie, etapes, resultats, racine });
   return { branche, copie, etapes: resultats, rapport };
 }

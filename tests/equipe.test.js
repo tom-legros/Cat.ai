@@ -153,3 +153,18 @@ test('chantier : quand les tests cassent, le lecteur de logs explique au codeur 
   assert.match(a.recus[1], /Diagnostic :\nLe fichier alpha2\.js manque/);
   jeterChantier(d, 'logs');
 });
+
+test('chantier : il dit qui travaille, dans l ordre (chef, codeur, testeur, relecteur), et le résultat de chaque étape', async () => {
+  const d = depot({ 'a.test.js': "const test = require('node:test');\ntest('ok', () => {});\n" });
+  const relecteur = repond('{"ok": true}');
+  const a = fauxCodeur('alpha', [{ type: 'tests', nom: 'Testeur' }, { type: 'relecture', nom: 'Relecteur', envoyer: (...x) => relecteur.envoyer(...x), modele: 'faux' }]);
+  const chef = repond('[{"titre": "Un", "consigne": "c"}]');
+  const vus = [];
+  const r = await lancerChantier({
+    projet: d, plan: 'p', chef: { modele: 'chef', envoyer: (...x) => chef.envoyer(...x) }, codeurs: [a], dossierCopies: fs.mkdtempSync(path.join(os.tmpdir(), 'catai-copies-')), nom: 'suivi',
+    ev: { plan: (e) => vus.push(`plan ${e.length} ${e[0].codeur}`), activite: (x) => vus.push(x ? `${x.role} ${x.action}` : 'fin'), resultat: (x) => vus.push(`étape ${x.etape} ${x.ok}`) },
+  });
+  assert.equal(r.etapes[0].ok, true);
+  assert.deepEqual(vus, ['chef découpe le plan', 'plan 1 alpha', 'codeur écrit le code', 'testeur lance les tests', 'relecteur relit le changement', 'étape 1 true', 'fin']);
+  jeterChantier(d, 'suivi');
+});
