@@ -19,6 +19,21 @@ test('Ollama sans outils : réessaie en discussion simple uniquement après refu
   assert.equal(corps.length, 2);
 });
 
+test('Ollama : une erreur dans le flux interrompt la tâche', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => new Response('{"error":"modèle arrêté"}\n'));
+  await assert.rejects(envoyerOllama([], 'qwen3:8b', () => {}, null, { chantier: true }), /Ollama : modèle arrêté/);
+});
+
+test('Ollama : le chantier exige la fin du flux avant de rendre les appels d’outils', async (t) => {
+  const appel = JSON.stringify({ message: { tool_calls: [{ function: { name: 'ecrire_fichier', arguments: {} } }] } });
+  let fin = '';
+  t.mock.method(globalThis, 'fetch', async () => new Response(appel + '\n' + fin));
+  const envoyer = () => envoyerOllama([], 'qwen3:8b', () => {}, null, { chantier: true });
+  await assert.rejects(envoyer(), /réponse interrompue avant la fin/);
+  fin = '{"done":true}';
+  assert.equal((await envoyer()).toolCalls.length, 1);
+});
+
 test('versOpenAI : arguments en texte JSON, et chaque résultat relié à son appel', () => {
   const ollama = [
     { role: 'user', content: 'lis a.js' },
@@ -157,6 +172,7 @@ function fauxOllama(reponses) {
     const { morceaux = [], outil } = reponses[demandes.length - 1];
     const lignes = morceaux.map((t) => JSON.stringify({ message: { content: t } }) + '\n');
     if (outil) lignes.push(JSON.stringify({ message: { content: '', tool_calls: [{ function: { name: outil, arguments: {} } }] } }) + '\n');
+    lignes.push('{"done":true}\n');
     return { ok: true, status: 200, body: (async function* () { for (const l of lignes) yield Buffer.from(l); })() };
   };
   return { demandes, rendre: () => { global.fetch = vrai; } };
@@ -175,6 +191,17 @@ test('envoyerOllama : après un outil, un début en anglais n est pas affiché e
     assert.equal(affiche.join(''), 'Voici ce que je vois dans ton projet.');
     assert.equal(r.content, 'Voici ce que je vois dans ton projet.');
   } finally { f.rendre(); }
+});
+
+test('envoyerOllama : un chantier ne relance pas un outil pour sa langue et limite la génération', async () => {
+  const { demandes, rendre } = fauxOllama([{ morceaux: ['Okay, let me read the file and then I will update it. '.repeat(4)] }]);
+  try {
+    await envoyerOllama(APRES_OUTIL, 'qwen3:8b', () => {}, null, { chantier: true });
+    assert.equal(demandes.length, 1);
+    assert.equal(demandes[0].think, false);
+    assert.equal(demandes[0].options.num_predict, 2048);
+    assert.equal(demandes[0].keep_alive, '5m');
+  } finally { rendre(); }
 });
 
 test('envoyerOllama : une réponse en français après un outil est affichée une seule fois, sans relance', async () => {

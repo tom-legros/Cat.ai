@@ -49,7 +49,7 @@ contextBridge.exposeInMainWorld('api', {
   // Pages Modèles et Agents
   catalogueModeles: () => ipcRenderer.invoke('modeles-catalogue'),
   lireEquipe: () => ipcRenderer.invoke('equipe-lire'),
-  ajouterAgent: (parent, type) => ipcRenderer.invoke('equipe-ajouter', { parent, type }),
+  ajouterAgent: (parent, type, tests) => ipcRenderer.invoke('equipe-ajouter', { parent, type, tests }),
   retirerAgent: (id) => ipcRenderer.invoke('equipe-retirer', id),
   modifierAgent: (id, changement) => ipcRenderer.invoke('equipe-modifier', { id, changement }),
   remettreEquipe: () => ipcRenderer.invoke('equipe-remettre'),
@@ -59,7 +59,7 @@ contextBridge.exposeInMainWorld('api', {
   etatChantier: () => ipcRenderer.invoke('chantier-etat'),
   preparerChantier: () => ipcRenderer.invoke('chantier-preparer'),
   importerPlan: () => ipcRenderer.invoke('chantier-importer-plan'),
-  lancerChantier: (plan) => ipcRenderer.invoke('chantier-lancer', { plan }),
+  lancerChantier: (plan, action, agent) => ipcRenderer.invoke('chantier-lancer', { plan, action, agent }),
   arreterChantier: () => ipcRenderer.invoke('chantier-arreter'),
   garderChantier: (nom) => ipcRenderer.invoke('chantier-garder', nom),
   jeterChantier: (nom) => ipcRenderer.invoke('chantier-jeter', nom),

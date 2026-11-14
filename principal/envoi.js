@@ -69,6 +69,7 @@ function rappelsPourOllama(messages) {
 }
 
 async function envoyerOllama(messages, modele, onMorceau, signal, options = {}) {
+  if (options.chantier) return lireOllama(messages, modele, onMorceau, signal, options, false, false);
   if (messages.at(-1)?.role !== 'tool' || !verifierLangue(messages, modele)) return lireOllama(messages, modele, onMorceau, signal, options, sansReflexion(modele), false);
   const premier = await lireOllama(messages, modele, onMorceau, signal, options, sansReflexion(modele), true);
   if (!premier.anglais) return premier;
@@ -88,7 +89,11 @@ async function envoyerOllama(messages, modele, onMorceau, signal, options = {}) 
 // s'arrête (sortir de la boucle ferme la connexion, et Ollama arrête d'écrire) et le résultat est { anglais: true },
 // sans rien avoir affiché.
 async function lireOllama(messages, modele, onMorceau, signal, options, reflexion, verifier) {
-  const corps = { model: modele, messages: rappelsPourOllama(messages), tools: outilsPour(options), stream: true, think: reflexion, keep_alive: GARDER_CHARGE, options: optionsOllama(modele) };
+  const corps = { model: modele, messages: rappelsPourOllama(messages), tools: outilsPour(options), stream: true, think: reflexion, keep_alive: options.chantier ? '5m' : GARDER_CHARGE, options: optionsOllama(modele) };
+  if (options.chantier) {
+    corps.options.temperature = 0.2;
+    corps.options.num_predict = 2048;
+  }
   const envoyer = () => fetch(`${OLLAMA}/api/chat`, {
     method: 'POST',
     // think: false : qwen3 répond direct au lieu d'écrire une longue réflexion avant
@@ -107,6 +112,7 @@ async function lireOllama(messages, modele, onMorceau, signal, options, reflexio
   let buffer = '';
   let content = '';
   let enAttente = verifier;
+  let termine = false;
   const toolCalls = [];
   const ANGLAIS = { anglais: true, content: '', toolCalls: [] };
   // Le début gardé de côté : en anglais on arrête, sinon il est affiché d'un coup
@@ -116,22 +122,26 @@ async function lireOllama(messages, modele, onMorceau, signal, options, reflexio
     if (content) onMorceau(content);
     return false;
   };
+  const traiterLigne = (ligne) => {
+    if (!ligne.trim()) return false;
+    const data = JSON.parse(ligne);
+    if (data.error) throw new Error(`Ollama : ${data.error}`);
+    if (data.done === true) termine = true;
+    if (data.message?.tool_calls) toolCalls.push(...data.message.tool_calls);
+    if (!data.message?.content) return false;
+    content += data.message.content;
+    if (!enAttente) onMorceau(data.message.content);
+    return enAttente && content.length >= DEBUT_A_VERIFIER && debutAnglais();
+  };
   try {
     for await (const chunk of res.body) {
       buffer += decoder.decode(chunk, { stream: true });
       const lines = buffer.split('\n');
       buffer = lines.pop();
-      for (const line of lines) {
-        if (!line.trim()) continue;
-        const data = JSON.parse(line);
-        if (data.message?.content) {
-          content += data.message.content;
-          if (!enAttente) onMorceau(data.message.content);
-          else if (content.length >= DEBUT_A_VERIFIER && debutAnglais()) return ANGLAIS;
-        }
-        if (data.message?.tool_calls) toolCalls.push(...data.message.tool_calls);
-      }
+      for (const ligne of lines) if (traiterLigne(ligne)) return ANGLAIS;
     }
+    if (traiterLigne(buffer + decoder.decode())) return ANGLAIS;
+    if (options.chantier && !termine) throw new Error(`Ollama · ${modele} : réponse interrompue avant la fin.`);
   } catch (err) {
     // Stop pendant que le début attendait : on montre ce qui était déjà arrivé, comme sans la vérification
     if (enAttente && content && langueProbable(content) !== 'en') onMorceau(content);

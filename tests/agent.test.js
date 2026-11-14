@@ -35,6 +35,22 @@ function fauxModele(reponses) {
 }
 const appel = (name, args) => ({ function: { name, arguments: args } });
 
+test('écriture : un contenu identique ne demande pas de confirmation', async () => {
+  const d = projetTemporaire();
+  const ui = fausseUi();
+  const resultat = await executerOutil('ecrire_fichier', { chemin: 'a.js', contenu: 'const a = 1;\n' }, contexte(d, ui));
+  assert.match(resultat, /^Aucun changement/);
+  assert.deepEqual(ui.vues, []);
+});
+
+test('discuter : refuse un appel de modèle à un outil hors de la liste autorisée', async () => {
+  const d = projetTemporaire();
+  const m = fauxModele([{ outils: [appel('ecrire_fichier', { chemin: 'intrus.js', contenu: 'intrus' })] }, { texte: 'Compris.' }]);
+  await discuter({ messages: [], modele: 'test', envoyer: m.envoyer, ctx: contexte(d, fausseUi()), options: { seulement: ['lire_fichier'] } });
+  assert.equal(fs.existsSync(path.join(d, 'intrus.js')), false);
+  assert.match(m.recus[1].find((message) => message.role === 'tool').content, /pas disponible/);
+});
+
 test('discuter : le modèle lit un fichier, reçoit son contenu, puis répond', async () => {
   const d = projetTemporaire();
   const m = fauxModele([{ outils: [appel('lire_fichier', { chemin: 'a.js' })] }, { texte: 'Ton fichier déclare a.' }]);

@@ -2,14 +2,17 @@
 // Rien ici ne parle à un modèle : on reçoit de quoi envoyer (local et en ligne), on rend ce que lancerChantier attend.
 const { execFileSync } = require('child_process');
 const { equipeDepuis, planDeTravail } = require('./equipe');
+const { compacter } = require('./taille');
 
 // Pauses, en secondes, quand un agent en ligne bute sur une limite ; puis délai avant de le retenter
 const ATTENTES = [70, 140];
 const RETOUR_EN_LIGNE = 15 * 60 * 1000;
 // Une attente qui s'arrête tout de suite si le chantier est arrêté
 const attendre = (ms, signal) => new Promise((ok, rate) => {
-  const minuterie = setTimeout(ok, ms);
-  signal?.addEventListener('abort', () => { clearTimeout(minuterie); rate(Object.assign(new Error('Arrêté'), { name: 'AbortError' })); }, { once: true });
+  if (signal?.aborted) { rate(signal.reason); return; }
+  const annuler = () => { clearTimeout(minuterie); rate(signal.reason); };
+  const minuterie = setTimeout(() => { signal?.removeEventListener('abort', annuler); ok(); }, ms);
+  signal?.addEventListener('abort', annuler, { once: true });
 });
 
 // opts :
@@ -25,14 +28,30 @@ const attendre = (ms, signal) => new Promise((ok, rate) => {
 // Renvoie { chef, codeurs, resume } ; resume est une ligne lisible : qui fait quoi.
 function agentsDuChantier({ reglages, infos, envoyerLocal, envoyerEnLigne, limitesLocales, limitesEnLigne = () => null, dire = () => {}, chefForce, modeleForce, codeurForce, pause = attendre, maintenant = Date.now }) {
   const equipe = planDeTravail(equipeDepuis(reglages, infos));
-  const modeleLocal = modeleForce || equipe.codeurs[0].modele || reglages.modeles?.ollama || 'qwen3:8b';
-  const secours = { envoyer: envoyerLocal, modele: modeleLocal };
+  const premierDevLocal = equipe.codeurs.find((c) => c.fournisseur === 'ollama' && c.modele);
+  const modeleLocal = modeleForce || premierDevLocal?.modele || reglages.modeles?.ollama || 'qwen3:8b';
+  const envoyerSurLePc = async (messages, modele, morceau, signal, options) => {
+    const limite = AbortSignal.timeout(120_000);
+    const arret = signal ? AbortSignal.any([signal, limite]) : limite;
+    try {
+      const contexte = limitesLocales?.total ? compacter(messages, limitesLocales.total) : messages;
+      return await envoyerLocal(contexte, modele, morceau, arret, { ...options, chantier: true });
+    } catch (err) {
+      if (signal?.aborted) throw signal.reason;
+      if (limite.aborted) throw new Error(`Ollama · ${modele} : réponse interrompue après 2 minutes.`);
+      if (err.message === 'fetch failed' || err.message === 'terminated') {
+        throw new Error(`Ollama · ${modele} : connexion interrompue. Vérifie Ollama avant de relancer l’étape.`, { cause: err });
+      }
+      throw err;
+    }
+  };
+  const secours = { envoyer: envoyerSurLePc, modele: modeleLocal };
 
   // Un agent qui parle sans coder (chef, relecteur, lecteur de logs) : sur le PC ou en ligne.
   // S'il ne répond pas (clé illisible, quota du jour), le modèle du PC prend sa place, et on le dit.
   const agentSur = (nom, choix) => {
     const local = choix.fournisseur === 'ollama';
-    const origine = local ? { envoyer: envoyerLocal, modele: choix.modele || modeleLocal } : { envoyer: envoyerEnLigne(choix.fournisseur), modele: choix.modele };
+    const origine = local ? { envoyer: envoyerSurLePc, modele: choix.modele || modeleLocal } : { envoyer: envoyerEnLigne(choix.fournisseur), modele: choix.modele };
     let agent = origine;
     let retour = 0; // quand retenter l'agent en ligne après une limite (0 : jamais, la panne n'est pas une limite)
     return {
@@ -46,7 +65,7 @@ function agentsDuChantier({ reglages, infos, envoyerLocal, envoyerEnLigne, limit
         if (agent === secours) return appeler(agent);
         for (let essai = 0; ; essai++) {
           try { return await appeler(agent); } catch (err) {
-            if (err.name === 'AbortError') throw err;
+            if (args[3]?.aborted || err.name === 'AbortError') throw err;
             // Une limite par minute passe en attendant : un chantier a le temps. Le quota du jour, lui, ne revient
             // pas : après deux attentes, le modèle du PC prend le relais, et on retente en ligne un quart d'heure après.
             const limite = /429|limite atteinte|rate.?limit|quota/i.test(String(err.message));
@@ -74,8 +93,8 @@ function agentsDuChantier({ reglages, infos, envoyerLocal, envoyerEnLigne, limit
       : { type: 'relecture', nom: k.nom, envoyer: agentDe(k.agent).envoyer, modele: k.agent.modele }));
     const choix = codeurForce ? { fournisseur: codeurForce, modele: reglages.modeles?.[codeurForce] } : c;
     if (choix.fournisseur === 'ollama') {
-      const modele = (i === 0 ? modeleLocal : choix.modele) || modeleLocal;
-      return { nom: c.nom, specialite: c.specialite, envoyer: envoyerLocal, limites: limitesLocales, modele, local: true, qui: () => modele, controles };
+      const modele = (i === 0 && modeleForce) || choix.modele || modeleLocal;
+      return { nom: c.nom, specialite: c.specialite, envoyer: envoyerSurLePc, limites: limitesLocales, modele, local: true, qui: () => modele, controles };
     }
     // Un codeur en ligne : plus fort, mais s'il n'a plus de quota le modèle du PC reprend, avec ses propres limites
     const agent = agentSur(c.nom, choix);

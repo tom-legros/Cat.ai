@@ -14,13 +14,16 @@
 // et n'a pas internet ni d'autre dossier.
 const fs = require('fs');
 const path = require('path');
+const { randomUUID } = require('node:crypto');
 const { execFileSync } = require('child_process');
 const { discuter } = require('./agent');
-const { listFiles } = require('./fichiers');
+const { listFiles, estSensible } = require('./fichiers');
+const { listeCourte } = require('./taille');
 const { lancerTestsNode } = require('./tests-projet');
 
 // Ce que fait un codeur, dit simplement dans le suivi du chantier
-const GESTES = { lister_fichiers: 'regarde les fichiers', lire_fichier: 'lit', chercher: 'cherche', ecrire_fichier: 'écrit', remplacer_texte: 'modifie' };
+const GESTES = { lister_fichiers: 'regarde les fichiers', lire_fichier: 'lit', chercher: 'cherche' };
+const OUTILS_ECRITURE = new Set(['ecrire_fichier', 'remplacer_texte']);
 const ESSAIS_PAR_ETAPE = 3;
 const MAX_ETAPES = 15;
 const OUTILS_OUVRIER = ['lister_fichiers', 'lire_fichier', 'chercher', 'ecrire_fichier', 'remplacer_texte'];
@@ -45,9 +48,16 @@ function lireJson(texte) {
 function etapesDepuis(reponse) {
   const j = lireJson(reponse);
   const liste = Array.isArray(j) ? j : Array.isArray(j?.etapes) ? j.etapes : [];
+  const vues = new Set();
   return liste
     .map((e) => ({ titre: String(e?.titre || '').trim().slice(0, 120), consigne: String(e?.consigne || '').trim().slice(0, 2000), ...(e?.agent ? { agent: String(e.agent).trim().slice(0, 40) } : {}) }))
     .filter((e) => e.titre && e.consigne)
+    .filter(({ titre, consigne }) => {
+      const cle = JSON.stringify([titre, consigne].map((s) => s.toLowerCase().replace(/\s+/g, ' ')));
+      if (vues.has(cle)) return false;
+      vues.add(cle);
+      return true;
+    })
     .slice(0, MAX_ETAPES);
 }
 
@@ -103,20 +113,16 @@ function lignesEchec(sortie) {
 
 const CONSIGNE_RELECTURE = `Tu relis une étape faite par un autre modèle. Compare le changement (diff git) à la consigne de l'étape.
 Accepte si la consigne est remplie, même si ce n'est pas parfait. Refuse si c'est faux, incomplet, hors sujet ou si ça casse autre chose.
+Le diff ne montre que des lignes modifiées et leur voisinage. Une ligne absente du diff peut exister dans le fichier. Ne la considère pas manquante sur cette seule base.
 Réponds UNIQUEMENT avec du JSON : {"ok": true} ou {"ok": false, "remarque": "ce qu'il faut corriger, précisément"}.`;
 
-const consigneOuvrier = (plan, etape, faites, remarque) => `Tu travailles seul, sans personne à qui poser de questions, sur un chantier de code.
-Le plan général (pour le contexte seulement) :
-${plan.slice(0, 3000)}
-
-Étapes déjà faites : ${faites.length ? faites.map((e) => e.titre).join(' ; ') : 'aucune'}.
-
-TON ÉTAPE, et rien d'autre : ${etape.titre}
+const consigneOuvrier = (plan, etape, faites, remarque) => `TON ÉTAPE, et rien d'autre : ${etape.titre}
 ${etape.consigne}
-${remarque ? `\nLa tentative précédente a été refusée : ${remarque}\n` : ''}
-Écris dans le langage des fichiers du projet, tel qu'il y est écrit (pas de TypeScript dans un projet JavaScript).
-Lis les fichiers dont tu as besoin, puis modifie-les avec remplacer_texte (ou ecrire_fichier pour un nouveau fichier).
-Les modifications sont appliquées directement. Quand l'étape est faite, réponds en une phrase ce que tu as changé.`;
+${remarque ? `\nCorrection de l'essai précédent : ${remarque}\n` : ''}
+Travaille dans le langage du projet. Lis les passages utiles, utilise remplacer_texte sur les fichiers existants et ecrire_fichier pour les nouveaux. Termine par une phrase.
+${faites.length ? `\nDernières étapes validées : ${faites.slice(-4).map((e) => e.titre).join(', ')}.\n` : ''}
+Plan général, pour contexte :
+${plan.length > 1600 ? plan.slice(0, 1100) + '\n[…]\n' + plan.slice(-450) : plan}`;
 
 // ---------- Le chantier ----------
 // opts :
@@ -135,28 +141,52 @@ Les modifications sont appliquées directement. Quand l'étape est faite, répon
 //                    resultat({ etape, ok, essais }) à la fin de chaque étape
 //   signal           pour arrêter
 // Renvoie { branche, copie, etapes: [{ titre, ok, essais, raison? }], rapport }
-async function lancerChantier({ projet, plan, chef, codeurs, ouvrier, verificateur = chef, dossierCopies, ev = {}, signal, nom = horodatage() }) {
+async function preparerPlan({ projet, plan, chef, codeurs, signal, base = 'HEAD' }) {
+  signal?.throwIfAborted();
+  const fichiers = git(projet, 'ls-tree', '-rz', '--full-tree', '--name-only', base).split('\0').filter((f) => f && !estSensible(f));
+  const decoupe = await demander(chef.envoyer, chef.modele, [
+    { role: 'system', content: CONSIGNE_DECOUPE + (codeurs.length > 1 ? consigneEquipe(codeurs) : '') },
+    { role: 'user', content: `Le plan :\n${plan}\n\nFichiers du projet :\n${listeCourte(fichiers, 4500).fichiers.join('\n')}` },
+  ], signal);
+  signal?.throwIfAborted();
+  const etapes = etapesDepuis(decoupe);
+  if (!etapes.length) throw new Error("Le chef n'a pas réussi à découper le plan en étapes. Écris une liste de choses à faire.");
+  return etapes;
+}
+
+const codeurPour = (codeurs, etape) => codeurs.find((c) => c.nom.toLowerCase() === etape.agent?.toLowerCase()) || codeurs[0];
+
+async function lancerChantier({ projet, plan, chef, codeurs, ouvrier, verificateur = chef, dossierCopies, ev = {}, signal, nom = horodatage(), etapes: planValide, reprise, base = 'HEAD' }) {
   codeurs ||= [{ ...ouvrier, nom: 'Codeur', controles: [{ type: 'tests' }, { type: 'relecture', nom: 'relecture', envoyer: verificateur.envoyer, modele: verificateur.modele }] }];
   if (!codeurs.length) throw new Error('Il faut au moins un codeur.');
   const racine = git(projet, 'rev-parse', '--show-toplevel');
+  let actif;
+  const activite = (a) => { actif = a; ev.activite?.(a); };
+  let etapes = planValide;
+  const commitInitial = reprise ? null : git(racine, 'rev-parse', '--verify', base);
+  if (!etapes) {
+    activite({ role: 'chef', nom: 'Chef', action: 'découpe le plan' });
+    try { etapes = await preparerPlan({ projet: racine, plan, chef, codeurs, signal, base: commitInitial }); }
+    catch (err) { activite(null); throw err; }
+  }
+  signal?.throwIfAborted();
   const branche = `catai/chantier-${nom}`;
   const copie = path.join(dossierCopies, `chantier-${nom}`);
   fs.mkdirSync(dossierCopies, { recursive: true });
-  git(racine, 'worktree', 'add', '-b', branche, copie, 'HEAD');
+  if (reprise) {
+    if (git(copie, 'symbolic-ref', '--short', 'HEAD') !== branche ||
+        (reprise.commit && git(copie, 'rev-parse', 'HEAD') !== reprise.commit) ||
+        git(copie, 'status', '--porcelain')) {
+      throw new Error('La copie du chantier a changé depuis le dernier essai.');
+    }
+  } else git(racine, 'worktree', 'add', '-b', branche, copie, commitInitial);
   // Les dépendances du projet servent aux tests : un lien vers celles du projet, pas une copie
   if (fs.existsSync(path.join(racine, 'node_modules')) && !fs.existsSync(path.join(copie, 'node_modules'))) {
     fs.symlinkSync(path.join(racine, 'node_modules'), path.join(copie, 'node_modules'), 'junction');
   }
-  const aDesTests = () => listFiles(copie).some((f) => /\.test\.[cm]?js$|(^|\/)test\/.*\.[cm]?js$/.test(f));
+  const aDesTests = () => listFiles(copie).some((f) => /[.-]test\.[cm]?js$|(^|\/)tests?\/.*\.[cm]?js$/.test(f));
 
   ev.info?.(`Copie de travail : ${copie} (branche ${branche})`);
-  ev.activite?.({ role: 'chef', nom: 'Chef', action: 'découpe le plan' });
-  const decoupe = await demander(chef.envoyer, chef.modele, [
-    { role: 'system', content: CONSIGNE_DECOUPE + (codeurs.length > 1 ? consigneEquipe(codeurs) : '') },
-    { role: 'user', content: `Fichiers du projet :\n${listFiles(copie).slice(0, 200).join('\n')}\n\nLe plan :\n${plan}` },
-  ], signal);
-  const etapes = etapesDepuis(decoupe);
-  if (!etapes.length) throw new Error("Le chef n'a pas réussi à découper le plan en étapes. Écris un plan plus précis (une liste de choses à faire).");
 
   // Un codeur écrit sans fenêtre, seulement dans la copie (cheminSur l'empêche d'en sortir) ; tout le reste est refusé
   const ctxPour = (codeur) => ({
@@ -166,20 +196,21 @@ async function lancerChantier({ projet, plan, chef, codeurs, ouvrier, verificate
     ui: { demander: async () => false, confirmerEcriture: async () => true, choisirExecutable: async () => null },
   });
   // Le codeur nommé par le chef, sinon le premier
-  const codeurDe = (etape) => codeurs.find((c) => c.nom.toLowerCase() === etape.agent?.toLowerCase()) || codeurs[0];
+  const codeurDe = (etape) => codeurPour(codeurs, etape);
 
   // Un contrôle après l'essai d'une étape. Renvoie '' si c'est bon, sinon la remarque pour le codeur.
   async function controler(controle, etape, diff, ou) {
     if (controle.type === 'tests') {
       if (!aDesTests()) return '';
-      ev.activite?.({ role: 'testeur', nom: controle.nom || 'Testeur', action: 'lance les tests', ...ou });
+      activite({ role: 'testeur', nom: controle.nom || 'Testeur', action: 'lance les tests', ...ou });
       const bilan = await lancerTestsNode(copie, signal);
+      signal?.throwIfAborted();
       if (bilan.startsWith('Tests réussis')) { ev.info?.('  tests : réussis'); return ''; }
       const echec = lignesEchec(bilan);
       ev.info?.(`  tests : échec${echec ? ` (${echec.split('\n')[0].slice(0, 100)})` : ''}`);
       let diagnostic = '';
       if (controle.logs) {
-        ev.activite?.({ role: 'logs', nom: controle.logs.nomAgent || 'Lecteur de logs', action: 'lit la sortie des tests', ...ou });
+        activite({ role: 'logs', nom: controle.logs.nomAgent || 'Lecteur de logs', action: 'lit la sortie des tests', ...ou });
         try {
           diagnostic = (await demander(controle.logs.envoyer, controle.logs.modele, [
             { role: 'system', content: CONSIGNE_LOGS },
@@ -195,7 +226,7 @@ async function lancerChantier({ projet, plan, chef, codeurs, ouvrier, verificate
       const resume = [diagnostic && `Diagnostic :\n${diagnostic}`, detail ? `Ce qui a raté :\n${detail}` : echec && `En bref :\n${echec}`].filter(Boolean).join('\n\n');
       return `Les tests échouent après ton changement. ${resume ? `${resume}\n\nSortie complète :\n` : ''}${bilan.slice(0, 3000)}`;
     }
-    ev.activite?.({ role: 'relecteur', nom: controle.nom || 'Relecteur', action: 'relit le changement', ...ou });
+    activite({ role: 'relecteur', nom: controle.nom || 'Relecteur', action: 'relit le changement', ...ou });
     const avis = avisDepuis(await demander(controle.envoyer, controle.modele, [
       { role: 'system', content: CONSIGNE_RELECTURE },
       { role: 'user', content: `Consigne de l'étape : ${etape.titre}\n${etape.consigne}\n\nLe changement :\n${diff.slice(0, 12000)}` },
@@ -204,13 +235,14 @@ async function lancerChantier({ projet, plan, chef, codeurs, ouvrier, verificate
     ev.info?.(`  ${controle.nom || 'relecture'} : refusée (${avis.remarque.slice(0, 120)})`);
     return avis.remarque || 'Le relecteur a refusé cette étape.';
   }
-  const resultats = [];
+  const resultats = reprise ? reprise.etapes.filter((r) => r.ok) : [];
+  ev.plan?.(etapes.map((e, i) => ({ titre: e.titre, codeur: codeurDe(e).nom, fait: !!resultats[i]?.ok })));
   // Un arrêt demandé en cours d'étape n'est pas une panne : on garde ce qui est fait et on rend le rapport
   try {
-  for (const [i, etape] of etapes.entries()) {
+  for (let i = resultats.length; i < etapes.length; i++) {
     if (signal?.aborted) break;
+    const etape = etapes[i];
     const codeur = codeurDe(etape);
-    if (i === 0) ev.plan?.(etapes.map((e) => ({ titre: e.titre, codeur: codeurDe(e).nom })));
     ev.etape?.(i + 1, etapes.length, codeurs.length > 1 ? `${etape.titre} (${codeur.nom})` : etape.titre);
     let remarque = '';
     let reussie = false;
@@ -224,28 +256,50 @@ async function lancerChantier({ projet, plan, chef, codeurs, ouvrier, verificate
         git(copie, 'reset', '--hard', '-q');
         git(copie, 'clean', '-fdq', '-e', 'node_modules');
       }
-      if (remarque) remarque += surPlace
+      const contexteEssai = !remarque ? '' : remarque + (surPlace
         ? '\n\nTon travail est toujours là : relis les fichiers que tu as écrits et corrige seulement ce qui est faux, avec remplacer_texte.'
-        : '\n\nTon travail précédent a été effacé : refais l\'étape depuis le début, plus simplement.';
-      ev.activite?.({ role: 'codeur', nom: codeur.nom, action: essais === 1 ? 'écrit le code' : surPlace ? 'corrige son code' : 'recommence', etape: i + 1, essai: essais });
+        : '\n\nTon travail précédent a été effacé : refais l\'étape depuis le début, plus simplement.');
+      activite({ role: 'codeur', nom: codeur.nom, action: essais === 1 ? 'écrit le code' : surPlace ? 'corrige son code' : 'recommence', etape: i + 1, essai: essais });
+      let dernierEchecEcriture = '';
       await discuter({
-        messages: [{ role: 'user', content: consigneOuvrier(plan, etape, resultats.filter((r) => r.ok), remarque) }],
+        messages: [{ role: 'user', content: consigneOuvrier(plan, etape, resultats.filter((r) => r.ok), contexteEssai) }],
         modele: codeur.modele, envoyer: codeur.envoyer, limites: codeur.limites, ctx: ctxPour(codeur),
         options: { seulement: OUTILS_OUVRIER, projet: true, documents: false },
-        ev: { morceau: ev.morceau, outil: (nom, a) => ev.info?.(`  ${GESTES[nom] || nom} ${a?.chemin || a?.texte || a?.dossier || ''}`.trimEnd()) },
+        ev: {
+          morceau: ev.morceau,
+          outil: (nom, a) => {
+            if (GESTES[nom]) ev.info?.(`  ${GESTES[nom]} ${a?.chemin || a?.texte || a?.dossier || ''}`.trimEnd());
+          },
+          resultatOutil: (nom, resultat) => {
+            if (!OUTILS_ECRITURE.has(nom)) return;
+            const resume = resultat.split('\n', 1)[0].slice(0, 240);
+            if (/^Fichier (modifié|créé) :/.test(resume)) {
+              ev.info?.(`  ${resume}`);
+            } else {
+              dernierEchecEcriture = resume;
+              ev.info?.(`  Écriture sans changement : ${resume}`);
+            }
+          },
+        },
       });
+      signal?.throwIfAborted();
       git(copie, 'add', '-A');
-      const diff = git(copie, 'diff', '--cached');
-      if (!diff) { remarque = "Rien n'a été modifié. Fais vraiment les changements demandés avec les outils."; continue; }
+      const diff = git(copie, 'diff', '--cached', '--unified=8');
+      if (!diff) {
+        remarque = dernierEchecEcriture || remarque || "Rien n'a été modifié. Fais vraiment les changements demandés avec les outils.";
+        continue;
+      }
       remarque = '';
       for (const controle of codeur.controles || []) {
         remarque = await controler(controle, etape, diff, { etape: i + 1, essai: essais });
         if (remarque) break;
       }
       if (remarque) continue;
+      signal?.throwIfAborted();
       git(copie, '-c', 'user.name=Cat Ai', '-c', 'user.email=chantier@cat-ai.invalid', 'commit', '-q', '-m', `Chantier, étape ${i + 1} : ${etape.titre}`);
       reussie = true;
     }
+    if (signal?.aborted && !reussie) break;
     resultats.push({ titre: etape.titre, ok: reussie, essais, raison: reussie ? '' : remarque });
     ev.resultat?.({ etape: i + 1, ok: reussie, essais });
     ev.info?.(reussie ? `  étape ${i + 1} faite` : `  étape ${i + 1} abandonnée après ${essais} essais`);
@@ -253,14 +307,21 @@ async function lancerChantier({ projet, plan, chef, codeurs, ouvrier, verificate
     if (!reussie) break;
   }
   } catch (err) {
-    if (!signal?.aborted) throw err;
-    ev.info?.('Arrêt demandé : le chantier s\'arrête ici.');
+    if (signal?.aborted) ev.info?.('Arrêt demandé : le chantier s\'arrête ici.');
+    else {
+      const numero = resultats.length + 1;
+      const raison = `${actif?.nom || 'Chantier'} · étape ${numero} : ${err.message === 'fetch failed' ? 'Connexion au modèle interrompue.' : err.message}`;
+      const essais = actif?.essai || 0;
+      resultats.push({ titre: etapes[numero - 1].titre, ok: false, essais, raison });
+      ev.resultat?.({ etape: numero, ok: false, essais });
+      ev.info?.(raison);
+    }
   }
   git(copie, 'reset', '--hard', '-q');
   git(copie, 'clean', '-fdq', '-e', 'node_modules');
-  ev.activite?.(null);
+  activite(null);
   const rapport = rapportChantier({ branche, copie, etapes, resultats, racine });
-  return { branche, copie, etapes: resultats, rapport };
+  return { branche, copie, etapes: resultats, plan: etapes, rapport, commit: git(copie, 'rev-parse', 'HEAD') };
 }
 
 function rapportChantier({ branche, copie, etapes, resultats, racine }) {
@@ -292,7 +353,7 @@ function jeterChantier(projet, nom) {
 
 function horodatage(d = new Date()) {
   const z = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}${z(d.getMonth() + 1)}${z(d.getDate())}-${z(d.getHours())}${z(d.getMinutes())}`;
+  return `${d.getFullYear()}${z(d.getMonth() + 1)}${z(d.getDate())}-${z(d.getHours())}${z(d.getMinutes())}-${randomUUID()}`;
 }
 
-module.exports = { detailEchec, lancerChantier, jeterChantier, lignesEchec, etapesDepuis, avisDepuis, lireJson, rapportChantier, OUTILS_OUVRIER, ESSAIS_PAR_ETAPE };
+module.exports = { detailEchec, lancerChantier, preparerPlan, codeurPour, jeterChantier, lignesEchec, etapesDepuis, avisDepuis, lireJson, rapportChantier, OUTILS_OUVRIER, ESSAIS_PAR_ETAPE };

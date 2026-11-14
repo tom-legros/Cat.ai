@@ -68,10 +68,76 @@ test('etapesDepuis et avisDepuis : JSON entouré de texte, et pas de validation 
   assert.equal(avisDepuis("c'est bon je pense").ok, false);
 });
 
+test('chantier : une ancre introuvable est signalée dans le journal et le rapport', async () => {
+  const projet = depot();
+  const dossierCopies = fs.mkdtempSync(path.join(os.tmpdir(), 'catai-ancre-'));
+  const journal = [];
+  const ouvrier = { modele: 'ouvrier', envoyer: async (messages) => ({
+    content: '',
+    toolCalls: messages.at(-1).role === 'tool' ? [] : [{
+      function: { name: 'remplacer_texte', arguments: { chemin: 'a.js', ancien_texte: 'ancre absente', nouveau_texte: 'nouveau' } },
+    }],
+  }) };
+  const r = await lancerChantier({
+    projet, dossierCopies, nom: 'ancre', plan: 'modifier a.js', ouvrier,
+    chef: fauxChef([{ titre: 'Un', consigne: 'Remplacer une ligne' }]),
+    ev: { info: (ligne) => journal.push(ligne) },
+  });
+  assert.match(r.etapes[0].raison, /ancien_texte est introuvable/);
+  assert.match(journal.join('\n'), /Écriture sans changement : ancien_texte est introuvable/);
+  assert.doesNotMatch(journal.join('\n'), /modifie a\.js|Fichier modifié/);
+  jeterChantier(projet, 'ancre');
+});
+
 test('lignesEchec : le test raté et son erreur, sans le bilan', () => {
   const { lignesEchec } = require('../principal/chantier');
   const sortie = "✔ somme (0.4ms)\n✖ produit (1.2ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  12 !== 7\nℹ tests 2\nℹ fail 1";
   assert.equal(lignesEchec(sortie), '✖ produit (1.2ms)\nAssertionError [ERR_ASSERTION]: Expected values to be strictly equal:');
+});
+
+test('etapesDepuis : élimine les répétitions sans perdre deux tâches distinctes de même titre', () => {
+  const a = { titre: 'Tests', consigne: 'Créer le test du thème' };
+  const b = { titre: 'Tests', consigne: 'Créer le test de sauvegarde' };
+  assert.deepEqual(etapesDepuis(JSON.stringify([a, { titre: 'TESTS', consigne: 'Créer  le test du thème' }, b])), [a, b]);
+});
+
+test('chantier : une panne laisse les commits validés et la reprise ne recode que le reste', async () => {
+  const projet = depot();
+  const dossierCopies = fs.mkdtempSync(path.join(os.tmpdir(), 'catai-reprise-'));
+  const plan = [{ titre: 'Un', consigne: 'crée f1' }, { titre: 'Deux', consigne: 'crée f2' }];
+  const chef = fauxChef(plan);
+  const dev = fauxOuvrier();
+  const envoyer = dev.envoyer;
+  dev.envoyer = async (messages) => {
+    if (messages.some((m) => typeof m.content === 'string' && m.content.includes('TON ÉTAPE, et rien d\'autre : Deux'))) throw new Error('fetch failed');
+    return envoyer(messages);
+  };
+  const options = { projet, plan: 'deux fichiers', dossierCopies, chef, ouvrier: dev, nom: 'reprise' };
+  const r = await lancerChantier(options);
+  assert.deepEqual(r.etapes.map((e) => e.ok), [true, false], r.rapport);
+  assert.match(r.etapes[1].raison, /Codeur · étape 2 : Connexion/);
+  const dejaFait = git(r.copie, 'rev-parse', 'HEAD');
+  dev.envoyer = envoyer;
+  const suite = await lancerChantier({ ...options, etapes: r.plan, reprise: r });
+  assert.deepEqual(suite.etapes.map((e) => e.ok), [true, true]);
+  assert.equal(git(suite.copie, 'rev-parse', 'HEAD^'), dejaFait);
+  jeterChantier(projet, 'reprise');
+});
+
+test('chantier : un arrêt pendant la relecture empêche le commit de l’étape', async () => {
+  const projet = depot();
+  const dossierCopies = fs.mkdtempSync(path.join(os.tmpdir(), 'catai-arret-'));
+  const arret = new AbortController();
+  const chef = fauxChef([{ titre: 'Un', consigne: 'crée f1' }]);
+  const verificateur = { modele: 'relecteur', envoyer: async () => {
+    arret.abort();
+    return { content: '{"ok":true}' };
+  } };
+  const r = await lancerChantier({ projet, plan: 'un fichier', dossierCopies, chef, ouvrier: fauxOuvrier(), verificateur, signal: arret.signal, nom: 'arret' });
+  assert.deepEqual(r.etapes, []);
+  assert.equal(git(r.copie, 'log', '-1', '--format=%s'), 'depart');
+  assert.equal(git(r.copie, 'status', '--porcelain'), '');
+  jeterChantier(projet, 'arret');
 });
 
 test('detailEchec : ce qui suit « failing tests: », avec la différence attendu / obtenu, sans la pile d appels', () => {

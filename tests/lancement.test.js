@@ -77,11 +77,16 @@ test('agentsDuChantier : les codeurs sur le PC, les autres en ligne, et le modè
   const appels = [];
   const dits = [];
   let horloge = 0;
-  const envoyerLocal = async (_m, modele) => { appels.push(`local ${modele}`); return { content: 'ok', toolCalls: [] }; };
+  const envoyerLocal = async (_m, modele, _morceau, signal, options) => {
+    assert.ok(signal instanceof AbortSignal);
+    assert.equal(options.chantier, true);
+    appels.push(`local ${modele}`);
+    return { content: 'ok', toolCalls: [] };
+  };
   const envoyerEnLigne = (id) => async (_m, modele) => { appels.push(`${id} ${modele}`); throw new Error('Limite atteinte (429)'); };
   const { chef, codeurs, resume } = agentsDuChantier({ reglages: { equipe, modeles: { ollama: 'qwen3:8b' } }, infos, envoyerLocal, envoyerEnLigne, limitesLocales: { total: 1 }, dire: (t) => dits.push(t), pause: async () => {}, maintenant: () => horloge });
   assert.match(resume, /^chef gemini gemini-flash-lite · codeur qwen3:8b · contrôles : gemini gemini-flash-lite$/);
-  assert.equal(codeurs[0].envoyer, envoyerLocal);
+  assert.equal(codeurs[0].local, true);
   assert.deepEqual(codeurs[0].controles.map((c) => c.type), ['tests', 'relecture']);
   assert.ok(codeurs[0].controles[0].logs);
   // Le chef en ligne tombe : le modèle du PC répond à sa place, et les fois suivantes directement
@@ -95,6 +100,8 @@ test('agentsDuChantier : les codeurs sur le PC, les autres en ligne, et le modè
   horloge = 16 * 60 * 1000;
   await chef.envoyer([], 'ignoré');
   assert.equal(appels[5], 'gemini gemini-flash-lite');
+  await codeurs[0].envoyer([], codeurs[0].modele);
+  assert.equal(appels.at(-1), 'local qwen3:8b');
 });
 
 test('agentsDuChantier : un codeur en ligne garde ses limites, puis prend celles du PC quand le quota saute', async () => {

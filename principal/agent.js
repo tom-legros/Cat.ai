@@ -43,6 +43,7 @@ async function ecrireAvecAccord(ctx, chemin, contenu) {
   if (existe) {
     if (fs.statSync(full).size > MAX_FICHIER_OUTIL) return 'Fichier existant trop gros pour être remplacé par le chat.';
     ancien = fs.readFileSync(full, 'utf8');
+    if (ancien === contenu) return `Aucun changement : ${chemin} a déjà ce contenu.`;
   }
   if (!(await ctx.ui.confirmerEcriture({ chemin: full, ancien, nouveau: contenu, existe }))) return REFUS_ECRITURE + RIEN_N_A_CHANGE;
   fs.mkdirSync(path.dirname(full), { recursive: true });
@@ -238,10 +239,12 @@ async function discuter({ messages, modele, envoyer, limites, ctx, ev = {}, opti
   const afficher = (t) => ev.morceau?.(t);
   let relance = false;
   for (let etape = 0; etape < MAX_STEPS; etape++) {
+    ctx.signal?.throwIfAborted();
     const aEnvoyer = limites ? compacter(historique, limites.total) : historique;
     // Mode prof : les blocs de code sont retirés pendant que la réponse arrive (principal/prof.js)
     const filtre = ctx.prof ? creerFiltreCode(afficher) : null;
     let { content, toolCalls } = await envoyer(aEnvoyer, modele, filtre ? filtre.morceau : afficher, ctx.signal, { prof: ctx.prof, onPause: ev.pause, ...options });
+    ctx.signal?.throwIfAborted();
     filtre?.fin();
     // Ce qui est à l'écran pour cette réponse, pour pouvoir l'effacer
     let affiche = filtre ? filtre.longueur() : content.length;
@@ -273,6 +276,7 @@ async function discuter({ messages, modele, envoyer, limites, ctx, ev = {}, opti
     }
     if (!toolCalls.length) return { fini: true, historique };
     for (const call of toolCalls) {
+      ctx.signal?.throwIfAborted();
       const { name, arguments: args } = call.function;
       // Les étiquettes montrent seulement le chemin, pas les gros textes
       ev.outil?.(name, { ...args, contenu: undefined, ancien_texte: undefined, nouveau_texte: undefined });
@@ -280,10 +284,12 @@ async function discuter({ messages, modele, envoyer, limites, ctx, ev = {}, opti
       if (OUTILS_ECRITURE.has(name) && ecritureRefusee(ctx, args?.chemin)) ev.outil?.('refus', { chemin: args.chemin });
       let result;
       try {
-        result = appelRepete(appelsFaits, name, args) ? BOUCLE : await executerOutil(name, args || {}, ctx);
+        if (options.seulement && !options.seulement.includes(name)) result = "Cet outil n'est pas disponible dans cette tâche.";
+        else result = appelRepete(appelsFaits, name, args) ? BOUCLE : await executerOutil(name, args || {}, ctx);
       } catch (err) {
         result = `Erreur : ${err.message}`;
       }
+      ev.resultatOutil?.(name, String(result));
       // Lecture d'un fichier sensible refusée : l'étiquette « Lit .env » ne doit pas laisser croire le contraire
       if (name === 'lire_fichier' && String(result).startsWith(REFUS_LECTURE)) ev.outil?.('refus-lecture', { chemin: args.chemin });
       if (name === 'lire_page_web' && String(result).startsWith(REFUS_PAGE)) ev.outil?.('refus-page', { url: args.url });
