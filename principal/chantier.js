@@ -104,6 +104,7 @@ ${plan.slice(0, 3000)}
 TON ÉTAPE, et rien d'autre : ${etape.titre}
 ${etape.consigne}
 ${remarque ? `\nLa tentative précédente a été refusée : ${remarque}\n` : ''}
+Écris dans le langage des fichiers du projet, tel qu'il y est écrit (pas de TypeScript dans un projet JavaScript).
 Lis les fichiers dont tu as besoin, puis modifie-les avec remplacer_texte (ou ecrire_fichier pour un nouveau fichier).
 Les modifications sont appliquées directement. Quand l'étape est faite, réponds en une phrase ce que tu as changé.`;
 
@@ -197,9 +198,16 @@ async function lancerChantier({ projet, plan, chef, codeurs, ouvrier, verificate
     let essais = 0;
     while (!reussie && essais < ESSAIS_PAR_ETAPE && !signal?.aborted) {
       essais++;
-      // Chaque essai repart de l'état de l'étape précédente
-      git(copie, 'reset', '--hard', '-q');
-      git(copie, 'clean', '-fdq', '-e', 'node_modules');
+      // Le deuxième essai corrige le travail du premier, resté sur place : un petit modèle qui réécrit tout refait
+      // souvent la même faute. Si ça ne suffit pas, le troisième repart de l'état de l'étape précédente.
+      const surPlace = essais === 2 && !!remarque;
+      if (!surPlace) {
+        git(copie, 'reset', '--hard', '-q');
+        git(copie, 'clean', '-fdq', '-e', 'node_modules');
+      }
+      if (remarque) remarque += surPlace
+        ? '\n\nTon travail est toujours là : relis les fichiers que tu as écrits et corrige seulement ce qui est faux, avec remplacer_texte.'
+        : '\n\nTon travail précédent a été effacé : refais l\'étape depuis le début, plus simplement.';
       await discuter({
         messages: [{ role: 'user', content: consigneOuvrier(plan, etape, resultats.filter((r) => r.ok), remarque) }],
         modele: codeur.modele, envoyer: codeur.envoyer, limites: codeur.limites, ctx: ctxPour(codeur),
