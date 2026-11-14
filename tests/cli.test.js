@@ -48,3 +48,21 @@ test('fautChercher : une vraie question de doc fait chercher, une demande d écr
   assert.equal(contexte.fautChercher('propose moi un plan ne lis pas de page, juste la commande'), false);
   assert.equal(contexte.fautChercher('salut ça va ?'), false);
 });
+
+test('commande : les commandes de la discussion changent les réglages, une inconnue ne part pas au modèle', async (t) => {
+  const { commande } = require('../cli/catai');
+  t.mock.method(process.stdout, 'write', () => true);
+  const o = { modele: 'qwen3:8b', fournisseur: 'ollama', prof: false, dossier: __dirname };
+  const conversation = [{ role: 'user', content: 'x' }];
+  assert.equal(await commande('/modele qwen3.5:4b', { o, conversation }), true);
+  assert.equal(o.modele, 'qwen3.5:4b');
+  assert.equal(await commande('/prof', { o, conversation }), true);
+  assert.equal(o.prof, true);
+  assert.equal(await commande('/dossier ..', { o, conversation }), true);
+  assert.equal(o.dossier, require('path').resolve(__dirname, '..'));
+  assert.equal(await commande('/oublier', { o, conversation }), true);
+  assert.equal(conversation.length, 0);
+  assert.equal(await commande('/nimporte', { o, conversation }), true);
+  assert.equal(await commande('/q', { o, conversation }), 'quitter');
+  assert.equal(await commande('une vraie question', { o, conversation }), false);
+});

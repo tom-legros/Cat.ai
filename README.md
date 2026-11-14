@@ -66,6 +66,30 @@ Les clés gratuites (Gemini, Groq, OpenRouter) se collent dans **Réglages**, en
 - **Mises à jour** : quand une nouvelle version sort, l'app te le dit en bas à gauche et l'installe en un clic (installateur Windows et AppImage). Rien ne se télécharge sans ton accord.
 - **Sécurité** : un `.env` ou une clé privée n'est jamais lu sans ton accord, les clés API sont chiffrées par le système, et le chat ne sort jamais du dossier ouvert. Il ne lit que des pages internet publiques, jamais celles de ton PC ou de ton réseau (box, imprimante…). La seule chose que l'app fait seule sur internet, c'est demander à GitHub, au démarrage, s'il existe une nouvelle version : rien sur toi n'est envoyé.
 
+## Dans le terminal : `catai`
+
+Le même chat, sans fenêtre. Sous Windows, l'installateur ajoute la commande tout seul.
+
+```bash
+catai                      # le chat s'ouvre dans le dossier courant, /aide pour ses commandes
+catai "explique main.js"   # une question, puis il rend la main
+catai chantier plan.md     # l'équipe d'agents code le plan dans une copie du projet
+```
+
+Comme dans l'app, chaque modification de fichier est montrée avant d'être écrite et attend ton accord.
+
+**Les agents.** Dans la page Agents de l'app, tu composes une équipe : un chef qui découpe ton plan, des codeurs, un testeur, un lecteur de logs, des relecteurs. Un chantier travaille toujours dans une copie de ton projet (une branche git à part) : à la fin tu lis le rapport, puis tu gardes ou tu jettes.
+
+**Sur un petit PC ou un serveur, sans écran.** Node et Ollama suffisent, Electron n'est pas nécessaire :
+
+```bash
+npm install --omit=dev
+npm link        # la commande catai devient disponible partout
+catai
+```
+
+Sans l'app, seuls les modèles d'Ollama sont utilisables : les clés des fournisseurs en ligne sont gardées par l'app.
+
 ## Lancer depuis le code
 
 Il faut [Node.js](https://nodejs.org).
