@@ -6,9 +6,13 @@
 // Modèle conseillé de chaque fournisseur : bon en code et avec les outils, sans vider le quota gratuit.
 // Du meilleur au moins bon. Une RegExp prend la version la plus récente qui correspond
 // (Gemini change souvent de numéro de version). C'est aussi le modèle choisi quand rien n'est retenu.
+// Le modèle Ollama pour lequel Cat Ai est réglé et testé (même valeur que principal/materiel.js)
+const MODELE_INTEGRE = "qwen3.5:9b";
+
 const MODELE_PREFERE = {
     // Ollama : le plus gros Qwen installé passe en premier (le conseil selon la carte graphique est dans principal/materiel.js)
-    ollama: ["qwen3.6:27b", "qwen3:14b", "qwen3.5:9b", "qwen3:8b", "qwen3.5:4b", "qwen3.5:2b", "qwen2.5-coder:7b"],
+    // qwen3.5:9b d'abord : c'est le modèle « Intégré par Cat Ai », réglé et testé pour l'app
+    ollama: ["qwen3.5:9b", "qwen3.6:27b", "qwen3:14b", "qwen3:8b", "qwen3.5:4b", "qwen3.5:2b", "qwen2.5-coder:7b"],
     groq: ["openai/gpt-oss-20b", "qwen/qwen3-32b", "llama-3.1-8b-instant"],
     gemini: [/^gemini-[\d.]+-flash-lite$/, /^gemini-[\d.]+-flash$/],
     // Les :free changent souvent : north-mini-code a répondu juste au test d'octobre 2026, sinon un autre modèle de code
@@ -31,14 +35,25 @@ const GOURMANDS = {
 };
 
 function modeleConseille(models, fournisseurId) {
+    // Un modèle gourmand (▲) n'est jamais « Conseillé » quand une alternative existe : l'étoile et la
+    // mention Gourmand se contrediraient. S'il n'y a que des gourmands, le meilleur passe quand même.
+    let gourmand = null;
     for (const p of MODELE_PREFERE[fournisseurId] || []) {
-        if (typeof p === "string" && models.includes(p)) return p;
+        if (typeof p === "string") {
+            if (!models.includes(p)) continue;
+            if (estGourmand(p, fournisseurId)) { if (!gourmand) gourmand = p; continue; }
+            return p;
+        }
         if (p instanceof RegExp) {
             const trouves = models.filter((m) => p.test(m));
-            if (trouves.length) return trouves.sort((a, b) => noteModele(b, fournisseurId) - noteModele(a, fournisseurId))[0];
+            if (!trouves.length) continue;
+            const tries = trouves.sort((a, b) => noteModele(b, fournisseurId) - noteModele(a, fournisseurId));
+            const clair = tries.find((m) => !estGourmand(m, fournisseurId));
+            if (clair) return clair;
+            if (!gourmand) gourmand = tries[0];
         }
     }
-    return null;
+    return gourmand;
 }
 
 const estGourmand = (modele, fournisseurId) => !!GOURMANDS[fournisseurId]?.motif.test(modele);
@@ -84,6 +99,7 @@ const FOURNISSEURS_AFFICHAGE = {
 
 // Le conseil sous un modèle : pourquoi il est conseillé, pourquoi il est gourmand, ou son quota
 function conseilModele(modele, fournisseurId, conseille) {
+    if (modele === conseille && fournisseurId === "ollama" && modele === MODELE_INTEGRE) return { icone: "etoile", couleur: "jaune", conseil: "Intégré par Cat Ai · réglé et testé pour l'app" };
     if (modele === conseille) return { icone: "etoile", couleur: "jaune", conseil: `Conseillé · ${RAISON_CONSEIL[fournisseurId] || "le meilleur choix ici"}` };
     if (estGourmand(modele, fournisseurId)) return { icone: "poids", couleur: "rose", conseil: `Gourmand · ${GOURMANDS[fournisseurId].raison}` };
     const limite = quotaDuJour(fournisseurId, modele);

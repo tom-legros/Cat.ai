@@ -1,0 +1,4982 @@
+[
+  {
+    "nom": "qwen3.8",
+    "specialite": "Code, recherche et tâches longues",
+    "usages": [
+      "general",
+      "code",
+      "images",
+      "reflexion"
+    ],
+    "variantes": [
+      {
+        "modele": "qwen3.8:latest",
+        "taille": 18
+      },
+      {
+        "modele": "qwen3.8:27b",
+        "taille": 18
+      },
+      {
+        "modele": "qwen3.8:27b-dflash2-nvfp4",
+        "taille": 19,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.8:27b-mlx",
+        "taille": 18,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.8:27b-mlx-bf16",
+        "taille": 56,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.8:27b-mtp-q4_K_M",
+        "taille": 18
+      },
+      {
+        "modele": "qwen3.8:27b-mtp-q8_0",
+        "taille": 30
+      },
+      {
+        "modele": "qwen3.8:27b-mtp-bf16",
+        "taille": 56
+      },
+      {
+        "modele": "qwen3.8:27b-mxfp8",
+        "taille": 30,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.8:27b-nvfp4",
+        "taille": 18,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.8:27b-q4_K_M",
+        "taille": 18
+      },
+      {
+        "modele": "qwen3.8:27b-q8_0",
+        "taille": 30
+      },
+      {
+        "modele": "qwen3.8:27b-bf16",
+        "taille": 56
+      }
+    ]
+  },
+  {
+    "nom": "qwen3.8-flash-next",
+    "specialite": "Aperçu expérimental multimodal pour le code et le raisonnement",
+    "usages": [
+      "code",
+      "images",
+      "reflexion"
+    ],
+    "variantes": [
+      {
+        "modele": "qwen3.8-flash-next:125b-a6b-nvfp4",
+        "taille": 105,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.8-flash-next:125b-a6b-q4_K_M",
+        "taille": 120
+      },
+      {
+        "modele": "qwen3.8-flash-next:125b-a6b-q8_0",
+        "taille": 189
+      },
+      {
+        "modele": "qwen3.8-flash-next:125b-a6b-bf16",
+        "taille": 355
+      },
+      {
+        "modele": "qwen3.8-flash-next:125b-a6b-mlx-bf16",
+        "taille": 360,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.8-flash-next:125b-mlx",
+        "taille": 105,
+        "mlx": true
+      }
+    ]
+  },
+  {
+    "nom": "qwen3.6",
+    "specialite": "Code avec outils et analyse d’images",
+    "usages": [
+      "code",
+      "images",
+      "reflexion"
+    ],
+    "variantes": [
+      {
+        "modele": "qwen3.6:latest",
+        "taille": 23
+      },
+      {
+        "modele": "qwen3.6:27b",
+        "taille": 18
+      },
+      {
+        "modele": "qwen3.6:35b",
+        "taille": 23
+      },
+      {
+        "modele": "qwen3.6:27b-coding",
+        "taille": 18
+      },
+      {
+        "modele": "qwen3.6:27b-coding-mtp-q4_K_M",
+        "taille": 18
+      },
+      {
+        "modele": "qwen3.6:27b-coding-mxfp8",
+        "taille": 30,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.6:27b-coding-nvfp4",
+        "taille": 19,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.6:27b-coding-bf16",
+        "taille": 55
+      },
+      {
+        "modele": "qwen3.6:27b-mlx",
+        "taille": 19,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.6:27b-mlx-bf16",
+        "taille": 56,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.6:27b-mtp-q4_K_M",
+        "taille": 18
+      },
+      {
+        "modele": "qwen3.6:27b-mtp-q8_0",
+        "taille": 30
+      },
+      {
+        "modele": "qwen3.6:27b-mtp-bf16",
+        "taille": 56
+      },
+      {
+        "modele": "qwen3.6:27b-mxfp8",
+        "taille": 30,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.6:27b-nvfp4",
+        "taille": 19,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.6:27b-q4_K_M",
+        "taille": 17
+      },
+      {
+        "modele": "qwen3.6:27b-q8_0",
+        "taille": 30
+      },
+      {
+        "modele": "qwen3.6:27b-bf16",
+        "taille": 56
+      },
+      {
+        "modele": "qwen3.6:35b-a3b",
+        "taille": 23
+      },
+      {
+        "modele": "qwen3.6:35b-a3b-coding",
+        "taille": 23
+      },
+      {
+        "modele": "qwen3.6:35b-a3b-coding-mtp-q4_K_M",
+        "taille": 23
+      },
+      {
+        "modele": "qwen3.6:35b-a3b-coding-mxfp8",
+        "taille": 38,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.6:35b-a3b-coding-nvfp4",
+        "taille": 24,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.6:35b-a3b-q4_K_M",
+        "taille": 24
+      },
+      {
+        "modele": "qwen3.6:35b-a3b-coding-bf16",
+        "taille": 70
+      },
+      {
+        "modele": "qwen3.6:35b-a3b-mlx-bf16",
+        "taille": 72,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.6:35b-a3b-mtp-q4_K_M",
+        "taille": 23
+      },
+      {
+        "modele": "qwen3.6:35b-a3b-mtp-q8_0",
+        "taille": 39
+      },
+      {
+        "modele": "qwen3.6:35b-a3b-mtp-bf16",
+        "taille": 72
+      },
+      {
+        "modele": "qwen3.6:35b-a3b-mxfp8",
+        "taille": 38,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.6:35b-a3b-nvfp4",
+        "taille": 23,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.6:35b-a3b-q8_0",
+        "taille": 39
+      },
+      {
+        "modele": "qwen3.6:35b-a3b-bf16",
+        "taille": 72
+      },
+      {
+        "modele": "qwen3.6:35b-coding",
+        "taille": 23
+      },
+      {
+        "modele": "qwen3.6:35b-mlx",
+        "taille": 23,
+        "mlx": true
+      }
+    ]
+  },
+  {
+    "nom": "qwen3.5",
+    "specialite": "Assistant polyvalent avec vision, en plusieurs tailles",
+    "usages": [
+      "general",
+      "code",
+      "images",
+      "reflexion"
+    ],
+    "variantes": [
+      {
+        "modele": "qwen3.5:latest",
+        "taille": 6.6
+      },
+      {
+        "modele": "qwen3.5:0.8b",
+        "taille": 1.2
+      },
+      {
+        "modele": "qwen3.5:2b",
+        "taille": 2.7
+      },
+      {
+        "modele": "qwen3.5:4b",
+        "taille": 3.3
+      },
+      {
+        "modele": "qwen3.5:9b",
+        "taille": 6.6
+      },
+      {
+        "modele": "qwen3.5:27b",
+        "taille": 17
+      },
+      {
+        "modele": "qwen3.5:35b",
+        "taille": 22
+      },
+      {
+        "modele": "qwen3.5:122b",
+        "taille": 81
+      },
+      {
+        "modele": "qwen3.5:0.8b-mlx",
+        "taille": 1.2,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.5:0.8b-mlx-bf16",
+        "taille": 1.7,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.5:0.8b-mtp-q8_0",
+        "taille": 1.3
+      },
+      {
+        "modele": "qwen3.5:0.8b-mxfp8",
+        "taille": 1.2,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.5:0.8b-nvfp4",
+        "taille": 1,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.5:0.8b-q8_0",
+        "taille": 1
+      },
+      {
+        "modele": "qwen3.5:0.8b-bf16",
+        "taille": 1.8
+      },
+      {
+        "modele": "qwen3.5:2b-mlx",
+        "taille": 3.1,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.5:2b-mlx-bf16",
+        "taille": 4.4,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.5:2b-mtp-q4_K_M",
+        "taille": 2.6
+      },
+      {
+        "modele": "qwen3.5:2b-mtp-q8_0",
+        "taille": 3.3
+      },
+      {
+        "modele": "qwen3.5:2b-mxfp8",
+        "taille": 3.1,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.5:2b-nvfp4",
+        "taille": 2.5,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.5:2b-q4_K_M",
+        "taille": 1.9
+      },
+      {
+        "modele": "qwen3.5:2b-q8_0",
+        "taille": 2.7
+      },
+      {
+        "modele": "qwen3.5:2b-bf16",
+        "taille": 4.6
+      },
+      {
+        "modele": "qwen3.5:4b-mlx",
+        "taille": 4,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.5:4b-mlx-bf16",
+        "taille": 9.1,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.5:4b-mtp-q4_K_M",
+        "taille": 4.1
+      },
+      {
+        "modele": "qwen3.5:4b-mtp-q8_0",
+        "taille": 6
+      },
+      {
+        "modele": "qwen3.5:4b-mxfp8",
+        "taille": 5.6,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.5:4b-nvfp4",
+        "taille": 4,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.5:4b-q4_K_M",
+        "taille": 3.3
+      },
+      {
+        "modele": "qwen3.5:4b-q8_0",
+        "taille": 5.2
+      },
+      {
+        "modele": "qwen3.5:4b-bf16",
+        "taille": 9.3
+      },
+      {
+        "modele": "qwen3.5:9b-mlx",
+        "taille": 8.9,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.5:9b-mlx-bf16",
+        "taille": 19,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.5:9b-mtp-nvfp4",
+        "taille": 7.6,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.5:9b-mtp-q4_K_M",
+        "taille": 9
+      },
+      {
+        "modele": "qwen3.5:9b-mtp-q8_0",
+        "taille": 13
+      },
+      {
+        "modele": "qwen3.5:9b-mxfp8",
+        "taille": 11,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.5:9b-nvfp4",
+        "taille": 7.2,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.5:9b-q4_K_M",
+        "taille": 6.6
+      },
+      {
+        "modele": "qwen3.5:9b-q8_0",
+        "taille": 10
+      },
+      {
+        "modele": "qwen3.5:9b-bf16",
+        "taille": 19
+      },
+      {
+        "modele": "qwen3.5:27b-coding-mxfp8",
+        "taille": 30,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.5:27b-coding-nvfp4",
+        "taille": 20,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.5:27b-coding-bf16",
+        "taille": 55
+      },
+      {
+        "modele": "qwen3.5:27b-int4",
+        "taille": 16
+      },
+      {
+        "modele": "qwen3.5:27b-int8",
+        "taille": 30
+      },
+      {
+        "modele": "qwen3.5:27b-mlx",
+        "taille": 20,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.5:27b-mlx-bf16",
+        "taille": 55,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.5:27b-mtp-q4_K_M",
+        "taille": 21
+      },
+      {
+        "modele": "qwen3.5:27b-mxfp8",
+        "taille": 30,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.5:27b-nvfp4",
+        "taille": 20,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.5:27b-q4_K_M",
+        "taille": 17
+      },
+      {
+        "modele": "qwen3.5:27b-q8_0",
+        "taille": 30
+      },
+      {
+        "modele": "qwen3.5:27b-bf16",
+        "taille": 56
+      },
+      {
+        "modele": "qwen3.5:35b-a3b",
+        "taille": 22
+      },
+      {
+        "modele": "qwen3.5:35b-a3b-coding-mxfp8",
+        "taille": 37,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.5:35b-a3b-coding-nvfp4",
+        "taille": 22,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.5:35b-a3b-coding-bf16",
+        "taille": 70
+      },
+      {
+        "modele": "qwen3.5:35b-a3b-int4",
+        "taille": 20
+      },
+      {
+        "modele": "qwen3.5:35b-a3b-int8",
+        "taille": 38
+      },
+      {
+        "modele": "qwen3.5:35b-a3b-mlx-bf16",
+        "taille": 70,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.5:35b-a3b-mtp-q4_K_M",
+        "taille": 24
+      },
+      {
+        "modele": "qwen3.5:35b-a3b-mxfp8",
+        "taille": 37,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.5:35b-a3b-nvfp4",
+        "taille": 22,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.5:35b-a3b-q4_K_M",
+        "taille": 22
+      },
+      {
+        "modele": "qwen3.5:35b-a3b-q8_0",
+        "taille": 39
+      },
+      {
+        "modele": "qwen3.5:35b-a3b-bf16",
+        "taille": 72
+      },
+      {
+        "modele": "qwen3.5:35b-mlx",
+        "taille": 22,
+        "mlx": true
+      },
+      {
+        "modele": "qwen3.5:122b-a10b",
+        "taille": 81
+      },
+      {
+        "modele": "qwen3.5:122b-a10b-q4_K_M",
+        "taille": 81
+      }
+    ]
+  },
+  {
+    "nom": "qwen3",
+    "specialite": "Discussion multilingue et raisonnement",
+    "usages": [
+      "general",
+      "reflexion"
+    ],
+    "variantes": [
+      {
+        "modele": "qwen3:latest",
+        "taille": 5.2
+      },
+      {
+        "modele": "qwen3:0.6b",
+        "taille": 0.523
+      },
+      {
+        "modele": "qwen3:1.7b",
+        "taille": 1.4
+      },
+      {
+        "modele": "qwen3:4b",
+        "taille": 2.5
+      },
+      {
+        "modele": "qwen3:8b",
+        "taille": 5.2
+      },
+      {
+        "modele": "qwen3:14b",
+        "taille": 9.3
+      },
+      {
+        "modele": "qwen3:30b",
+        "taille": 19
+      },
+      {
+        "modele": "qwen3:32b",
+        "taille": 20
+      },
+      {
+        "modele": "qwen3:235b",
+        "taille": 142
+      },
+      {
+        "modele": "qwen3:0.6b-q4_K_M",
+        "taille": 0.523
+      },
+      {
+        "modele": "qwen3:0.6b-q8_0",
+        "taille": 0.832
+      },
+      {
+        "modele": "qwen3:0.6b-fp16",
+        "taille": 1.5
+      },
+      {
+        "modele": "qwen3:1.7b-q4_K_M",
+        "taille": 1.4
+      },
+      {
+        "modele": "qwen3:1.7b-q8_0",
+        "taille": 2.2
+      },
+      {
+        "modele": "qwen3:1.7b-fp16",
+        "taille": 4.1
+      },
+      {
+        "modele": "qwen3:4b-instruct",
+        "taille": 2.5
+      },
+      {
+        "modele": "qwen3:4b-instruct-2507-q4_K_M",
+        "taille": 2.5
+      },
+      {
+        "modele": "qwen3:4b-instruct-2507-q8_0",
+        "taille": 4.3
+      },
+      {
+        "modele": "qwen3:4b-instruct-2507-fp16",
+        "taille": 8.1
+      },
+      {
+        "modele": "qwen3:4b-thinking",
+        "taille": 2.5
+      },
+      {
+        "modele": "qwen3:4b-thinking-2507-q4_K_M",
+        "taille": 2.5
+      },
+      {
+        "modele": "qwen3:4b-thinking-2507-q8_0",
+        "taille": 4.3
+      },
+      {
+        "modele": "qwen3:4b-thinking-2507-fp16",
+        "taille": 8.1
+      },
+      {
+        "modele": "qwen3:4b-q4_K_M",
+        "taille": 2.6
+      },
+      {
+        "modele": "qwen3:4b-q8_0",
+        "taille": 4.4
+      },
+      {
+        "modele": "qwen3:4b-fp16",
+        "taille": 8.1
+      },
+      {
+        "modele": "qwen3:8b-q4_K_M",
+        "taille": 5.2
+      },
+      {
+        "modele": "qwen3:8b-q8_0",
+        "taille": 8.9
+      },
+      {
+        "modele": "qwen3:8b-fp16",
+        "taille": 16
+      },
+      {
+        "modele": "qwen3:14b-q4_K_M",
+        "taille": 9.3
+      },
+      {
+        "modele": "qwen3:14b-q8_0",
+        "taille": 16
+      },
+      {
+        "modele": "qwen3:14b-fp16",
+        "taille": 30
+      },
+      {
+        "modele": "qwen3:30b-a3b",
+        "taille": 19
+      },
+      {
+        "modele": "qwen3:30b-a3b-instruct-2507-q4_K_M",
+        "taille": 19
+      },
+      {
+        "modele": "qwen3:30b-a3b-q4_K_M",
+        "taille": 19
+      },
+      {
+        "modele": "qwen3:30b-a3b-instruct-2507-q8_0",
+        "taille": 32
+      },
+      {
+        "modele": "qwen3:30b-a3b-thinking-2507-q4_K_M",
+        "taille": 19
+      },
+      {
+        "modele": "qwen3:30b-a3b-q8_0",
+        "taille": 33
+      },
+      {
+        "modele": "qwen3:30b-a3b-thinking-2507-q8_0",
+        "taille": 32
+      },
+      {
+        "modele": "qwen3:30b-a3b-fp16",
+        "taille": 61
+      },
+      {
+        "modele": "qwen3:30b-a3b-instruct-2507-fp16",
+        "taille": 61
+      },
+      {
+        "modele": "qwen3:30b-a3b-thinking-2507-fp16",
+        "taille": 61
+      },
+      {
+        "modele": "qwen3:30b-instruct",
+        "taille": 19
+      },
+      {
+        "modele": "qwen3:30b-thinking",
+        "taille": 19
+      },
+      {
+        "modele": "qwen3:32b-q4_K_M",
+        "taille": 20
+      },
+      {
+        "modele": "qwen3:32b-q8_0",
+        "taille": 35
+      },
+      {
+        "modele": "qwen3:32b-fp16",
+        "taille": 66
+      },
+      {
+        "modele": "qwen3:235b-a22b",
+        "taille": 142
+      },
+      {
+        "modele": "qwen3:235b-a22b-instruct-2507-q4_K_M",
+        "taille": 142
+      },
+      {
+        "modele": "qwen3:235b-a22b-q4_K_M",
+        "taille": 142
+      },
+      {
+        "modele": "qwen3:235b-a22b-instruct-2507-q8_0",
+        "taille": 250
+      },
+      {
+        "modele": "qwen3:235b-a22b-thinking-2507-q4_K_M",
+        "taille": 142
+      },
+      {
+        "modele": "qwen3:235b-a22b-q8_0",
+        "taille": 250
+      },
+      {
+        "modele": "qwen3:235b-a22b-thinking-2507-q8_0",
+        "taille": 250
+      },
+      {
+        "modele": "qwen3:235b-a22b-fp16",
+        "taille": 470
+      },
+      {
+        "modele": "qwen3:235b-a22b-thinking-2507-fp16",
+        "taille": 470
+      },
+      {
+        "modele": "qwen3:235b-instruct",
+        "taille": 142
+      },
+      {
+        "modele": "qwen3:235b-thinking",
+        "taille": 142
+      }
+    ]
+  },
+  {
+    "nom": "qwen3-next",
+    "specialite": "Raisonnement et documents longs sur une grosse machine",
+    "usages": [
+      "general",
+      "reflexion"
+    ],
+    "variantes": [
+      {
+        "modele": "qwen3-next:latest",
+        "taille": 50
+      },
+      {
+        "modele": "qwen3-next:80b",
+        "taille": 50
+      },
+      {
+        "modele": "qwen3-next:80b-a3b-instruct-q4_K_M",
+        "taille": 50
+      },
+      {
+        "modele": "qwen3-next:80b-a3b-instruct-q8_0",
+        "taille": 85
+      },
+      {
+        "modele": "qwen3-next:80b-a3b-instruct-fp16",
+        "taille": 159
+      },
+      {
+        "modele": "qwen3-next:80b-a3b-thinking",
+        "taille": 50
+      },
+      {
+        "modele": "qwen3-next:80b-a3b-thinking-q4_K_M",
+        "taille": 50
+      },
+      {
+        "modele": "qwen3-next:80b-a3b-thinking-q8_0",
+        "taille": 85
+      },
+      {
+        "modele": "qwen3-next:80b-a3b-thinking-fp16",
+        "taille": 159
+      }
+    ]
+  },
+  {
+    "nom": "qwen3-coder",
+    "specialite": "Écriture de code et travail sur de grands dépôts",
+    "usages": [
+      "code"
+    ],
+    "variantes": [
+      {
+        "modele": "qwen3-coder:latest",
+        "taille": 19
+      },
+      {
+        "modele": "qwen3-coder:30b",
+        "taille": 19
+      },
+      {
+        "modele": "qwen3-coder:480b",
+        "taille": 290
+      },
+      {
+        "modele": "qwen3-coder:30b-a3b-q4_K_M",
+        "taille": 19
+      },
+      {
+        "modele": "qwen3-coder:30b-a3b-q8_0",
+        "taille": 32
+      },
+      {
+        "modele": "qwen3-coder:30b-a3b-fp16",
+        "taille": 61
+      },
+      {
+        "modele": "qwen3-coder:480b-a35b-q4_K_M",
+        "taille": 290
+      },
+      {
+        "modele": "qwen3-coder:480b-a35b-q8_0",
+        "taille": 510
+      },
+      {
+        "modele": "qwen3-coder:480b-a35b-fp16",
+        "taille": 960
+      }
+    ]
+  },
+  {
+    "nom": "qwen3-coder-next",
+    "specialite": "Agents de développement et utilisation d’outils",
+    "usages": [
+      "code"
+    ],
+    "variantes": [
+      {
+        "modele": "qwen3-coder-next:latest",
+        "taille": 52
+      },
+      {
+        "modele": "qwen3-coder-next:q4_K_M",
+        "taille": 52
+      },
+      {
+        "modele": "qwen3-coder-next:q8_0",
+        "taille": 85
+      }
+    ]
+  },
+  {
+    "nom": "qwen3-vl",
+    "specialite": "Captures d’écran, documents et analyse visuelle",
+    "usages": [
+      "images",
+      "reflexion"
+    ],
+    "variantes": [
+      {
+        "modele": "qwen3-vl:latest",
+        "taille": 6.2
+      },
+      {
+        "modele": "qwen3-vl:2b",
+        "taille": 1.9
+      },
+      {
+        "modele": "qwen3-vl:4b",
+        "taille": 3.3
+      },
+      {
+        "modele": "qwen3-vl:8b",
+        "taille": 6.2
+      },
+      {
+        "modele": "qwen3-vl:30b",
+        "taille": 20
+      },
+      {
+        "modele": "qwen3-vl:32b",
+        "taille": 21
+      },
+      {
+        "modele": "qwen3-vl:235b",
+        "taille": 143
+      },
+      {
+        "modele": "qwen3-vl:2b-instruct",
+        "taille": 1.9
+      },
+      {
+        "modele": "qwen3-vl:2b-instruct-q4_K_M",
+        "taille": 1.9
+      },
+      {
+        "modele": "qwen3-vl:2b-instruct-q8_0",
+        "taille": 2.7
+      },
+      {
+        "modele": "qwen3-vl:2b-instruct-bf16",
+        "taille": 4.3
+      },
+      {
+        "modele": "qwen3-vl:2b-thinking",
+        "taille": 1.9
+      },
+      {
+        "modele": "qwen3-vl:2b-thinking-q4_K_M",
+        "taille": 1.9
+      },
+      {
+        "modele": "qwen3-vl:2b-thinking-q8_0",
+        "taille": 2.6
+      },
+      {
+        "modele": "qwen3-vl:2b-thinking-bf16",
+        "taille": 4.3
+      },
+      {
+        "modele": "qwen3-vl:4b-instruct",
+        "taille": 3.3
+      },
+      {
+        "modele": "qwen3-vl:4b-instruct-q4_K_M",
+        "taille": 3.3
+      },
+      {
+        "modele": "qwen3-vl:4b-instruct-q8_0",
+        "taille": 5.1
+      },
+      {
+        "modele": "qwen3-vl:4b-instruct-bf16",
+        "taille": 8.9
+      },
+      {
+        "modele": "qwen3-vl:4b-thinking",
+        "taille": 3.3
+      },
+      {
+        "modele": "qwen3-vl:4b-thinking-q4_K_M",
+        "taille": 3.3
+      },
+      {
+        "modele": "qwen3-vl:4b-thinking-q8_0",
+        "taille": 5.1
+      },
+      {
+        "modele": "qwen3-vl:4b-thinking-bf16",
+        "taille": 8.9
+      },
+      {
+        "modele": "qwen3-vl:8b-instruct",
+        "taille": 6.2
+      },
+      {
+        "modele": "qwen3-vl:8b-instruct-q4_K_M",
+        "taille": 6.2
+      },
+      {
+        "modele": "qwen3-vl:8b-instruct-q8_0",
+        "taille": 9.9
+      },
+      {
+        "modele": "qwen3-vl:8b-instruct-bf16",
+        "taille": 18
+      },
+      {
+        "modele": "qwen3-vl:8b-thinking",
+        "taille": 6.2
+      },
+      {
+        "modele": "qwen3-vl:8b-thinking-q4_K_M",
+        "taille": 6.2
+      },
+      {
+        "modele": "qwen3-vl:8b-thinking-q8_0",
+        "taille": 9.9
+      },
+      {
+        "modele": "qwen3-vl:8b-thinking-bf16",
+        "taille": 18
+      },
+      {
+        "modele": "qwen3-vl:30b-a3b",
+        "taille": 20
+      },
+      {
+        "modele": "qwen3-vl:30b-a3b-instruct",
+        "taille": 20
+      },
+      {
+        "modele": "qwen3-vl:30b-a3b-instruct-q4_K_M",
+        "taille": 20
+      },
+      {
+        "modele": "qwen3-vl:30b-a3b-instruct-q8_0",
+        "taille": 34
+      },
+      {
+        "modele": "qwen3-vl:30b-a3b-instruct-bf16",
+        "taille": 62
+      },
+      {
+        "modele": "qwen3-vl:30b-a3b-thinking",
+        "taille": 20
+      },
+      {
+        "modele": "qwen3-vl:30b-a3b-thinking-q4_K_M",
+        "taille": 20
+      },
+      {
+        "modele": "qwen3-vl:30b-a3b-thinking-q8_0",
+        "taille": 34
+      },
+      {
+        "modele": "qwen3-vl:30b-a3b-thinking-bf16",
+        "taille": 62
+      },
+      {
+        "modele": "qwen3-vl:32b-instruct",
+        "taille": 21
+      },
+      {
+        "modele": "qwen3-vl:32b-instruct-q4_K_M",
+        "taille": 21
+      },
+      {
+        "modele": "qwen3-vl:32b-instruct-q8_0",
+        "taille": 36
+      },
+      {
+        "modele": "qwen3-vl:32b-instruct-bf16",
+        "taille": 67
+      },
+      {
+        "modele": "qwen3-vl:32b-thinking",
+        "taille": 21
+      },
+      {
+        "modele": "qwen3-vl:32b-thinking-q4_K_M",
+        "taille": 21
+      },
+      {
+        "modele": "qwen3-vl:32b-thinking-q8_0",
+        "taille": 36
+      },
+      {
+        "modele": "qwen3-vl:32b-thinking-bf16",
+        "taille": 67
+      },
+      {
+        "modele": "qwen3-vl:235b-a22b",
+        "taille": 143
+      },
+      {
+        "modele": "qwen3-vl:235b-a22b-instruct",
+        "taille": 143
+      },
+      {
+        "modele": "qwen3-vl:235b-a22b-instruct-q4_K_M",
+        "taille": 143
+      },
+      {
+        "modele": "qwen3-vl:235b-a22b-instruct-q8_0",
+        "taille": 251
+      },
+      {
+        "modele": "qwen3-vl:235b-a22b-instruct-bf16",
+        "taille": 471
+      },
+      {
+        "modele": "qwen3-vl:235b-a22b-thinking",
+        "taille": 143
+      },
+      {
+        "modele": "qwen3-vl:235b-a22b-thinking-q4_K_M",
+        "taille": 143
+      },
+      {
+        "modele": "qwen3-vl:235b-a22b-thinking-q8_0",
+        "taille": 251
+      },
+      {
+        "modele": "qwen3-vl:235b-a22b-thinking-bf16",
+        "taille": 471
+      }
+    ]
+  },
+  {
+    "nom": "qwen3-embedding",
+    "specialite": "Recherche sémantique et indexation de documents",
+    "usages": [
+      "embeddings"
+    ],
+    "variantes": [
+      {
+        "modele": "qwen3-embedding:latest",
+        "taille": 4.7
+      },
+      {
+        "modele": "qwen3-embedding:0.6b",
+        "taille": 0.639
+      },
+      {
+        "modele": "qwen3-embedding:4b",
+        "taille": 2.5
+      },
+      {
+        "modele": "qwen3-embedding:8b",
+        "taille": 4.7
+      },
+      {
+        "modele": "qwen3-embedding:0.6b-q8_0",
+        "taille": 0.639
+      },
+      {
+        "modele": "qwen3-embedding:0.6b-fp16",
+        "taille": 1.2
+      },
+      {
+        "modele": "qwen3-embedding:4b-q4_K_M",
+        "taille": 2.5
+      },
+      {
+        "modele": "qwen3-embedding:4b-q8_0",
+        "taille": 4.3
+      },
+      {
+        "modele": "qwen3-embedding:4b-fp16",
+        "taille": 8
+      },
+      {
+        "modele": "qwen3-embedding:8b-q4_K_M",
+        "taille": 4.7
+      },
+      {
+        "modele": "qwen3-embedding:8b-q8_0",
+        "taille": 8
+      },
+      {
+        "modele": "qwen3-embedding:8b-fp16",
+        "taille": 15
+      }
+    ]
+  },
+  {
+    "nom": "qwen2.5",
+    "specialite": "Discussion et rédaction multilingues",
+    "usages": [
+      "general"
+    ],
+    "variantes": [
+      {
+        "modele": "qwen2.5:latest",
+        "taille": 4.7
+      },
+      {
+        "modele": "qwen2.5:0.5b",
+        "taille": 0.398
+      },
+      {
+        "modele": "qwen2.5:1.5b",
+        "taille": 0.986
+      },
+      {
+        "modele": "qwen2.5:3b",
+        "taille": 1.9
+      },
+      {
+        "modele": "qwen2.5:7b",
+        "taille": 4.7
+      },
+      {
+        "modele": "qwen2.5:14b",
+        "taille": 9
+      },
+      {
+        "modele": "qwen2.5:32b",
+        "taille": 20
+      },
+      {
+        "modele": "qwen2.5:72b",
+        "taille": 47
+      },
+      {
+        "modele": "qwen2.5:0.5b-base",
+        "taille": 0.398
+      },
+      {
+        "modele": "qwen2.5:0.5b-base-q2_K",
+        "taille": 0.339
+      },
+      {
+        "modele": "qwen2.5:0.5b-base-q3_K_S",
+        "taille": 0.338
+      },
+      {
+        "modele": "qwen2.5:0.5b-base-q3_K_M",
+        "taille": 0.355
+      },
+      {
+        "modele": "qwen2.5:0.5b-base-q3_K_L",
+        "taille": 0.369
+      },
+      {
+        "modele": "qwen2.5:0.5b-base-q4_0",
+        "taille": 0.352
+      },
+      {
+        "modele": "qwen2.5:0.5b-base-q4_1",
+        "taille": 0.375
+      },
+      {
+        "modele": "qwen2.5:0.5b-base-q4_K_S",
+        "taille": 0.385
+      },
+      {
+        "modele": "qwen2.5:0.5b-base-q4_K_M",
+        "taille": 0.398
+      },
+      {
+        "modele": "qwen2.5:0.5b-base-q5_0",
+        "taille": 0.397
+      },
+      {
+        "modele": "qwen2.5:0.5b-base-q5_1",
+        "taille": 0.419
+      },
+      {
+        "modele": "qwen2.5:0.5b-base-q5_K_S",
+        "taille": 0.413
+      },
+      {
+        "modele": "qwen2.5:0.5b-base-q8_0",
+        "taille": 0.531
+      },
+      {
+        "modele": "qwen2.5:0.5b-instruct",
+        "taille": 0.398
+      },
+      {
+        "modele": "qwen2.5:0.5b-instruct-q2_K",
+        "taille": 0.339
+      },
+      {
+        "modele": "qwen2.5:0.5b-instruct-q3_K_S",
+        "taille": 0.338
+      },
+      {
+        "modele": "qwen2.5:0.5b-instruct-q3_K_M",
+        "taille": 0.355
+      },
+      {
+        "modele": "qwen2.5:0.5b-instruct-q3_K_L",
+        "taille": 0.369
+      },
+      {
+        "modele": "qwen2.5:0.5b-instruct-q4_0",
+        "taille": 0.352
+      },
+      {
+        "modele": "qwen2.5:0.5b-instruct-q4_1",
+        "taille": 0.375
+      },
+      {
+        "modele": "qwen2.5:0.5b-instruct-q4_K_S",
+        "taille": 0.385
+      },
+      {
+        "modele": "qwen2.5:0.5b-instruct-q4_K_M",
+        "taille": 0.398
+      },
+      {
+        "modele": "qwen2.5:0.5b-instruct-q5_0",
+        "taille": 0.397
+      },
+      {
+        "modele": "qwen2.5:0.5b-instruct-q5_1",
+        "taille": 0.419
+      },
+      {
+        "modele": "qwen2.5:0.5b-instruct-q5_K_S",
+        "taille": 0.413
+      },
+      {
+        "modele": "qwen2.5:0.5b-instruct-q5_K_M",
+        "taille": 0.42
+      },
+      {
+        "modele": "qwen2.5:0.5b-instruct-q6_K",
+        "taille": 0.506
+      },
+      {
+        "modele": "qwen2.5:0.5b-instruct-q8_0",
+        "taille": 0.531
+      },
+      {
+        "modele": "qwen2.5:0.5b-instruct-fp16",
+        "taille": 0.994
+      },
+      {
+        "modele": "qwen2.5:1.5b-instruct",
+        "taille": 0.986
+      },
+      {
+        "modele": "qwen2.5:1.5b-instruct-q2_K",
+        "taille": 0.676
+      },
+      {
+        "modele": "qwen2.5:1.5b-instruct-q3_K_S",
+        "taille": 0.761
+      },
+      {
+        "modele": "qwen2.5:1.5b-instruct-q3_K_M",
+        "taille": 0.824
+      },
+      {
+        "modele": "qwen2.5:1.5b-instruct-q3_K_L",
+        "taille": 0.88
+      },
+      {
+        "modele": "qwen2.5:1.5b-instruct-q4_0",
+        "taille": 0.935
+      },
+      {
+        "modele": "qwen2.5:1.5b-instruct-q4_1",
+        "taille": 1
+      },
+      {
+        "modele": "qwen2.5:1.5b-instruct-q4_K_S",
+        "taille": 0.94
+      },
+      {
+        "modele": "qwen2.5:1.5b-instruct-q4_K_M",
+        "taille": 0.986
+      },
+      {
+        "modele": "qwen2.5:1.5b-instruct-q5_0",
+        "taille": 1.1
+      },
+      {
+        "modele": "qwen2.5:1.5b-instruct-q5_1",
+        "taille": 1.2
+      },
+      {
+        "modele": "qwen2.5:1.5b-instruct-q5_K_S",
+        "taille": 1.1
+      },
+      {
+        "modele": "qwen2.5:1.5b-instruct-q5_K_M",
+        "taille": 1.1
+      },
+      {
+        "modele": "qwen2.5:1.5b-instruct-q6_K",
+        "taille": 1.3
+      },
+      {
+        "modele": "qwen2.5:1.5b-instruct-q8_0",
+        "taille": 1.6
+      },
+      {
+        "modele": "qwen2.5:1.5b-instruct-fp16",
+        "taille": 3.1
+      },
+      {
+        "modele": "qwen2.5:3b-instruct",
+        "taille": 1.9
+      },
+      {
+        "modele": "qwen2.5:3b-instruct-q2_K",
+        "taille": 1.3
+      },
+      {
+        "modele": "qwen2.5:3b-instruct-q3_K_S",
+        "taille": 1.5
+      },
+      {
+        "modele": "qwen2.5:3b-instruct-q3_K_M",
+        "taille": 1.6
+      },
+      {
+        "modele": "qwen2.5:3b-instruct-q3_K_L",
+        "taille": 1.7
+      },
+      {
+        "modele": "qwen2.5:3b-instruct-q4_0",
+        "taille": 1.8
+      },
+      {
+        "modele": "qwen2.5:3b-instruct-q4_1",
+        "taille": 2
+      },
+      {
+        "modele": "qwen2.5:3b-instruct-q4_K_S",
+        "taille": 1.8
+      },
+      {
+        "modele": "qwen2.5:3b-instruct-q4_K_M",
+        "taille": 1.9
+      },
+      {
+        "modele": "qwen2.5:3b-instruct-q5_0",
+        "taille": 2.2
+      },
+      {
+        "modele": "qwen2.5:3b-instruct-q5_1",
+        "taille": 2.3
+      },
+      {
+        "modele": "qwen2.5:3b-instruct-q5_K_S",
+        "taille": 2.2
+      },
+      {
+        "modele": "qwen2.5:3b-instruct-q5_K_M",
+        "taille": 2.2
+      },
+      {
+        "modele": "qwen2.5:3b-instruct-q6_K",
+        "taille": 2.5
+      },
+      {
+        "modele": "qwen2.5:3b-instruct-q8_0",
+        "taille": 3.3
+      },
+      {
+        "modele": "qwen2.5:3b-instruct-fp16",
+        "taille": 6.2
+      },
+      {
+        "modele": "qwen2.5:7b-instruct",
+        "taille": 4.7
+      },
+      {
+        "modele": "qwen2.5:7b-instruct-q2_K",
+        "taille": 3
+      },
+      {
+        "modele": "qwen2.5:7b-instruct-q3_K_S",
+        "taille": 3.5
+      },
+      {
+        "modele": "qwen2.5:7b-instruct-q3_K_M",
+        "taille": 3.8
+      },
+      {
+        "modele": "qwen2.5:7b-instruct-q3_K_L",
+        "taille": 4.1
+      },
+      {
+        "modele": "qwen2.5:7b-instruct-q4_0",
+        "taille": 4.4
+      },
+      {
+        "modele": "qwen2.5:7b-instruct-q4_1",
+        "taille": 4.9
+      },
+      {
+        "modele": "qwen2.5:7b-instruct-q4_K_S",
+        "taille": 4.5
+      },
+      {
+        "modele": "qwen2.5:7b-instruct-q4_K_M",
+        "taille": 4.7
+      },
+      {
+        "modele": "qwen2.5:7b-instruct-q5_0",
+        "taille": 5.3
+      },
+      {
+        "modele": "qwen2.5:7b-instruct-q5_1",
+        "taille": 5.8
+      },
+      {
+        "modele": "qwen2.5:7b-instruct-q5_K_S",
+        "taille": 5.3
+      },
+      {
+        "modele": "qwen2.5:7b-instruct-q5_K_M",
+        "taille": 5.4
+      },
+      {
+        "modele": "qwen2.5:7b-instruct-q6_K",
+        "taille": 6.3
+      },
+      {
+        "modele": "qwen2.5:7b-instruct-q8_0",
+        "taille": 8.1
+      },
+      {
+        "modele": "qwen2.5:7b-instruct-fp16",
+        "taille": 15
+      },
+      {
+        "modele": "qwen2.5:14b-instruct",
+        "taille": 9
+      },
+      {
+        "modele": "qwen2.5:14b-instruct-q2_K",
+        "taille": 5.8
+      },
+      {
+        "modele": "qwen2.5:14b-instruct-q3_K_S",
+        "taille": 6.7
+      },
+      {
+        "modele": "qwen2.5:14b-instruct-q3_K_M",
+        "taille": 7.3
+      },
+      {
+        "modele": "qwen2.5:14b-instruct-q3_K_L",
+        "taille": 7.9
+      },
+      {
+        "modele": "qwen2.5:14b-instruct-q4_0",
+        "taille": 8.5
+      },
+      {
+        "modele": "qwen2.5:14b-instruct-q4_1",
+        "taille": 9.4
+      },
+      {
+        "modele": "qwen2.5:14b-instruct-q4_K_S",
+        "taille": 8.6
+      },
+      {
+        "modele": "qwen2.5:14b-instruct-q4_K_M",
+        "taille": 9
+      },
+      {
+        "modele": "qwen2.5:14b-instruct-q5_0",
+        "taille": 10
+      },
+      {
+        "modele": "qwen2.5:14b-instruct-q5_1",
+        "taille": 11
+      },
+      {
+        "modele": "qwen2.5:14b-instruct-q5_K_S",
+        "taille": 10
+      },
+      {
+        "modele": "qwen2.5:14b-instruct-q5_K_M",
+        "taille": 11
+      },
+      {
+        "modele": "qwen2.5:14b-instruct-q6_K",
+        "taille": 12
+      },
+      {
+        "modele": "qwen2.5:14b-instruct-q8_0",
+        "taille": 16
+      },
+      {
+        "modele": "qwen2.5:14b-instruct-fp16",
+        "taille": 30
+      },
+      {
+        "modele": "qwen2.5:32b-instruct",
+        "taille": 20
+      },
+      {
+        "modele": "qwen2.5:32b-instruct-q2_K",
+        "taille": 12
+      },
+      {
+        "modele": "qwen2.5:32b-instruct-q3_K_S",
+        "taille": 14
+      },
+      {
+        "modele": "qwen2.5:32b-instruct-q3_K_M",
+        "taille": 16
+      },
+      {
+        "modele": "qwen2.5:32b-instruct-q3_K_L",
+        "taille": 17
+      },
+      {
+        "modele": "qwen2.5:32b-instruct-q4_0",
+        "taille": 19
+      },
+      {
+        "modele": "qwen2.5:32b-instruct-q4_1",
+        "taille": 21
+      },
+      {
+        "modele": "qwen2.5:32b-instruct-q4_K_S",
+        "taille": 19
+      },
+      {
+        "modele": "qwen2.5:32b-instruct-q4_K_M",
+        "taille": 20
+      },
+      {
+        "modele": "qwen2.5:32b-instruct-q5_0",
+        "taille": 23
+      },
+      {
+        "modele": "qwen2.5:32b-instruct-q5_1",
+        "taille": 25
+      },
+      {
+        "modele": "qwen2.5:32b-instruct-q5_K_S",
+        "taille": 23
+      },
+      {
+        "modele": "qwen2.5:32b-instruct-q5_K_M",
+        "taille": 23
+      },
+      {
+        "modele": "qwen2.5:32b-instruct-q6_K",
+        "taille": 27
+      },
+      {
+        "modele": "qwen2.5:32b-instruct-q8_0",
+        "taille": 35
+      },
+      {
+        "modele": "qwen2.5:32b-instruct-fp16",
+        "taille": 66
+      },
+      {
+        "modele": "qwen2.5:72b-instruct",
+        "taille": 47
+      },
+      {
+        "modele": "qwen2.5:72b-instruct-q2_K",
+        "taille": 30
+      },
+      {
+        "modele": "qwen2.5:72b-instruct-q3_K_S",
+        "taille": 34
+      },
+      {
+        "modele": "qwen2.5:72b-instruct-q3_K_M",
+        "taille": 38
+      },
+      {
+        "modele": "qwen2.5:72b-instruct-q3_K_L",
+        "taille": 40
+      },
+      {
+        "modele": "qwen2.5:72b-instruct-q4_0",
+        "taille": 41
+      },
+      {
+        "modele": "qwen2.5:72b-instruct-q4_1",
+        "taille": 46
+      },
+      {
+        "modele": "qwen2.5:72b-instruct-q4_K_S",
+        "taille": 44
+      },
+      {
+        "modele": "qwen2.5:72b-instruct-q4_K_M",
+        "taille": 47
+      },
+      {
+        "modele": "qwen2.5:72b-instruct-q5_0",
+        "taille": 50
+      },
+      {
+        "modele": "qwen2.5:72b-instruct-q5_1",
+        "taille": 55
+      },
+      {
+        "modele": "qwen2.5:72b-instruct-q5_K_S",
+        "taille": 51
+      },
+      {
+        "modele": "qwen2.5:72b-instruct-q5_K_M",
+        "taille": 54
+      },
+      {
+        "modele": "qwen2.5:72b-instruct-q6_K",
+        "taille": 64
+      },
+      {
+        "modele": "qwen2.5:72b-instruct-q8_0",
+        "taille": 77
+      },
+      {
+        "modele": "qwen2.5:72b-instruct-fp16",
+        "taille": 145
+      }
+    ]
+  },
+  {
+    "nom": "qwen2.5-coder",
+    "specialite": "Génération, explication et correction de code",
+    "usages": [
+      "code"
+    ],
+    "variantes": [
+      {
+        "modele": "qwen2.5-coder:latest",
+        "taille": 4.7
+      },
+      {
+        "modele": "qwen2.5-coder:0.5b",
+        "taille": 0.398
+      },
+      {
+        "modele": "qwen2.5-coder:1.5b",
+        "taille": 0.986
+      },
+      {
+        "modele": "qwen2.5-coder:3b",
+        "taille": 1.9
+      },
+      {
+        "modele": "qwen2.5-coder:7b",
+        "taille": 4.7
+      },
+      {
+        "modele": "qwen2.5-coder:14b",
+        "taille": 9
+      },
+      {
+        "modele": "qwen2.5-coder:32b",
+        "taille": 20
+      },
+      {
+        "modele": "qwen2.5-coder:0.5b-base",
+        "taille": 0.531
+      },
+      {
+        "modele": "qwen2.5-coder:0.5b-base-q2_K",
+        "taille": 0.339
+      },
+      {
+        "modele": "qwen2.5-coder:0.5b-base-q3_K_S",
+        "taille": 0.338
+      },
+      {
+        "modele": "qwen2.5-coder:0.5b-base-q3_K_M",
+        "taille": 0.355
+      },
+      {
+        "modele": "qwen2.5-coder:0.5b-base-q3_K_L",
+        "taille": 0.369
+      },
+      {
+        "modele": "qwen2.5-coder:0.5b-base-q4_0",
+        "taille": 0.352
+      },
+      {
+        "modele": "qwen2.5-coder:0.5b-base-q4_1",
+        "taille": 0.375
+      },
+      {
+        "modele": "qwen2.5-coder:0.5b-base-q4_K_S",
+        "taille": 0.385
+      },
+      {
+        "modele": "qwen2.5-coder:0.5b-base-q4_K_M",
+        "taille": 0.398
+      },
+      {
+        "modele": "qwen2.5-coder:0.5b-base-q5_0",
+        "taille": 0.397
+      },
+      {
+        "modele": "qwen2.5-coder:0.5b-base-q5_1",
+        "taille": 0.419
+      },
+      {
+        "modele": "qwen2.5-coder:0.5b-base-q5_K_S",
+        "taille": 0.413
+      },
+      {
+        "modele": "qwen2.5-coder:0.5b-base-q5_K_M",
+        "taille": 0.42
+      },
+      {
+        "modele": "qwen2.5-coder:0.5b-base-q6_K",
+        "taille": 0.506
+      },
+      {
+        "modele": "qwen2.5-coder:0.5b-base-q8_0",
+        "taille": 0.531
+      },
+      {
+        "modele": "qwen2.5-coder:0.5b-base-fp16",
+        "taille": 0.994
+      },
+      {
+        "modele": "qwen2.5-coder:0.5b-instruct",
+        "taille": 0.398
+      },
+      {
+        "modele": "qwen2.5-coder:0.5b-instruct-q2_K",
+        "taille": 0.339
+      },
+      {
+        "modele": "qwen2.5-coder:0.5b-instruct-q3_K_S",
+        "taille": 0.338
+      },
+      {
+        "modele": "qwen2.5-coder:0.5b-instruct-q3_K_M",
+        "taille": 0.355
+      },
+      {
+        "modele": "qwen2.5-coder:0.5b-instruct-q3_K_L",
+        "taille": 0.369
+      },
+      {
+        "modele": "qwen2.5-coder:0.5b-instruct-q4_0",
+        "taille": 0.352
+      },
+      {
+        "modele": "qwen2.5-coder:0.5b-instruct-q4_1",
+        "taille": 0.375
+      },
+      {
+        "modele": "qwen2.5-coder:0.5b-instruct-q4_K_S",
+        "taille": 0.385
+      },
+      {
+        "modele": "qwen2.5-coder:0.5b-instruct-q4_K_M",
+        "taille": 0.398
+      },
+      {
+        "modele": "qwen2.5-coder:0.5b-instruct-q5_0",
+        "taille": 0.397
+      },
+      {
+        "modele": "qwen2.5-coder:0.5b-instruct-q5_1",
+        "taille": 0.419
+      },
+      {
+        "modele": "qwen2.5-coder:0.5b-instruct-q5_K_S",
+        "taille": 0.413
+      },
+      {
+        "modele": "qwen2.5-coder:0.5b-instruct-q5_K_M",
+        "taille": 0.42
+      },
+      {
+        "modele": "qwen2.5-coder:0.5b-instruct-q6_K",
+        "taille": 0.506
+      },
+      {
+        "modele": "qwen2.5-coder:0.5b-instruct-q8_0",
+        "taille": 0.531
+      },
+      {
+        "modele": "qwen2.5-coder:0.5b-instruct-fp16",
+        "taille": 0.994
+      },
+      {
+        "modele": "qwen2.5-coder:1.5b-base",
+        "taille": 0.986
+      },
+      {
+        "modele": "qwen2.5-coder:1.5b-base-q2_K",
+        "taille": 0.676
+      },
+      {
+        "modele": "qwen2.5-coder:1.5b-base-q3_K_S",
+        "taille": 0.761
+      },
+      {
+        "modele": "qwen2.5-coder:1.5b-base-q3_K_M",
+        "taille": 0.824
+      },
+      {
+        "modele": "qwen2.5-coder:1.5b-base-q3_K_L",
+        "taille": 0.88
+      },
+      {
+        "modele": "qwen2.5-coder:1.5b-base-q4_0",
+        "taille": 0.935
+      },
+      {
+        "modele": "qwen2.5-coder:1.5b-base-q4_1",
+        "taille": 1
+      },
+      {
+        "modele": "qwen2.5-coder:1.5b-base-q4_K_S",
+        "taille": 0.94
+      },
+      {
+        "modele": "qwen2.5-coder:1.5b-base-q4_K_M",
+        "taille": 0.986
+      },
+      {
+        "modele": "qwen2.5-coder:1.5b-base-q5_0",
+        "taille": 1.1
+      },
+      {
+        "modele": "qwen2.5-coder:1.5b-base-q5_1",
+        "taille": 1.2
+      },
+      {
+        "modele": "qwen2.5-coder:1.5b-base-q5_K_S",
+        "taille": 1.1
+      },
+      {
+        "modele": "qwen2.5-coder:1.5b-base-q5_K_M",
+        "taille": 1.1
+      },
+      {
+        "modele": "qwen2.5-coder:1.5b-base-q6_K",
+        "taille": 1.3
+      },
+      {
+        "modele": "qwen2.5-coder:1.5b-base-q8_0",
+        "taille": 1.6
+      },
+      {
+        "modele": "qwen2.5-coder:1.5b-base-fp16",
+        "taille": 3.1
+      },
+      {
+        "modele": "qwen2.5-coder:1.5b-instruct",
+        "taille": 0.986
+      },
+      {
+        "modele": "qwen2.5-coder:1.5b-instruct-q2_K",
+        "taille": 0.676
+      },
+      {
+        "modele": "qwen2.5-coder:1.5b-instruct-q3_K_S",
+        "taille": 0.761
+      },
+      {
+        "modele": "qwen2.5-coder:1.5b-instruct-q3_K_M",
+        "taille": 0.824
+      },
+      {
+        "modele": "qwen2.5-coder:1.5b-instruct-q3_K_L",
+        "taille": 0.88
+      },
+      {
+        "modele": "qwen2.5-coder:1.5b-instruct-q4_0",
+        "taille": 0.935
+      },
+      {
+        "modele": "qwen2.5-coder:1.5b-instruct-q4_1",
+        "taille": 1
+      },
+      {
+        "modele": "qwen2.5-coder:1.5b-instruct-q4_K_S",
+        "taille": 0.94
+      },
+      {
+        "modele": "qwen2.5-coder:1.5b-instruct-q4_K_M",
+        "taille": 0.986
+      },
+      {
+        "modele": "qwen2.5-coder:1.5b-instruct-q5_0",
+        "taille": 1.1
+      },
+      {
+        "modele": "qwen2.5-coder:1.5b-instruct-q5_1",
+        "taille": 1.2
+      },
+      {
+        "modele": "qwen2.5-coder:1.5b-instruct-q5_K_S",
+        "taille": 1.1
+      },
+      {
+        "modele": "qwen2.5-coder:1.5b-instruct-q5_K_M",
+        "taille": 1.1
+      },
+      {
+        "modele": "qwen2.5-coder:1.5b-instruct-q6_K",
+        "taille": 1.3
+      },
+      {
+        "modele": "qwen2.5-coder:1.5b-instruct-q8_0",
+        "taille": 1.6
+      },
+      {
+        "modele": "qwen2.5-coder:1.5b-instruct-fp16",
+        "taille": 3.1
+      },
+      {
+        "modele": "qwen2.5-coder:3b-base",
+        "taille": 1.9
+      },
+      {
+        "modele": "qwen2.5-coder:3b-base-q2_K",
+        "taille": 1.3
+      },
+      {
+        "modele": "qwen2.5-coder:3b-base-q3_K_S",
+        "taille": 1.5
+      },
+      {
+        "modele": "qwen2.5-coder:3b-base-q3_K_M",
+        "taille": 1.6
+      },
+      {
+        "modele": "qwen2.5-coder:3b-base-q3_K_L",
+        "taille": 1.7
+      },
+      {
+        "modele": "qwen2.5-coder:3b-base-q4_0",
+        "taille": 1.8
+      },
+      {
+        "modele": "qwen2.5-coder:3b-base-q4_1",
+        "taille": 2
+      },
+      {
+        "modele": "qwen2.5-coder:3b-base-q4_K_S",
+        "taille": 1.8
+      },
+      {
+        "modele": "qwen2.5-coder:3b-base-q4_K_M",
+        "taille": 1.9
+      },
+      {
+        "modele": "qwen2.5-coder:3b-base-q5_0",
+        "taille": 2.2
+      },
+      {
+        "modele": "qwen2.5-coder:3b-base-q5_1",
+        "taille": 2.3
+      },
+      {
+        "modele": "qwen2.5-coder:3b-base-q5_K_S",
+        "taille": 2.2
+      },
+      {
+        "modele": "qwen2.5-coder:3b-base-q5_K_M",
+        "taille": 2.2
+      },
+      {
+        "modele": "qwen2.5-coder:3b-base-q6_K",
+        "taille": 2.5
+      },
+      {
+        "modele": "qwen2.5-coder:3b-base-q8_0",
+        "taille": 3.3
+      },
+      {
+        "modele": "qwen2.5-coder:3b-base-fp16",
+        "taille": 6.2
+      },
+      {
+        "modele": "qwen2.5-coder:3b-instruct",
+        "taille": 1.9
+      },
+      {
+        "modele": "qwen2.5-coder:3b-instruct-q2_K",
+        "taille": 1.3
+      },
+      {
+        "modele": "qwen2.5-coder:3b-instruct-q3_K_S",
+        "taille": 1.5
+      },
+      {
+        "modele": "qwen2.5-coder:3b-instruct-q3_K_M",
+        "taille": 1.6
+      },
+      {
+        "modele": "qwen2.5-coder:3b-instruct-q3_K_L",
+        "taille": 1.7
+      },
+      {
+        "modele": "qwen2.5-coder:3b-instruct-q4_0",
+        "taille": 1.8
+      },
+      {
+        "modele": "qwen2.5-coder:3b-instruct-q4_1",
+        "taille": 2
+      },
+      {
+        "modele": "qwen2.5-coder:3b-instruct-q4_K_S",
+        "taille": 1.8
+      },
+      {
+        "modele": "qwen2.5-coder:3b-instruct-q4_K_M",
+        "taille": 1.9
+      },
+      {
+        "modele": "qwen2.5-coder:3b-instruct-q5_0",
+        "taille": 2.2
+      },
+      {
+        "modele": "qwen2.5-coder:3b-instruct-q5_1",
+        "taille": 2.3
+      },
+      {
+        "modele": "qwen2.5-coder:3b-instruct-q5_K_S",
+        "taille": 2.2
+      },
+      {
+        "modele": "qwen2.5-coder:3b-instruct-q5_K_M",
+        "taille": 2.2
+      },
+      {
+        "modele": "qwen2.5-coder:3b-instruct-q6_K",
+        "taille": 2.5
+      },
+      {
+        "modele": "qwen2.5-coder:3b-instruct-q8_0",
+        "taille": 3.3
+      },
+      {
+        "modele": "qwen2.5-coder:3b-instruct-fp16",
+        "taille": 6.2
+      },
+      {
+        "modele": "qwen2.5-coder:7b-base",
+        "taille": 4.7
+      },
+      {
+        "modele": "qwen2.5-coder:7b-base-q2_K",
+        "taille": 3
+      },
+      {
+        "modele": "qwen2.5-coder:7b-base-q3_K_S",
+        "taille": 3.5
+      },
+      {
+        "modele": "qwen2.5-coder:7b-base-q3_K_M",
+        "taille": 3.8
+      },
+      {
+        "modele": "qwen2.5-coder:7b-base-q3_K_L",
+        "taille": 4.1
+      },
+      {
+        "modele": "qwen2.5-coder:7b-base-q4_0",
+        "taille": 4.4
+      },
+      {
+        "modele": "qwen2.5-coder:7b-base-q4_1",
+        "taille": 4.9
+      },
+      {
+        "modele": "qwen2.5-coder:7b-base-q4_K_S",
+        "taille": 4.5
+      },
+      {
+        "modele": "qwen2.5-coder:7b-base-q4_K_M",
+        "taille": 4.7
+      },
+      {
+        "modele": "qwen2.5-coder:7b-base-q5_0",
+        "taille": 5.3
+      },
+      {
+        "modele": "qwen2.5-coder:7b-base-q5_1",
+        "taille": 5.8
+      },
+      {
+        "modele": "qwen2.5-coder:7b-base-q5_K_S",
+        "taille": 5.3
+      },
+      {
+        "modele": "qwen2.5-coder:7b-base-q5_K_M",
+        "taille": 5.4
+      },
+      {
+        "modele": "qwen2.5-coder:7b-base-q6_K",
+        "taille": 6.3
+      },
+      {
+        "modele": "qwen2.5-coder:7b-base-q8_0",
+        "taille": 8.1
+      },
+      {
+        "modele": "qwen2.5-coder:7b-base-fp16",
+        "taille": 15
+      },
+      {
+        "modele": "qwen2.5-coder:7b-instruct",
+        "taille": 4.7
+      },
+      {
+        "modele": "qwen2.5-coder:7b-instruct-q2_K",
+        "taille": 3
+      },
+      {
+        "modele": "qwen2.5-coder:7b-instruct-q3_K_S",
+        "taille": 3.5
+      },
+      {
+        "modele": "qwen2.5-coder:7b-instruct-q3_K_M",
+        "taille": 3.8
+      },
+      {
+        "modele": "qwen2.5-coder:7b-instruct-q3_K_L",
+        "taille": 4.1
+      },
+      {
+        "modele": "qwen2.5-coder:7b-instruct-q4_0",
+        "taille": 4.4
+      },
+      {
+        "modele": "qwen2.5-coder:7b-instruct-q4_1",
+        "taille": 4.9
+      },
+      {
+        "modele": "qwen2.5-coder:7b-instruct-q4_K_S",
+        "taille": 4.5
+      },
+      {
+        "modele": "qwen2.5-coder:7b-instruct-q4_K_M",
+        "taille": 4.7
+      },
+      {
+        "modele": "qwen2.5-coder:7b-instruct-q5_0",
+        "taille": 5.3
+      },
+      {
+        "modele": "qwen2.5-coder:7b-instruct-q5_1",
+        "taille": 5.8
+      },
+      {
+        "modele": "qwen2.5-coder:7b-instruct-q5_K_S",
+        "taille": 5.3
+      },
+      {
+        "modele": "qwen2.5-coder:7b-instruct-q5_K_M",
+        "taille": 5.4
+      },
+      {
+        "modele": "qwen2.5-coder:7b-instruct-q6_K",
+        "taille": 6.3
+      },
+      {
+        "modele": "qwen2.5-coder:7b-instruct-q8_0",
+        "taille": 8.1
+      },
+      {
+        "modele": "qwen2.5-coder:7b-instruct-fp16",
+        "taille": 15
+      },
+      {
+        "modele": "qwen2.5-coder:14b-base",
+        "taille": 9
+      },
+      {
+        "modele": "qwen2.5-coder:14b-base-q2_K",
+        "taille": 5.8
+      },
+      {
+        "modele": "qwen2.5-coder:14b-base-q3_K_S",
+        "taille": 6.7
+      },
+      {
+        "modele": "qwen2.5-coder:14b-base-q3_K_M",
+        "taille": 7.3
+      },
+      {
+        "modele": "qwen2.5-coder:14b-base-q3_K_L",
+        "taille": 7.9
+      },
+      {
+        "modele": "qwen2.5-coder:14b-base-q4_0",
+        "taille": 8.5
+      },
+      {
+        "modele": "qwen2.5-coder:14b-base-q4_1",
+        "taille": 9.4
+      },
+      {
+        "modele": "qwen2.5-coder:14b-base-q4_K_S",
+        "taille": 8.6
+      },
+      {
+        "modele": "qwen2.5-coder:14b-base-q4_K_M",
+        "taille": 9
+      },
+      {
+        "modele": "qwen2.5-coder:14b-base-q5_0",
+        "taille": 10
+      },
+      {
+        "modele": "qwen2.5-coder:14b-base-q5_1",
+        "taille": 11
+      },
+      {
+        "modele": "qwen2.5-coder:14b-base-q5_K_S",
+        "taille": 10
+      },
+      {
+        "modele": "qwen2.5-coder:14b-base-q5_K_M",
+        "taille": 11
+      },
+      {
+        "modele": "qwen2.5-coder:14b-base-q6_K",
+        "taille": 12
+      },
+      {
+        "modele": "qwen2.5-coder:14b-base-q8_0",
+        "taille": 16
+      },
+      {
+        "modele": "qwen2.5-coder:14b-base-fp16",
+        "taille": 30
+      },
+      {
+        "modele": "qwen2.5-coder:14b-instruct",
+        "taille": 9
+      },
+      {
+        "modele": "qwen2.5-coder:14b-instruct-q2_K",
+        "taille": 5.8
+      },
+      {
+        "modele": "qwen2.5-coder:14b-instruct-q3_K_S",
+        "taille": 6.7
+      },
+      {
+        "modele": "qwen2.5-coder:14b-instruct-q3_K_M",
+        "taille": 7.3
+      },
+      {
+        "modele": "qwen2.5-coder:14b-instruct-q3_K_L",
+        "taille": 7.9
+      },
+      {
+        "modele": "qwen2.5-coder:14b-instruct-q4_0",
+        "taille": 8.5
+      },
+      {
+        "modele": "qwen2.5-coder:14b-instruct-q4_1",
+        "taille": 9.4
+      },
+      {
+        "modele": "qwen2.5-coder:14b-instruct-q4_K_S",
+        "taille": 8.6
+      },
+      {
+        "modele": "qwen2.5-coder:14b-instruct-q4_K_M",
+        "taille": 9
+      },
+      {
+        "modele": "qwen2.5-coder:14b-instruct-q5_0",
+        "taille": 10
+      },
+      {
+        "modele": "qwen2.5-coder:14b-instruct-q5_1",
+        "taille": 11
+      },
+      {
+        "modele": "qwen2.5-coder:14b-instruct-q5_K_S",
+        "taille": 10
+      },
+      {
+        "modele": "qwen2.5-coder:14b-instruct-q5_K_M",
+        "taille": 11
+      },
+      {
+        "modele": "qwen2.5-coder:14b-instruct-q6_K",
+        "taille": 12
+      },
+      {
+        "modele": "qwen2.5-coder:14b-instruct-q8_0",
+        "taille": 16
+      },
+      {
+        "modele": "qwen2.5-coder:14b-instruct-fp16",
+        "taille": 30
+      },
+      {
+        "modele": "qwen2.5-coder:32b-base",
+        "taille": 20
+      },
+      {
+        "modele": "qwen2.5-coder:32b-base-q2_K",
+        "taille": 12
+      },
+      {
+        "modele": "qwen2.5-coder:32b-base-q3_K_S",
+        "taille": 14
+      },
+      {
+        "modele": "qwen2.5-coder:32b-base-q3_K_M",
+        "taille": 16
+      },
+      {
+        "modele": "qwen2.5-coder:32b-base-q3_K_L",
+        "taille": 17
+      },
+      {
+        "modele": "qwen2.5-coder:32b-base-q4_0",
+        "taille": 19
+      },
+      {
+        "modele": "qwen2.5-coder:32b-base-q4_1",
+        "taille": 21
+      },
+      {
+        "modele": "qwen2.5-coder:32b-base-q4_K_S",
+        "taille": 19
+      },
+      {
+        "modele": "qwen2.5-coder:32b-base-q4_K_M",
+        "taille": 20
+      },
+      {
+        "modele": "qwen2.5-coder:32b-base-q5_0",
+        "taille": 23
+      },
+      {
+        "modele": "qwen2.5-coder:32b-base-q5_1",
+        "taille": 25
+      },
+      {
+        "modele": "qwen2.5-coder:32b-base-q5_K_S",
+        "taille": 23
+      },
+      {
+        "modele": "qwen2.5-coder:32b-base-q5_K_M",
+        "taille": 23
+      },
+      {
+        "modele": "qwen2.5-coder:32b-base-q6_K",
+        "taille": 27
+      },
+      {
+        "modele": "qwen2.5-coder:32b-base-q8_0",
+        "taille": 35
+      },
+      {
+        "modele": "qwen2.5-coder:32b-base-fp16",
+        "taille": 66
+      },
+      {
+        "modele": "qwen2.5-coder:32b-instruct",
+        "taille": 20
+      },
+      {
+        "modele": "qwen2.5-coder:32b-instruct-q2_K",
+        "taille": 12
+      },
+      {
+        "modele": "qwen2.5-coder:32b-instruct-q3_K_S",
+        "taille": 14
+      },
+      {
+        "modele": "qwen2.5-coder:32b-instruct-q3_K_M",
+        "taille": 16
+      },
+      {
+        "modele": "qwen2.5-coder:32b-instruct-q3_K_L",
+        "taille": 17
+      },
+      {
+        "modele": "qwen2.5-coder:32b-instruct-q4_0",
+        "taille": 19
+      },
+      {
+        "modele": "qwen2.5-coder:32b-instruct-q4_1",
+        "taille": 21
+      },
+      {
+        "modele": "qwen2.5-coder:32b-instruct-q4_K_S",
+        "taille": 19
+      },
+      {
+        "modele": "qwen2.5-coder:32b-instruct-q4_K_M",
+        "taille": 20
+      },
+      {
+        "modele": "qwen2.5-coder:32b-instruct-q5_0",
+        "taille": 23
+      },
+      {
+        "modele": "qwen2.5-coder:32b-instruct-q5_1",
+        "taille": 25
+      },
+      {
+        "modele": "qwen2.5-coder:32b-instruct-q5_K_S",
+        "taille": 23
+      },
+      {
+        "modele": "qwen2.5-coder:32b-instruct-q5_K_M",
+        "taille": 23
+      },
+      {
+        "modele": "qwen2.5-coder:32b-instruct-q6_K",
+        "taille": 27
+      },
+      {
+        "modele": "qwen2.5-coder:32b-instruct-q8_0",
+        "taille": 35
+      },
+      {
+        "modele": "qwen2.5-coder:32b-instruct-fp16",
+        "taille": 66
+      }
+    ]
+  },
+  {
+    "nom": "qwen2.5vl",
+    "specialite": "Lecture de documents, graphiques et images",
+    "usages": [
+      "images"
+    ],
+    "variantes": [
+      {
+        "modele": "qwen2.5vl:latest",
+        "taille": 6
+      },
+      {
+        "modele": "qwen2.5vl:3b",
+        "taille": 3.2
+      },
+      {
+        "modele": "qwen2.5vl:7b",
+        "taille": 6
+      },
+      {
+        "modele": "qwen2.5vl:32b",
+        "taille": 21
+      },
+      {
+        "modele": "qwen2.5vl:72b",
+        "taille": 49
+      },
+      {
+        "modele": "qwen2.5vl:3b-q4_K_M",
+        "taille": 3.2
+      },
+      {
+        "modele": "qwen2.5vl:3b-q8_0",
+        "taille": 4.6
+      },
+      {
+        "modele": "qwen2.5vl:3b-fp16",
+        "taille": 7.5
+      },
+      {
+        "modele": "qwen2.5vl:7b-q4_K_M",
+        "taille": 6
+      },
+      {
+        "modele": "qwen2.5vl:7b-q8_0",
+        "taille": 9.4
+      },
+      {
+        "modele": "qwen2.5vl:7b-fp16",
+        "taille": 17
+      },
+      {
+        "modele": "qwen2.5vl:32b-q4_K_M",
+        "taille": 21
+      },
+      {
+        "modele": "qwen2.5vl:32b-q8_0",
+        "taille": 36
+      },
+      {
+        "modele": "qwen2.5vl:32b-fp16",
+        "taille": 67
+      },
+      {
+        "modele": "qwen2.5vl:72b-q4_K_M",
+        "taille": 49
+      },
+      {
+        "modele": "qwen2.5vl:72b-q8_0",
+        "taille": 79
+      },
+      {
+        "modele": "qwen2.5vl:72b-fp16",
+        "taille": 147
+      }
+    ]
+  },
+  {
+    "nom": "qwen2",
+    "specialite": "Discussion et texte multilingues, génération précédente",
+    "usages": [
+      "general"
+    ],
+    "variantes": [
+      {
+        "modele": "qwen2:latest",
+        "taille": 4.4
+      },
+      {
+        "modele": "qwen2:0.5b",
+        "taille": 0.352
+      },
+      {
+        "modele": "qwen2:1.5b",
+        "taille": 0.935
+      },
+      {
+        "modele": "qwen2:7b",
+        "taille": 4.4
+      },
+      {
+        "modele": "qwen2:72b",
+        "taille": 41
+      },
+      {
+        "modele": "qwen2:0.5b-instruct",
+        "taille": 0.352
+      },
+      {
+        "modele": "qwen2:0.5b-instruct-q2_K",
+        "taille": 0.339
+      },
+      {
+        "modele": "qwen2:0.5b-instruct-q3_K_S",
+        "taille": 0.338
+      },
+      {
+        "modele": "qwen2:0.5b-instruct-q3_K_M",
+        "taille": 0.355
+      },
+      {
+        "modele": "qwen2:0.5b-instruct-q3_K_L",
+        "taille": 0.369
+      },
+      {
+        "modele": "qwen2:0.5b-instruct-q4_0",
+        "taille": 0.352
+      },
+      {
+        "modele": "qwen2:0.5b-instruct-q4_1",
+        "taille": 0.375
+      },
+      {
+        "modele": "qwen2:0.5b-instruct-q4_K_S",
+        "taille": 0.385
+      },
+      {
+        "modele": "qwen2:0.5b-instruct-q4_K_M",
+        "taille": 0.398
+      },
+      {
+        "modele": "qwen2:0.5b-instruct-q5_0",
+        "taille": 0.397
+      },
+      {
+        "modele": "qwen2:0.5b-instruct-q5_1",
+        "taille": 0.419
+      },
+      {
+        "modele": "qwen2:0.5b-instruct-q5_K_S",
+        "taille": 0.413
+      },
+      {
+        "modele": "qwen2:0.5b-instruct-q5_K_M",
+        "taille": 0.42
+      },
+      {
+        "modele": "qwen2:0.5b-instruct-q6_K",
+        "taille": 0.506
+      },
+      {
+        "modele": "qwen2:0.5b-instruct-q8_0",
+        "taille": 0.531
+      },
+      {
+        "modele": "qwen2:0.5b-instruct-fp16",
+        "taille": 0.994
+      },
+      {
+        "modele": "qwen2:1.5b-instruct",
+        "taille": 0.935
+      },
+      {
+        "modele": "qwen2:1.5b-instruct-q2_K",
+        "taille": 0.676
+      },
+      {
+        "modele": "qwen2:1.5b-instruct-q3_K_S",
+        "taille": 0.761
+      },
+      {
+        "modele": "qwen2:1.5b-instruct-q3_K_M",
+        "taille": 0.824
+      },
+      {
+        "modele": "qwen2:1.5b-instruct-q3_K_L",
+        "taille": 0.88
+      },
+      {
+        "modele": "qwen2:1.5b-instruct-q4_0",
+        "taille": 0.935
+      },
+      {
+        "modele": "qwen2:1.5b-instruct-q4_1",
+        "taille": 1
+      },
+      {
+        "modele": "qwen2:1.5b-instruct-q4_K_S",
+        "taille": 0.94
+      },
+      {
+        "modele": "qwen2:1.5b-instruct-q4_K_M",
+        "taille": 0.986
+      },
+      {
+        "modele": "qwen2:1.5b-instruct-q5_0",
+        "taille": 1.1
+      },
+      {
+        "modele": "qwen2:1.5b-instruct-q5_1",
+        "taille": 1.2
+      },
+      {
+        "modele": "qwen2:1.5b-instruct-q5_K_S",
+        "taille": 1.1
+      },
+      {
+        "modele": "qwen2:1.5b-instruct-q5_K_M",
+        "taille": 1.1
+      },
+      {
+        "modele": "qwen2:1.5b-instruct-q6_K",
+        "taille": 1.3
+      },
+      {
+        "modele": "qwen2:1.5b-instruct-q8_0",
+        "taille": 1.6
+      },
+      {
+        "modele": "qwen2:1.5b-instruct-fp16",
+        "taille": 3.1
+      },
+      {
+        "modele": "qwen2:7b-instruct",
+        "taille": 4.4
+      },
+      {
+        "modele": "qwen2:7b-instruct-q2_K",
+        "taille": 3
+      },
+      {
+        "modele": "qwen2:7b-instruct-q3_K_S",
+        "taille": 3.5
+      },
+      {
+        "modele": "qwen2:7b-instruct-q3_K_M",
+        "taille": 3.8
+      },
+      {
+        "modele": "qwen2:7b-instruct-q3_K_L",
+        "taille": 4.1
+      },
+      {
+        "modele": "qwen2:7b-instruct-q4_0",
+        "taille": 4.4
+      },
+      {
+        "modele": "qwen2:7b-instruct-q4_1",
+        "taille": 4.9
+      },
+      {
+        "modele": "qwen2:7b-instruct-q4_K_S",
+        "taille": 4.5
+      },
+      {
+        "modele": "qwen2:7b-instruct-q4_K_M",
+        "taille": 4.7
+      },
+      {
+        "modele": "qwen2:7b-instruct-q5_0",
+        "taille": 5.3
+      },
+      {
+        "modele": "qwen2:7b-instruct-q5_1",
+        "taille": 5.8
+      },
+      {
+        "modele": "qwen2:7b-instruct-q5_K_S",
+        "taille": 5.3
+      },
+      {
+        "modele": "qwen2:7b-instruct-q5_K_M",
+        "taille": 5.4
+      },
+      {
+        "modele": "qwen2:7b-instruct-q6_K",
+        "taille": 6.3
+      },
+      {
+        "modele": "qwen2:7b-instruct-q8_0",
+        "taille": 8.1
+      },
+      {
+        "modele": "qwen2:7b-instruct-fp16",
+        "taille": 15
+      },
+      {
+        "modele": "qwen2:7b-text",
+        "taille": 4.4
+      },
+      {
+        "modele": "qwen2:7b-text-q2_K",
+        "taille": 3
+      },
+      {
+        "modele": "qwen2:7b-text-q3_K_S",
+        "taille": 3.5
+      },
+      {
+        "modele": "qwen2:7b-text-q3_K_M",
+        "taille": 3.8
+      },
+      {
+        "modele": "qwen2:7b-text-q3_K_L",
+        "taille": 4.1
+      },
+      {
+        "modele": "qwen2:7b-text-q4_0",
+        "taille": 4.4
+      },
+      {
+        "modele": "qwen2:7b-text-q4_1",
+        "taille": 4.9
+      },
+      {
+        "modele": "qwen2:7b-text-q4_K_S",
+        "taille": 4.5
+      },
+      {
+        "modele": "qwen2:7b-text-q4_K_M",
+        "taille": 4.7
+      },
+      {
+        "modele": "qwen2:7b-text-q5_0",
+        "taille": 5.3
+      },
+      {
+        "modele": "qwen2:7b-text-q5_1",
+        "taille": 5.8
+      },
+      {
+        "modele": "qwen2:7b-text-q8_0",
+        "taille": 8.1
+      },
+      {
+        "modele": "qwen2:72b-instruct",
+        "taille": 41
+      },
+      {
+        "modele": "qwen2:72b-instruct-q2_K",
+        "taille": 30
+      },
+      {
+        "modele": "qwen2:72b-instruct-q3_K_S",
+        "taille": 34
+      },
+      {
+        "modele": "qwen2:72b-instruct-q3_K_M",
+        "taille": 38
+      },
+      {
+        "modele": "qwen2:72b-instruct-q3_K_L",
+        "taille": 40
+      },
+      {
+        "modele": "qwen2:72b-instruct-q4_0",
+        "taille": 41
+      },
+      {
+        "modele": "qwen2:72b-instruct-q4_1",
+        "taille": 46
+      },
+      {
+        "modele": "qwen2:72b-instruct-q4_K_S",
+        "taille": 44
+      },
+      {
+        "modele": "qwen2:72b-instruct-q4_K_M",
+        "taille": 47
+      },
+      {
+        "modele": "qwen2:72b-instruct-q5_0",
+        "taille": 50
+      },
+      {
+        "modele": "qwen2:72b-instruct-q5_1",
+        "taille": 55
+      },
+      {
+        "modele": "qwen2:72b-instruct-q5_K_S",
+        "taille": 51
+      },
+      {
+        "modele": "qwen2:72b-instruct-q5_K_M",
+        "taille": 54
+      },
+      {
+        "modele": "qwen2:72b-instruct-q6_K",
+        "taille": 64
+      },
+      {
+        "modele": "qwen2:72b-instruct-q8_0",
+        "taille": 77
+      },
+      {
+        "modele": "qwen2:72b-instruct-fp16",
+        "taille": 145
+      },
+      {
+        "modele": "qwen2:72b-text",
+        "taille": 41
+      },
+      {
+        "modele": "qwen2:72b-text-q2_K",
+        "taille": 30
+      },
+      {
+        "modele": "qwen2:72b-text-q3_K_S",
+        "taille": 34
+      },
+      {
+        "modele": "qwen2:72b-text-q3_K_M",
+        "taille": 38
+      },
+      {
+        "modele": "qwen2:72b-text-q3_K_L",
+        "taille": 40
+      },
+      {
+        "modele": "qwen2:72b-text-q4_0",
+        "taille": 41
+      },
+      {
+        "modele": "qwen2:72b-text-q4_1",
+        "taille": 46
+      },
+      {
+        "modele": "qwen2:72b-text-q4_K_S",
+        "taille": 44
+      },
+      {
+        "modele": "qwen2:72b-text-q4_K_M",
+        "taille": 47
+      },
+      {
+        "modele": "qwen2:72b-text-q5_0",
+        "taille": 50
+      },
+      {
+        "modele": "qwen2:72b-text-q5_1",
+        "taille": 55
+      },
+      {
+        "modele": "qwen2:72b-text-q5_K_S",
+        "taille": 51
+      },
+      {
+        "modele": "qwen2:72b-text-q5_K_M",
+        "taille": 54
+      },
+      {
+        "modele": "qwen2:72b-text-q6_K",
+        "taille": 64
+      },
+      {
+        "modele": "qwen2:72b-text-q8_0",
+        "taille": 77
+      },
+      {
+        "modele": "qwen2:72b-text-fp16",
+        "taille": 145
+      }
+    ]
+  },
+  {
+    "nom": "qwen2-math",
+    "specialite": "Résolution de problèmes mathématiques",
+    "usages": [
+      "reflexion"
+    ],
+    "variantes": [
+      {
+        "modele": "qwen2-math:latest",
+        "taille": 4.4
+      },
+      {
+        "modele": "qwen2-math:1.5b",
+        "taille": 0.935
+      },
+      {
+        "modele": "qwen2-math:7b",
+        "taille": 4.4
+      },
+      {
+        "modele": "qwen2-math:72b",
+        "taille": 41
+      },
+      {
+        "modele": "qwen2-math:1.5b-instruct",
+        "taille": 0.935
+      },
+      {
+        "modele": "qwen2-math:1.5b-instruct-q2_K",
+        "taille": 0.676
+      },
+      {
+        "modele": "qwen2-math:1.5b-instruct-q3_K_S",
+        "taille": 0.761
+      },
+      {
+        "modele": "qwen2-math:1.5b-instruct-q3_K_M",
+        "taille": 0.824
+      },
+      {
+        "modele": "qwen2-math:1.5b-instruct-q3_K_L",
+        "taille": 0.88
+      },
+      {
+        "modele": "qwen2-math:1.5b-instruct-q4_0",
+        "taille": 0.935
+      },
+      {
+        "modele": "qwen2-math:1.5b-instruct-q4_1",
+        "taille": 1
+      },
+      {
+        "modele": "qwen2-math:1.5b-instruct-q4_K_S",
+        "taille": 0.94
+      },
+      {
+        "modele": "qwen2-math:1.5b-instruct-q4_K_M",
+        "taille": 0.986
+      },
+      {
+        "modele": "qwen2-math:1.5b-instruct-q5_0",
+        "taille": 1.1
+      },
+      {
+        "modele": "qwen2-math:1.5b-instruct-q5_1",
+        "taille": 1.2
+      },
+      {
+        "modele": "qwen2-math:1.5b-instruct-q5_K_S",
+        "taille": 1.1
+      },
+      {
+        "modele": "qwen2-math:1.5b-instruct-q5_K_M",
+        "taille": 1.1
+      },
+      {
+        "modele": "qwen2-math:1.5b-instruct-q6_K",
+        "taille": 1.3
+      },
+      {
+        "modele": "qwen2-math:1.5b-instruct-q8_0",
+        "taille": 1.6
+      },
+      {
+        "modele": "qwen2-math:1.5b-instruct-fp16",
+        "taille": 3.1
+      },
+      {
+        "modele": "qwen2-math:7b-instruct",
+        "taille": 4.4
+      },
+      {
+        "modele": "qwen2-math:7b-instruct-q2_K",
+        "taille": 3
+      },
+      {
+        "modele": "qwen2-math:7b-instruct-q3_K_S",
+        "taille": 3.5
+      },
+      {
+        "modele": "qwen2-math:7b-instruct-q3_K_M",
+        "taille": 3.8
+      },
+      {
+        "modele": "qwen2-math:7b-instruct-q3_K_L",
+        "taille": 4.1
+      },
+      {
+        "modele": "qwen2-math:7b-instruct-q4_0",
+        "taille": 4.4
+      },
+      {
+        "modele": "qwen2-math:7b-instruct-q4_1",
+        "taille": 4.9
+      },
+      {
+        "modele": "qwen2-math:7b-instruct-q4_K_S",
+        "taille": 4.5
+      },
+      {
+        "modele": "qwen2-math:7b-instruct-q4_K_M",
+        "taille": 4.7
+      },
+      {
+        "modele": "qwen2-math:7b-instruct-q5_0",
+        "taille": 5.3
+      },
+      {
+        "modele": "qwen2-math:7b-instruct-q5_1",
+        "taille": 5.8
+      },
+      {
+        "modele": "qwen2-math:7b-instruct-q5_K_S",
+        "taille": 5.3
+      },
+      {
+        "modele": "qwen2-math:7b-instruct-q5_K_M",
+        "taille": 5.4
+      },
+      {
+        "modele": "qwen2-math:7b-instruct-q6_K",
+        "taille": 6.3
+      },
+      {
+        "modele": "qwen2-math:7b-instruct-q8_0",
+        "taille": 8.1
+      },
+      {
+        "modele": "qwen2-math:7b-instruct-fp16",
+        "taille": 15
+      },
+      {
+        "modele": "qwen2-math:72b-instruct",
+        "taille": 41
+      },
+      {
+        "modele": "qwen2-math:72b-instruct-q2_K",
+        "taille": 30
+      },
+      {
+        "modele": "qwen2-math:72b-instruct-q3_K_S",
+        "taille": 34
+      },
+      {
+        "modele": "qwen2-math:72b-instruct-q3_K_M",
+        "taille": 38
+      },
+      {
+        "modele": "qwen2-math:72b-instruct-q3_K_L",
+        "taille": 40
+      },
+      {
+        "modele": "qwen2-math:72b-instruct-q4_0",
+        "taille": 41
+      },
+      {
+        "modele": "qwen2-math:72b-instruct-q4_1",
+        "taille": 46
+      },
+      {
+        "modele": "qwen2-math:72b-instruct-q4_K_S",
+        "taille": 44
+      },
+      {
+        "modele": "qwen2-math:72b-instruct-q4_K_M",
+        "taille": 47
+      },
+      {
+        "modele": "qwen2-math:72b-instruct-q5_0",
+        "taille": 50
+      },
+      {
+        "modele": "qwen2-math:72b-instruct-q5_1",
+        "taille": 55
+      },
+      {
+        "modele": "qwen2-math:72b-instruct-q5_K_S",
+        "taille": 51
+      },
+      {
+        "modele": "qwen2-math:72b-instruct-q5_K_M",
+        "taille": 54
+      },
+      {
+        "modele": "qwen2-math:72b-instruct-q6_K",
+        "taille": 64
+      },
+      {
+        "modele": "qwen2-math:72b-instruct-q8_0",
+        "taille": 77
+      },
+      {
+        "modele": "qwen2-math:72b-instruct-fp16",
+        "taille": 145
+      }
+    ]
+  },
+  {
+    "nom": "qwen",
+    "specialite": "Qwen 1.5, ancienne génération généraliste",
+    "usages": [
+      "general"
+    ],
+    "variantes": [
+      {
+        "modele": "qwen:latest",
+        "taille": 2.3
+      },
+      {
+        "modele": "qwen:0.5b",
+        "taille": 0.395
+      },
+      {
+        "modele": "qwen:1.8b",
+        "taille": 1.1
+      },
+      {
+        "modele": "qwen:4b",
+        "taille": 2.3
+      },
+      {
+        "modele": "qwen:7b",
+        "taille": 4.5
+      },
+      {
+        "modele": "qwen:14b",
+        "taille": 8.2
+      },
+      {
+        "modele": "qwen:32b",
+        "taille": 18
+      },
+      {
+        "modele": "qwen:72b",
+        "taille": 41
+      },
+      {
+        "modele": "qwen:110b",
+        "taille": 63
+      },
+      {
+        "modele": "qwen:0.5b-chat",
+        "taille": 0.395
+      },
+      {
+        "modele": "qwen:0.5b-chat-v1.5-q2_K",
+        "taille": 0.298
+      },
+      {
+        "modele": "qwen:0.5b-chat-v1.5-q3_K_S",
+        "taille": 0.333
+      },
+      {
+        "modele": "qwen:0.5b-chat-v1.5-q3_K_M",
+        "taille": 0.35
+      },
+      {
+        "modele": "qwen:0.5b-chat-v1.5-q3_K_L",
+        "taille": 0.364
+      },
+      {
+        "modele": "qwen:0.5b-chat-v1.5-q4_0",
+        "taille": 0.395
+      },
+      {
+        "modele": "qwen:0.5b-chat-v1.5-q4_1",
+        "taille": 0.424
+      },
+      {
+        "modele": "qwen:0.5b-chat-v1.5-q4_K_S",
+        "taille": 0.397
+      },
+      {
+        "modele": "qwen:0.5b-chat-v1.5-q4_K_M",
+        "taille": 0.407
+      },
+      {
+        "modele": "qwen:0.5b-chat-v1.5-q5_0",
+        "taille": 0.453
+      },
+      {
+        "modele": "qwen:0.5b-chat-v1.5-q5_1",
+        "taille": 0.482
+      },
+      {
+        "modele": "qwen:0.5b-chat-v1.5-q5_K_S",
+        "taille": 0.453
+      },
+      {
+        "modele": "qwen:0.5b-chat-v1.5-q5_K_M",
+        "taille": 0.459
+      },
+      {
+        "modele": "qwen:0.5b-chat-v1.5-q6_K",
+        "taille": 0.515
+      },
+      {
+        "modele": "qwen:0.5b-chat-v1.5-q8_0",
+        "taille": 0.665
+      },
+      {
+        "modele": "qwen:0.5b-chat-v1.5-fp16",
+        "taille": 1.2
+      },
+      {
+        "modele": "qwen:0.5b-text",
+        "taille": 0.395
+      },
+      {
+        "modele": "qwen:0.5b-text-v1.5-q2_K",
+        "taille": 0.298
+      },
+      {
+        "modele": "qwen:0.5b-text-v1.5-q3_K_S",
+        "taille": 0.333
+      },
+      {
+        "modele": "qwen:0.5b-text-v1.5-q3_K_M",
+        "taille": 0.35
+      },
+      {
+        "modele": "qwen:0.5b-text-v1.5-q3_K_L",
+        "taille": 0.364
+      },
+      {
+        "modele": "qwen:0.5b-text-v1.5-q4_0",
+        "taille": 0.395
+      },
+      {
+        "modele": "qwen:0.5b-text-v1.5-q4_1",
+        "taille": 0.424
+      },
+      {
+        "modele": "qwen:0.5b-text-v1.5-q4_K_S",
+        "taille": 0.397
+      },
+      {
+        "modele": "qwen:0.5b-text-v1.5-q4_K_M",
+        "taille": 0.407
+      },
+      {
+        "modele": "qwen:0.5b-text-v1.5-q5_0",
+        "taille": 0.453
+      },
+      {
+        "modele": "qwen:0.5b-text-v1.5-q5_1",
+        "taille": 0.482
+      },
+      {
+        "modele": "qwen:0.5b-text-v1.5-q5_K_S",
+        "taille": 0.453
+      },
+      {
+        "modele": "qwen:0.5b-text-v1.5-q5_K_M",
+        "taille": 0.459
+      },
+      {
+        "modele": "qwen:0.5b-text-v1.5-q6_K",
+        "taille": 0.515
+      },
+      {
+        "modele": "qwen:0.5b-text-v1.5-q8_0",
+        "taille": 0.665
+      },
+      {
+        "modele": "qwen:0.5b-text-v1.5-fp16",
+        "taille": 1.2
+      },
+      {
+        "modele": "qwen:1.8b-chat",
+        "taille": 1.1
+      },
+      {
+        "modele": "qwen:1.8b-chat-q2_K",
+        "taille": 0.853
+      },
+      {
+        "modele": "qwen:1.8b-chat-v1.5-q2_K",
+        "taille": 0.863
+      },
+      {
+        "modele": "qwen:1.8b-chat-q3_K_S",
+        "taille": 0.97
+      },
+      {
+        "modele": "qwen:1.8b-chat-v1.5-q3_K_S",
+        "taille": 0.97
+      },
+      {
+        "modele": "qwen:1.8b-chat-q3_K_M",
+        "taille": 1
+      },
+      {
+        "modele": "qwen:1.8b-chat-v1.5-q3_K_M",
+        "taille": 1
+      },
+      {
+        "modele": "qwen:1.8b-chat-q3_K_L",
+        "taille": 1.1
+      },
+      {
+        "modele": "qwen:1.8b-chat-v1.5-q3_K_L",
+        "taille": 1.1
+      },
+      {
+        "modele": "qwen:1.8b-chat-q4_0",
+        "taille": 1.1
+      },
+      {
+        "modele": "qwen:1.8b-chat-v1.5-q4_0",
+        "taille": 1.1
+      },
+      {
+        "modele": "qwen:1.8b-chat-q4_1",
+        "taille": 1.2
+      },
+      {
+        "modele": "qwen:1.8b-chat-v1.5-q4_1",
+        "taille": 1.2
+      },
+      {
+        "modele": "qwen:1.8b-chat-q4_K_S",
+        "taille": 1.2
+      },
+      {
+        "modele": "qwen:1.8b-chat-v1.5-q4_K_S",
+        "taille": 1.2
+      },
+      {
+        "modele": "qwen:1.8b-chat-q4_K_M",
+        "taille": 1.2
+      },
+      {
+        "modele": "qwen:1.8b-chat-v1.5-q4_K_M",
+        "taille": 1.2
+      },
+      {
+        "modele": "qwen:1.8b-chat-q5_0",
+        "taille": 1.3
+      },
+      {
+        "modele": "qwen:1.8b-chat-v1.5-q5_0",
+        "taille": 1.3
+      },
+      {
+        "modele": "qwen:1.8b-chat-q5_1",
+        "taille": 1.4
+      },
+      {
+        "modele": "qwen:1.8b-chat-v1.5-q5_1",
+        "taille": 1.4
+      },
+      {
+        "modele": "qwen:1.8b-chat-q5_K_S",
+        "taille": 1.3
+      },
+      {
+        "modele": "qwen:1.8b-chat-v1.5-q5_K_S",
+        "taille": 1.3
+      },
+      {
+        "modele": "qwen:1.8b-chat-q5_K_M",
+        "taille": 1.4
+      },
+      {
+        "modele": "qwen:1.8b-chat-v1.5-q5_K_M",
+        "taille": 1.4
+      },
+      {
+        "modele": "qwen:1.8b-chat-q6_K",
+        "taille": 1.6
+      },
+      {
+        "modele": "qwen:1.8b-chat-v1.5-q6_K",
+        "taille": 1.6
+      },
+      {
+        "modele": "qwen:1.8b-chat-q8_0",
+        "taille": 2
+      },
+      {
+        "modele": "qwen:1.8b-chat-v1.5-q8_0",
+        "taille": 2
+      },
+      {
+        "modele": "qwen:1.8b-chat-fp16",
+        "taille": 3.7
+      },
+      {
+        "modele": "qwen:1.8b-chat-v1.5-fp16",
+        "taille": 3.7
+      },
+      {
+        "modele": "qwen:1.8b-text",
+        "taille": 1.1
+      },
+      {
+        "modele": "qwen:1.8b-text-q2_K",
+        "taille": 0.853
+      },
+      {
+        "modele": "qwen:1.8b-text-v1.5-q2_K",
+        "taille": 0.863
+      },
+      {
+        "modele": "qwen:1.8b-text-q3_K_S",
+        "taille": 0.97
+      },
+      {
+        "modele": "qwen:1.8b-text-v1.5-q3_K_S",
+        "taille": 0.97
+      },
+      {
+        "modele": "qwen:1.8b-text-q3_K_M",
+        "taille": 1
+      },
+      {
+        "modele": "qwen:1.8b-text-v1.5-q3_K_M",
+        "taille": 1
+      },
+      {
+        "modele": "qwen:1.8b-text-q3_K_L",
+        "taille": 1.1
+      },
+      {
+        "modele": "qwen:1.8b-text-v1.5-q3_K_L",
+        "taille": 1.1
+      },
+      {
+        "modele": "qwen:1.8b-text-q4_0",
+        "taille": 1.1
+      },
+      {
+        "modele": "qwen:1.8b-text-v1.5-q4_0",
+        "taille": 1.1
+      },
+      {
+        "modele": "qwen:1.8b-text-q4_1",
+        "taille": 1.2
+      },
+      {
+        "modele": "qwen:1.8b-text-v1.5-q4_1",
+        "taille": 1.2
+      },
+      {
+        "modele": "qwen:1.8b-text-q4_K_S",
+        "taille": 1.2
+      },
+      {
+        "modele": "qwen:1.8b-text-v1.5-q4_K_S",
+        "taille": 1.2
+      },
+      {
+        "modele": "qwen:1.8b-text-q4_K_M",
+        "taille": 1.2
+      },
+      {
+        "modele": "qwen:1.8b-text-v1.5-q4_K_M",
+        "taille": 1.2
+      },
+      {
+        "modele": "qwen:1.8b-text-q5_0",
+        "taille": 1.3
+      },
+      {
+        "modele": "qwen:1.8b-text-v1.5-q5_0",
+        "taille": 1.3
+      },
+      {
+        "modele": "qwen:1.8b-text-q5_1",
+        "taille": 1.4
+      },
+      {
+        "modele": "qwen:1.8b-text-v1.5-q5_1",
+        "taille": 1.4
+      },
+      {
+        "modele": "qwen:1.8b-text-q5_K_S",
+        "taille": 1.3
+      },
+      {
+        "modele": "qwen:1.8b-text-v1.5-q5_K_S",
+        "taille": 1.3
+      },
+      {
+        "modele": "qwen:1.8b-text-q5_K_M",
+        "taille": 1.4
+      },
+      {
+        "modele": "qwen:1.8b-text-v1.5-q5_K_M",
+        "taille": 1.4
+      },
+      {
+        "modele": "qwen:1.8b-text-q6_K",
+        "taille": 1.6
+      },
+      {
+        "modele": "qwen:1.8b-text-v1.5-q6_K",
+        "taille": 1.6
+      },
+      {
+        "modele": "qwen:1.8b-text-q8_0",
+        "taille": 2
+      },
+      {
+        "modele": "qwen:1.8b-text-v1.5-q8_0",
+        "taille": 2
+      },
+      {
+        "modele": "qwen:1.8b-text-fp16",
+        "taille": 3.7
+      },
+      {
+        "modele": "qwen:1.8b-text-v1.5-fp16",
+        "taille": 3.7
+      },
+      {
+        "modele": "qwen:4b-chat",
+        "taille": 2.3
+      },
+      {
+        "modele": "qwen:4b-chat-v1.5-q2_K",
+        "taille": 1.6
+      },
+      {
+        "modele": "qwen:4b-chat-v1.5-q3_K_S",
+        "taille": 1.9
+      },
+      {
+        "modele": "qwen:4b-chat-v1.5-q3_K_M",
+        "taille": 2
+      },
+      {
+        "modele": "qwen:4b-chat-v1.5-q3_K_L",
+        "taille": 2.2
+      },
+      {
+        "modele": "qwen:4b-chat-v1.5-q4_0",
+        "taille": 2.3
+      },
+      {
+        "modele": "qwen:4b-chat-v1.5-q4_1",
+        "taille": 2.6
+      },
+      {
+        "modele": "qwen:4b-chat-v1.5-q4_K_S",
+        "taille": 2.3
+      },
+      {
+        "modele": "qwen:4b-chat-v1.5-q4_K_M",
+        "taille": 2.5
+      },
+      {
+        "modele": "qwen:4b-chat-v1.5-q5_0",
+        "taille": 2.8
+      },
+      {
+        "modele": "qwen:4b-chat-v1.5-q5_1",
+        "taille": 3
+      },
+      {
+        "modele": "qwen:4b-chat-v1.5-q5_K_S",
+        "taille": 2.8
+      },
+      {
+        "modele": "qwen:4b-chat-v1.5-q5_K_M",
+        "taille": 2.8
+      },
+      {
+        "modele": "qwen:4b-chat-v1.5-q6_K",
+        "taille": 3.2
+      },
+      {
+        "modele": "qwen:4b-chat-v1.5-q8_0",
+        "taille": 4.2
+      },
+      {
+        "modele": "qwen:4b-chat-v1.5-fp16",
+        "taille": 7.9
+      },
+      {
+        "modele": "qwen:4b-text",
+        "taille": 2.3
+      },
+      {
+        "modele": "qwen:4b-text-v1.5-q2_K",
+        "taille": 1.6
+      },
+      {
+        "modele": "qwen:4b-text-v1.5-q3_K_S",
+        "taille": 1.9
+      },
+      {
+        "modele": "qwen:4b-text-v1.5-q3_K_M",
+        "taille": 2
+      },
+      {
+        "modele": "qwen:4b-text-v1.5-q3_K_L",
+        "taille": 2.2
+      },
+      {
+        "modele": "qwen:4b-text-v1.5-q4_0",
+        "taille": 2.3
+      },
+      {
+        "modele": "qwen:4b-text-v1.5-q4_1",
+        "taille": 2.6
+      },
+      {
+        "modele": "qwen:4b-text-v1.5-q4_K_S",
+        "taille": 2.3
+      },
+      {
+        "modele": "qwen:4b-text-v1.5-q4_K_M",
+        "taille": 2.5
+      },
+      {
+        "modele": "qwen:4b-text-v1.5-q5_0",
+        "taille": 2.8
+      },
+      {
+        "modele": "qwen:4b-text-v1.5-q5_1",
+        "taille": 3
+      },
+      {
+        "modele": "qwen:4b-text-v1.5-q5_K_S",
+        "taille": 2.8
+      },
+      {
+        "modele": "qwen:4b-text-v1.5-q5_K_M",
+        "taille": 2.8
+      },
+      {
+        "modele": "qwen:4b-text-v1.5-q6_K",
+        "taille": 3.2
+      },
+      {
+        "modele": "qwen:4b-text-v1.5-q8_0",
+        "taille": 4.2
+      },
+      {
+        "modele": "qwen:4b-text-v1.5-fp16",
+        "taille": 7.9
+      },
+      {
+        "modele": "qwen:7b-chat",
+        "taille": 4.5
+      },
+      {
+        "modele": "qwen:7b-chat-q2_K",
+        "taille": 3
+      },
+      {
+        "modele": "qwen:7b-chat-v1.5-q2_K",
+        "taille": 3.1
+      },
+      {
+        "modele": "qwen:7b-chat-q3_K_S",
+        "taille": 3.6
+      },
+      {
+        "modele": "qwen:7b-chat-v1.5-q3_K_S",
+        "taille": 3.6
+      },
+      {
+        "modele": "qwen:7b-chat-q3_K_M",
+        "taille": 4.1
+      },
+      {
+        "modele": "qwen:7b-chat-v1.5-q3_K_M",
+        "taille": 3.9
+      },
+      {
+        "modele": "qwen:7b-chat-q3_K_L",
+        "taille": 4.3
+      },
+      {
+        "modele": "qwen:7b-chat-v1.5-q3_K_L",
+        "taille": 4.2
+      },
+      {
+        "modele": "qwen:7b-chat-q4_0",
+        "taille": 4.5
+      },
+      {
+        "modele": "qwen:7b-chat-v1.5-q4_0",
+        "taille": 4.5
+      },
+      {
+        "modele": "qwen:7b-chat-q4_1",
+        "taille": 5
+      },
+      {
+        "modele": "qwen:7b-chat-v1.5-q4_1",
+        "taille": 5
+      },
+      {
+        "modele": "qwen:7b-chat-q4_K_S",
+        "taille": 4.5
+      },
+      {
+        "modele": "qwen:7b-chat-v1.5-q4_K_S",
+        "taille": 4.5
+      },
+      {
+        "modele": "qwen:7b-chat-q4_K_M",
+        "taille": 4.9
+      },
+      {
+        "modele": "qwen:7b-chat-v1.5-q4_K_M",
+        "taille": 4.8
+      },
+      {
+        "modele": "qwen:7b-chat-q5_0",
+        "taille": 5.4
+      },
+      {
+        "modele": "qwen:7b-chat-v1.5-q5_0",
+        "taille": 5.4
+      },
+      {
+        "modele": "qwen:7b-chat-q5_1",
+        "taille": 5.8
+      },
+      {
+        "modele": "qwen:7b-chat-v1.5-q5_1",
+        "taille": 5.8
+      },
+      {
+        "modele": "qwen:7b-chat-q5_K_S",
+        "taille": 5.4
+      },
+      {
+        "modele": "qwen:7b-chat-v1.5-q5_K_S",
+        "taille": 5.4
+      },
+      {
+        "modele": "qwen:7b-chat-q5_K_M",
+        "taille": 5.7
+      },
+      {
+        "modele": "qwen:7b-chat-v1.5-q5_K_M",
+        "taille": 5.5
+      },
+      {
+        "modele": "qwen:7b-chat-q6_K",
+        "taille": 6.3
+      },
+      {
+        "modele": "qwen:7b-chat-v1.5-q6_K",
+        "taille": 6.3
+      },
+      {
+        "modele": "qwen:7b-chat-q8_0",
+        "taille": 8.2
+      },
+      {
+        "modele": "qwen:7b-chat-v1.5-q8_0",
+        "taille": 8.2
+      },
+      {
+        "modele": "qwen:7b-chat-fp16",
+        "taille": 15
+      },
+      {
+        "modele": "qwen:7b-chat-v1.5-fp16",
+        "taille": 15
+      },
+      {
+        "modele": "qwen:7b-text",
+        "taille": 4.5
+      },
+      {
+        "modele": "qwen:7b-text-v1.5-q2_K",
+        "taille": 3.1
+      },
+      {
+        "modele": "qwen:7b-text-v1.5-q3_K_S",
+        "taille": 3.6
+      },
+      {
+        "modele": "qwen:7b-text-v1.5-q3_K_M",
+        "taille": 3.9
+      },
+      {
+        "modele": "qwen:7b-text-v1.5-q3_K_L",
+        "taille": 4.2
+      },
+      {
+        "modele": "qwen:7b-text-v1.5-q4_0",
+        "taille": 4.5
+      },
+      {
+        "modele": "qwen:7b-text-v1.5-q4_1",
+        "taille": 5
+      },
+      {
+        "modele": "qwen:7b-text-v1.5-q4_K_S",
+        "taille": 4.5
+      },
+      {
+        "modele": "qwen:7b-text-v1.5-q4_K_M",
+        "taille": 4.8
+      },
+      {
+        "modele": "qwen:7b-text-v1.5-q5_0",
+        "taille": 5.4
+      },
+      {
+        "modele": "qwen:7b-text-v1.5-q5_1",
+        "taille": 5.8
+      },
+      {
+        "modele": "qwen:7b-text-v1.5-q5_K_S",
+        "taille": 5.4
+      },
+      {
+        "modele": "qwen:7b-text-v1.5-q5_K_M",
+        "taille": 5.5
+      },
+      {
+        "modele": "qwen:7b-text-v1.5-q6_K",
+        "taille": 6.3
+      },
+      {
+        "modele": "qwen:7b-text-v1.5-q8_0",
+        "taille": 8.2
+      },
+      {
+        "modele": "qwen:7b-text-v1.5-fp16",
+        "taille": 15
+      },
+      {
+        "modele": "qwen:7b-q2_K",
+        "taille": 3
+      },
+      {
+        "modele": "qwen:7b-q3_K_S",
+        "taille": 3.6
+      },
+      {
+        "modele": "qwen:7b-q3_K_M",
+        "taille": 4.1
+      },
+      {
+        "modele": "qwen:7b-q3_K_L",
+        "taille": 4.3
+      },
+      {
+        "modele": "qwen:7b-q4_0",
+        "taille": 4.5
+      },
+      {
+        "modele": "qwen:7b-q4_1",
+        "taille": 5
+      },
+      {
+        "modele": "qwen:7b-q4_K_S",
+        "taille": 4.5
+      },
+      {
+        "modele": "qwen:7b-q4_K_M",
+        "taille": 4.9
+      },
+      {
+        "modele": "qwen:7b-q5_0",
+        "taille": 5.4
+      },
+      {
+        "modele": "qwen:7b-q5_1",
+        "taille": 5.8
+      },
+      {
+        "modele": "qwen:7b-q5_K_S",
+        "taille": 5.4
+      },
+      {
+        "modele": "qwen:7b-q5_K_M",
+        "taille": 5.7
+      },
+      {
+        "modele": "qwen:7b-q6_K",
+        "taille": 6.3
+      },
+      {
+        "modele": "qwen:7b-q8_0",
+        "taille": 8.2
+      },
+      {
+        "modele": "qwen:7b-fp16",
+        "taille": 15
+      },
+      {
+        "modele": "qwen:14b-chat",
+        "taille": 8.2
+      },
+      {
+        "modele": "qwen:14b-chat-q2_K",
+        "taille": 6
+      },
+      {
+        "modele": "qwen:14b-chat-v1.5-q2_K",
+        "taille": 6.1
+      },
+      {
+        "modele": "qwen:14b-chat-q3_K_S",
+        "taille": 6.9
+      },
+      {
+        "modele": "qwen:14b-chat-v1.5-q3_K_S",
+        "taille": 6.9
+      },
+      {
+        "modele": "qwen:14b-chat-q3_K_M",
+        "taille": 7.7
+      },
+      {
+        "modele": "qwen:14b-chat-v1.5-q3_K_M",
+        "taille": 7.4
+      },
+      {
+        "modele": "qwen:14b-chat-q3_K_L",
+        "taille": 8
+      },
+      {
+        "modele": "qwen:14b-chat-v1.5-q3_K_L",
+        "taille": 7.8
+      },
+      {
+        "modele": "qwen:14b-chat-q4_0",
+        "taille": 8.2
+      },
+      {
+        "modele": "qwen:14b-chat-v1.5-q4_0",
+        "taille": 8.2
+      },
+      {
+        "modele": "qwen:14b-chat-q4_1",
+        "taille": 9
+      },
+      {
+        "modele": "qwen:14b-chat-v1.5-q4_1",
+        "taille": 9
+      },
+      {
+        "modele": "qwen:14b-chat-q4_K_S",
+        "taille": 8.6
+      },
+      {
+        "modele": "qwen:14b-chat-v1.5-q4_K_S",
+        "taille": 8.6
+      },
+      {
+        "modele": "qwen:14b-chat-q4_K_M",
+        "taille": 9.4
+      },
+      {
+        "modele": "qwen:14b-chat-v1.5-q4_K_M",
+        "taille": 9.2
+      },
+      {
+        "modele": "qwen:14b-chat-q5_0",
+        "taille": 9.9
+      },
+      {
+        "modele": "qwen:14b-chat-v1.5-q5_0",
+        "taille": 9.9
+      },
+      {
+        "modele": "qwen:14b-chat-q5_1",
+        "taille": 11
+      },
+      {
+        "modele": "qwen:14b-chat-v1.5-q5_1",
+        "taille": 11
+      },
+      {
+        "modele": "qwen:14b-chat-q5_K_S",
+        "taille": 10
+      },
+      {
+        "modele": "qwen:14b-chat-v1.5-q5_K_S",
+        "taille": 10
+      },
+      {
+        "modele": "qwen:14b-chat-q5_K_M",
+        "taille": 11
+      },
+      {
+        "modele": "qwen:14b-chat-v1.5-q5_K_M",
+        "taille": 11
+      },
+      {
+        "modele": "qwen:14b-chat-q6_K",
+        "taille": 12
+      },
+      {
+        "modele": "qwen:14b-chat-v1.5-q6_K",
+        "taille": 12
+      },
+      {
+        "modele": "qwen:14b-chat-q8_0",
+        "taille": 15
+      },
+      {
+        "modele": "qwen:14b-chat-v1.5-q8_0",
+        "taille": 15
+      },
+      {
+        "modele": "qwen:14b-chat-fp16",
+        "taille": 28
+      },
+      {
+        "modele": "qwen:14b-chat-v1.5-fp16",
+        "taille": 28
+      },
+      {
+        "modele": "qwen:14b-text",
+        "taille": 8.2
+      },
+      {
+        "modele": "qwen:14b-text-q2_K",
+        "taille": 6
+      },
+      {
+        "modele": "qwen:14b-text-v1.5-q2_K",
+        "taille": 6.1
+      },
+      {
+        "modele": "qwen:14b-text-q3_K_S",
+        "taille": 6.9
+      },
+      {
+        "modele": "qwen:14b-text-v1.5-q3_K_S",
+        "taille": 6.9
+      },
+      {
+        "modele": "qwen:14b-text-q3_K_M",
+        "taille": 7.7
+      },
+      {
+        "modele": "qwen:14b-text-v1.5-q3_K_M",
+        "taille": 7.4
+      },
+      {
+        "modele": "qwen:14b-text-q3_K_L",
+        "taille": 8
+      },
+      {
+        "modele": "qwen:14b-text-v1.5-q3_K_L",
+        "taille": 7.8
+      },
+      {
+        "modele": "qwen:14b-text-q4_0",
+        "taille": 8.2
+      },
+      {
+        "modele": "qwen:14b-text-v1.5-q4_0",
+        "taille": 8.2
+      },
+      {
+        "modele": "qwen:14b-text-q4_1",
+        "taille": 9
+      },
+      {
+        "modele": "qwen:14b-text-v1.5-q4_1",
+        "taille": 9
+      },
+      {
+        "modele": "qwen:14b-text-q4_K_S",
+        "taille": 8.6
+      },
+      {
+        "modele": "qwen:14b-text-v1.5-q4_K_S",
+        "taille": 8.6
+      },
+      {
+        "modele": "qwen:14b-text-q4_K_M",
+        "taille": 9.4
+      },
+      {
+        "modele": "qwen:14b-text-v1.5-q4_K_M",
+        "taille": 9.2
+      },
+      {
+        "modele": "qwen:14b-text-q5_0",
+        "taille": 9.9
+      },
+      {
+        "modele": "qwen:14b-text-v1.5-q5_0",
+        "taille": 9.9
+      },
+      {
+        "modele": "qwen:14b-text-q5_1",
+        "taille": 11
+      },
+      {
+        "modele": "qwen:14b-text-v1.5-q5_1",
+        "taille": 11
+      },
+      {
+        "modele": "qwen:14b-text-q5_K_S",
+        "taille": 10
+      },
+      {
+        "modele": "qwen:14b-text-v1.5-q5_K_S",
+        "taille": 10
+      },
+      {
+        "modele": "qwen:14b-text-q5_K_M",
+        "taille": 11
+      },
+      {
+        "modele": "qwen:14b-text-v1.5-q5_K_M",
+        "taille": 11
+      },
+      {
+        "modele": "qwen:14b-text-q6_K",
+        "taille": 12
+      },
+      {
+        "modele": "qwen:14b-text-v1.5-q6_K",
+        "taille": 12
+      },
+      {
+        "modele": "qwen:14b-text-q8_0",
+        "taille": 15
+      },
+      {
+        "modele": "qwen:14b-text-v1.5-q8_0",
+        "taille": 15
+      },
+      {
+        "modele": "qwen:14b-text-fp16",
+        "taille": 28
+      },
+      {
+        "modele": "qwen:14b-text-v1.5-fp16",
+        "taille": 28
+      },
+      {
+        "modele": "qwen:32b-chat",
+        "taille": 18
+      },
+      {
+        "modele": "qwen:32b-chat-v1.5-q2_K",
+        "taille": 12
+      },
+      {
+        "modele": "qwen:32b-chat-v1.5-q3_K_S",
+        "taille": 14
+      },
+      {
+        "modele": "qwen:32b-chat-v1.5-q3_K_M",
+        "taille": 16
+      },
+      {
+        "modele": "qwen:32b-chat-v1.5-q3_K_L",
+        "taille": 17
+      },
+      {
+        "modele": "qwen:32b-chat-v1.5-q4_0",
+        "taille": 18
+      },
+      {
+        "modele": "qwen:32b-chat-v1.5-q4_1",
+        "taille": 20
+      },
+      {
+        "modele": "qwen:32b-chat-v1.5-q4_K_S",
+        "taille": 19
+      },
+      {
+        "modele": "qwen:32b-chat-v1.5-q4_K_M",
+        "taille": 20
+      },
+      {
+        "modele": "qwen:32b-chat-v1.5-q5_0",
+        "taille": 22
+      },
+      {
+        "modele": "qwen:32b-chat-v1.5-q5_1",
+        "taille": 24
+      },
+      {
+        "modele": "qwen:32b-chat-v1.5-q5_K_S",
+        "taille": 22
+      },
+      {
+        "modele": "qwen:32b-chat-v1.5-q5_K_M",
+        "taille": 23
+      },
+      {
+        "modele": "qwen:32b-chat-v1.5-q6_K",
+        "taille": 27
+      },
+      {
+        "modele": "qwen:32b-chat-v1.5-q8_0",
+        "taille": 35
+      },
+      {
+        "modele": "qwen:32b-chat-v1.5-fp16",
+        "taille": 65
+      },
+      {
+        "modele": "qwen:32b-text",
+        "taille": 18
+      },
+      {
+        "modele": "qwen:32b-text-v1.5-q2_K",
+        "taille": 12
+      },
+      {
+        "modele": "qwen:32b-text-v1.5-q3_K_S",
+        "taille": 14
+      },
+      {
+        "modele": "qwen:32b-text-v1.5-q3_K_M",
+        "taille": 16
+      },
+      {
+        "modele": "qwen:32b-text-v1.5-q3_K_L",
+        "taille": 17
+      },
+      {
+        "modele": "qwen:32b-text-v1.5-q4_0",
+        "taille": 18
+      },
+      {
+        "modele": "qwen:32b-text-v1.5-q4_1",
+        "taille": 20
+      },
+      {
+        "modele": "qwen:32b-text-v1.5-q4_K_S",
+        "taille": 19
+      },
+      {
+        "modele": "qwen:32b-text-v1.5-q5_0",
+        "taille": 22
+      },
+      {
+        "modele": "qwen:32b-text-v1.5-q5_1",
+        "taille": 24
+      },
+      {
+        "modele": "qwen:32b-text-v1.5-q8_0",
+        "taille": 35
+      },
+      {
+        "modele": "qwen:72b-chat",
+        "taille": 41
+      },
+      {
+        "modele": "qwen:72b-chat-q2_K",
+        "taille": 27
+      },
+      {
+        "modele": "qwen:72b-chat-v1.5-q2_K",
+        "taille": 28
+      },
+      {
+        "modele": "qwen:72b-chat-q3_K_S",
+        "taille": 32
+      },
+      {
+        "modele": "qwen:72b-chat-v1.5-q3_K_S",
+        "taille": 33
+      },
+      {
+        "modele": "qwen:72b-chat-q3_K_M",
+        "taille": 37
+      },
+      {
+        "modele": "qwen:72b-chat-v1.5-q3_K_M",
+        "taille": 36
+      },
+      {
+        "modele": "qwen:72b-chat-q3_K_L",
+        "taille": 39
+      },
+      {
+        "modele": "qwen:72b-chat-v1.5-q3_K_L",
+        "taille": 38
+      },
+      {
+        "modele": "qwen:72b-chat-q4_0",
+        "taille": 41
+      },
+      {
+        "modele": "qwen:72b-chat-v1.5-q4_0",
+        "taille": 41
+      },
+      {
+        "modele": "qwen:72b-chat-q4_1",
+        "taille": 45
+      },
+      {
+        "modele": "qwen:72b-chat-v1.5-q4_1",
+        "taille": 45
+      },
+      {
+        "modele": "qwen:72b-chat-q4_K_S",
+        "taille": 41
+      },
+      {
+        "modele": "qwen:72b-chat-v1.5-q4_K_S",
+        "taille": 42
+      },
+      {
+        "modele": "qwen:72b-chat-q4_K_M",
+        "taille": 45
+      },
+      {
+        "modele": "qwen:72b-chat-v1.5-q4_K_M",
+        "taille": 44
+      },
+      {
+        "modele": "qwen:72b-chat-q5_0",
+        "taille": 50
+      },
+      {
+        "modele": "qwen:72b-chat-v1.5-q5_0",
+        "taille": 50
+      },
+      {
+        "modele": "qwen:72b-chat-q5_1",
+        "taille": 54
+      },
+      {
+        "modele": "qwen:72b-chat-v1.5-q5_1",
+        "taille": 54
+      },
+      {
+        "modele": "qwen:72b-chat-q5_K_S",
+        "taille": 50
+      },
+      {
+        "modele": "qwen:72b-chat-v1.5-q5_K_S",
+        "taille": 50
+      },
+      {
+        "modele": "qwen:72b-chat-q5_K_M",
+        "taille": 53
+      },
+      {
+        "modele": "qwen:72b-chat-v1.5-q5_K_M",
+        "taille": 51
+      },
+      {
+        "modele": "qwen:72b-chat-q6_K",
+        "taille": 59
+      },
+      {
+        "modele": "qwen:72b-chat-v1.5-q6_K",
+        "taille": 59
+      },
+      {
+        "modele": "qwen:72b-chat-q8_0",
+        "taille": 77
+      },
+      {
+        "modele": "qwen:72b-chat-v1.5-q8_0",
+        "taille": 77
+      },
+      {
+        "modele": "qwen:72b-chat-fp16",
+        "taille": 145
+      },
+      {
+        "modele": "qwen:72b-chat-v1.5-fp16",
+        "taille": 145
+      },
+      {
+        "modele": "qwen:72b-text",
+        "taille": 63
+      },
+      {
+        "modele": "qwen:72b-text-q2_K",
+        "taille": 27
+      },
+      {
+        "modele": "qwen:72b-text-v1.5-q2_K",
+        "taille": 28
+      },
+      {
+        "modele": "qwen:72b-text-q3_K_S",
+        "taille": 32
+      },
+      {
+        "modele": "qwen:72b-text-v1.5-q3_K_S",
+        "taille": 33
+      },
+      {
+        "modele": "qwen:72b-text-q3_K_M",
+        "taille": 37
+      },
+      {
+        "modele": "qwen:72b-text-v1.5-q3_K_M",
+        "taille": 36
+      },
+      {
+        "modele": "qwen:72b-text-q3_K_L",
+        "taille": 39
+      },
+      {
+        "modele": "qwen:72b-text-v1.5-q3_K_L",
+        "taille": 38
+      },
+      {
+        "modele": "qwen:72b-text-q4_0",
+        "taille": 41
+      },
+      {
+        "modele": "qwen:72b-text-v1.5-q4_0",
+        "taille": 41
+      },
+      {
+        "modele": "qwen:72b-text-q4_1",
+        "taille": 45
+      },
+      {
+        "modele": "qwen:72b-text-v1.5-q4_1",
+        "taille": 45
+      },
+      {
+        "modele": "qwen:72b-text-q4_K_S",
+        "taille": 41
+      },
+      {
+        "modele": "qwen:72b-text-v1.5-q4_K_S",
+        "taille": 42
+      },
+      {
+        "modele": "qwen:72b-text-q4_K_M",
+        "taille": 45
+      },
+      {
+        "modele": "qwen:72b-text-v1.5-q4_K_M",
+        "taille": 44
+      },
+      {
+        "modele": "qwen:72b-text-q5_0",
+        "taille": 50
+      },
+      {
+        "modele": "qwen:72b-text-v1.5-q5_0",
+        "taille": 50
+      },
+      {
+        "modele": "qwen:72b-text-q5_1",
+        "taille": 54
+      },
+      {
+        "modele": "qwen:72b-text-v1.5-q5_1",
+        "taille": 54
+      },
+      {
+        "modele": "qwen:72b-text-q5_K_S",
+        "taille": 50
+      },
+      {
+        "modele": "qwen:72b-text-v1.5-q5_K_S",
+        "taille": 50
+      },
+      {
+        "modele": "qwen:72b-text-q5_K_M",
+        "taille": 53
+      },
+      {
+        "modele": "qwen:72b-text-v1.5-q5_K_M",
+        "taille": 51
+      },
+      {
+        "modele": "qwen:72b-text-q6_K",
+        "taille": 59
+      },
+      {
+        "modele": "qwen:72b-text-v1.5-q6_K",
+        "taille": 59
+      },
+      {
+        "modele": "qwen:72b-text-q8_0",
+        "taille": 77
+      },
+      {
+        "modele": "qwen:72b-text-v1.5-q8_0",
+        "taille": 77
+      },
+      {
+        "modele": "qwen:72b-text-fp16",
+        "taille": 145
+      },
+      {
+        "modele": "qwen:72b-text-v1.5-fp16",
+        "taille": 145
+      },
+      {
+        "modele": "qwen:110b-chat",
+        "taille": 63
+      },
+      {
+        "modele": "qwen:110b-chat-v1.5-q2_K",
+        "taille": 41
+      },
+      {
+        "modele": "qwen:110b-chat-v1.5-q3_K_S",
+        "taille": 48
+      },
+      {
+        "modele": "qwen:110b-chat-v1.5-q3_K_M",
+        "taille": 54
+      },
+      {
+        "modele": "qwen:110b-chat-v1.5-q3_K_L",
+        "taille": 58
+      },
+      {
+        "modele": "qwen:110b-chat-v1.5-q4_0",
+        "taille": 63
+      },
+      {
+        "modele": "qwen:110b-chat-v1.5-q4_1",
+        "taille": 70
+      },
+      {
+        "modele": "qwen:110b-chat-v1.5-q4_K_S",
+        "taille": 63
+      },
+      {
+        "modele": "qwen:110b-chat-v1.5-q4_K_M",
+        "taille": 67
+      },
+      {
+        "modele": "qwen:110b-chat-v1.5-q5_0",
+        "taille": 77
+      },
+      {
+        "modele": "qwen:110b-chat-v1.5-q5_1",
+        "taille": 84
+      },
+      {
+        "modele": "qwen:110b-chat-v1.5-q5_K_S",
+        "taille": 77
+      },
+      {
+        "modele": "qwen:110b-chat-v1.5-q5_K_M",
+        "taille": 79
+      },
+      {
+        "modele": "qwen:110b-chat-v1.5-q6_K",
+        "taille": 91
+      },
+      {
+        "modele": "qwen:110b-chat-v1.5-q8_0",
+        "taille": 118
+      },
+      {
+        "modele": "qwen:110b-chat-v1.5-fp16",
+        "taille": 222
+      },
+      {
+        "modele": "qwen:110b-text-v1.5-q2_K",
+        "taille": 41
+      },
+      {
+        "modele": "qwen:110b-text-v1.5-q3_K_S",
+        "taille": 48
+      },
+      {
+        "modele": "qwen:110b-text-v1.5-q3_K_M",
+        "taille": 54
+      },
+      {
+        "modele": "qwen:110b-text-v1.5-q3_K_L",
+        "taille": 58
+      },
+      {
+        "modele": "qwen:110b-text-v1.5-q4_0",
+        "taille": 63
+      },
+      {
+        "modele": "qwen:110b-text-v1.5-q4_1",
+        "taille": 70
+      },
+      {
+        "modele": "qwen:110b-text-v1.5-q4_K_S",
+        "taille": 63
+      },
+      {
+        "modele": "qwen:110b-text-v1.5-q4_K_M",
+        "taille": 67
+      },
+      {
+        "modele": "qwen:110b-text-v1.5-q5_0",
+        "taille": 77
+      },
+      {
+        "modele": "qwen:110b-text-v1.5-q5_1",
+        "taille": 84
+      },
+      {
+        "modele": "qwen:110b-text-v1.5-q5_K_S",
+        "taille": 77
+      },
+      {
+        "modele": "qwen:110b-text-v1.5-q5_K_M",
+        "taille": 79
+      },
+      {
+        "modele": "qwen:110b-text-v1.5-q6_K",
+        "taille": 91
+      },
+      {
+        "modele": "qwen:110b-text-v1.5-q8_0",
+        "taille": 118
+      },
+      {
+        "modele": "qwen:110b-text-v1.5-fp16",
+        "taille": 222
+      }
+    ]
+  },
+  {
+    "nom": "qwq",
+    "specialite": "Raisonnement approfondi et problèmes complexes",
+    "usages": [
+      "reflexion"
+    ],
+    "variantes": [
+      {
+        "modele": "qwq:latest",
+        "taille": 20
+      },
+      {
+        "modele": "qwq:32b",
+        "taille": 20
+      },
+      {
+        "modele": "qwq:32b-preview-q4_K_M",
+        "taille": 20
+      },
+      {
+        "modele": "qwq:32b-preview-q8_0",
+        "taille": 35
+      },
+      {
+        "modele": "qwq:32b-preview-fp16",
+        "taille": 66
+      },
+      {
+        "modele": "qwq:32b-q4_K_M",
+        "taille": 20
+      },
+      {
+        "modele": "qwq:32b-q8_0",
+        "taille": 35
+      },
+      {
+        "modele": "qwq:32b-fp16",
+        "taille": 66
+      }
+    ]
+  },
+  {
+    "nom": "codeqwen",
+    "specialite": "Ancienne génération spécialisée en code",
+    "usages": [
+      "code"
+    ],
+    "variantes": [
+      {
+        "modele": "codeqwen:latest",
+        "taille": 4.2
+      },
+      {
+        "modele": "codeqwen:chat",
+        "taille": 4.2
+      },
+      {
+        "modele": "codeqwen:code",
+        "taille": 4.2
+      },
+      {
+        "modele": "codeqwen:v1.5",
+        "taille": 4.2
+      },
+      {
+        "modele": "codeqwen:7b",
+        "taille": 4.2
+      },
+      {
+        "modele": "codeqwen:7b-chat",
+        "taille": 4.2
+      },
+      {
+        "modele": "codeqwen:7b-chat-v1.5-q2_K",
+        "taille": 3.1
+      },
+      {
+        "modele": "codeqwen:7b-chat-v1.5-q3_K_S",
+        "taille": 3.5
+      },
+      {
+        "modele": "codeqwen:7b-chat-v1.5-q3_K_M",
+        "taille": 3.8
+      },
+      {
+        "modele": "codeqwen:7b-chat-v1.5-q3_K_L",
+        "taille": 4
+      },
+      {
+        "modele": "codeqwen:7b-chat-v1.5-q4_0",
+        "taille": 4.2
+      },
+      {
+        "modele": "codeqwen:7b-chat-v1.5-q4_1",
+        "taille": 4.6
+      },
+      {
+        "modele": "codeqwen:7b-chat-v1.5-q4_K_S",
+        "taille": 4.4
+      },
+      {
+        "modele": "codeqwen:7b-chat-v1.5-q4_K_M",
+        "taille": 4.7
+      },
+      {
+        "modele": "codeqwen:7b-chat-v1.5-q5_0",
+        "taille": 5
+      },
+      {
+        "modele": "codeqwen:7b-chat-v1.5-q5_1",
+        "taille": 5.5
+      },
+      {
+        "modele": "codeqwen:7b-chat-v1.5-q5_K_S",
+        "taille": 5.1
+      },
+      {
+        "modele": "codeqwen:7b-chat-v1.5-q5_K_M",
+        "taille": 5.4
+      },
+      {
+        "modele": "codeqwen:7b-chat-v1.5-q6_K",
+        "taille": 6.4
+      },
+      {
+        "modele": "codeqwen:7b-chat-v1.5-q8_0",
+        "taille": 7.7
+      },
+      {
+        "modele": "codeqwen:7b-chat-v1.5-fp16",
+        "taille": 15
+      },
+      {
+        "modele": "codeqwen:7b-code",
+        "taille": 4.2
+      },
+      {
+        "modele": "codeqwen:7b-code-v1.5-q4_0",
+        "taille": 4.2
+      },
+      {
+        "modele": "codeqwen:7b-code-v1.5-q4_1",
+        "taille": 4.6
+      },
+      {
+        "modele": "codeqwen:7b-code-v1.5-q5_0",
+        "taille": 5
+      },
+      {
+        "modele": "codeqwen:7b-code-v1.5-q5_1",
+        "taille": 5.5
+      },
+      {
+        "modele": "codeqwen:7b-code-v1.5-q8_0",
+        "taille": 7.7
+      },
+      {
+        "modele": "codeqwen:7b-code-v1.5-fp16",
+        "taille": 15
+      },
+      {
+        "modele": "codeqwen:v1.5-chat",
+        "taille": 4.2
+      },
+      {
+        "modele": "codeqwen:v1.5-code",
+        "taille": 4.2
+      }
+    ]
+  }
+]

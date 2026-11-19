@@ -33,6 +33,19 @@ test('gourmands : gros modèles Ollama, gros Groq, Gemini flash sans lite', () =
   assert.equal(estGourmand('nimporte', 'openrouter'), false);
 });
 
+test('conseillé : jamais un modèle gourmand quand une alternative existe (l\'étoile ne contredit pas ▲)', () => {
+  assert.equal(modeleConseille(['qwen3.6:27b', 'qwen3:8b'], 'ollama'), 'qwen3:8b');
+  assert.equal(modeleConseille(['qwen3:14b', 'qwen3.5:9b'], 'ollama'), 'qwen3.5:9b');
+  assert.equal(modeleConseille(['qwen3.6:27b', 'qwen3:14b', 'qwen2.5-coder:7b'], 'ollama'), 'qwen2.5-coder:7b');
+});
+
+test('conseillé : s\'il n\'y a que des gourmands, le meilleur passe quand même (jamais null par dépit)', () => {
+  assert.equal(modeleConseille(['qwen3.6:27b', 'qwen3:14b'], 'ollama'), 'qwen3.6:27b');
+  assert.equal(modeleConseille(['qwen3:14b'], 'ollama'), 'qwen3:14b');
+  // Hors liste des préférés : toujours null, comme avant
+  assert.equal(modeleConseille(['llama3:70b'], 'ollama'), null);
+});
+
 test('par défaut : le conseillé, sinon le mieux noté (gratuit, stable, récent)', () => {
   assert.equal(modeleParDefaut(['a:free', 'qwen/qwen3-coder:free'], 'openrouter'), 'qwen/qwen3-coder:free');
   assert.equal(modeleParDefaut(['x/modele-2:free', 'x/modele-3', 'x/modele-1:free'], 'autre'), 'x/modele-3');

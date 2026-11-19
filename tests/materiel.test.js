@@ -3,10 +3,11 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { MODELES_QWEN, modeleConseille, vramDepuisRegistre } = require('../principal/materiel');
 
-test('modeleConseille : le plus gros modèle qui tient dans la carte graphique', () => {
-  assert.equal(modeleConseille({ vramGo: 24, ramGo: 32 }).modele, 'qwen3.6:27b');
-  assert.equal(modeleConseille({ vramGo: 16, ramGo: 32 }).modele, 'qwen3:14b');
-  assert.equal(modeleConseille({ vramGo: 8, ramGo: 16 }).modele, 'qwen3:8b'); // une RX 6600 ou une RTX 3060 Ti
+test('modeleConseille : le modèle intégré par Cat Ai dès qu’il tient, sinon le plus gros qui tient', () => {
+  // qwen3.5:9b est réglé et testé pour Cat Ai : il est conseillé dès que la carte a assez de mémoire
+  assert.equal(modeleConseille({ vramGo: 24, ramGo: 32 }).modele, 'qwen3.5:9b');
+  assert.equal(modeleConseille({ vramGo: 16, ramGo: 32 }).modele, 'qwen3.5:9b');
+  assert.equal(modeleConseille({ vramGo: 8, ramGo: 16 }).modele, 'qwen3.5:9b'); // une carte de 8 Go
   assert.equal(modeleConseille({ vramGo: 6, ramGo: 16 }).modele, 'qwen3.5:4b');
   assert.equal(modeleConseille({ vramGo: null, ramGo: 8 }).modele, 'qwen3.5:2b');
 });
@@ -40,7 +41,8 @@ test('catalogue : rapide dans la carte, lent si ça déborde dans la RAM, trop g
   assert.equal(avis['qwen3:8b'], 'ok');
   assert.equal(avis['qwen3:14b'], 'lent');
   assert.equal(avis['qwen3.6:27b'], 'trop');
-  assert.deepEqual(catalogue({ vramGo: 8, ramGo: 16 }).filter((m) => m.conseille).map((m) => m.modele), ['qwen3:8b']);
+  assert.deepEqual(catalogue({ vramGo: 8, ramGo: 16 }).filter((m) => m.conseille).map((m) => m.modele), ['qwen3.5:9b']);
+  assert.deepEqual(catalogue({ vramGo: 8, ramGo: 16 }).filter((m) => m.integre).map((m) => m.modele), ['qwen3.5:9b']);
   // Sans carte graphique : seul le plus léger est rapide
   assert.deepEqual(catalogue({ vramGo: null, ramGo: 8 }).filter((m) => m.avis === 'ok').map((m) => m.modele), ['qwen3.5:2b']);
 });

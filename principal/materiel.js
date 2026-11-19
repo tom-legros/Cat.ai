@@ -12,8 +12,8 @@ const { execFile } = require('child_process');
 const MODELES_QWEN = [
   { modele: 'qwen3.6:27b', taille: 18, tailleMax: 19, vram: 22, raison: 'code avec outils et raisonnement' },
   { modele: 'qwen3:14b', taille: 9.3, vram: 12, raison: 'très bon partout, sans être trop lent' },
-  { modele: 'qwen3.5:9b', taille: 6.6, vram: 10, raison: 'récent et bon en code' },
   { modele: 'qwen3:8b', taille: 5.2, vram: 7, raison: 'le meilleur qui tient dans 8 Go' },
+  { modele: 'qwen3.5:9b', taille: 6.6, vram: 7, raison: 'réglé et testé pour Cat Ai', integre: true }, // mesuré : 5,8 Go à 8 192 de contexte, tout sur une carte de 8 Go
   { modele: 'qwen3.5:4b', taille: 3.3, tailleMax: 4, vram: 5, raison: 'léger, pour les petites cartes graphiques' },
   { modele: 'qwen3.5:2b', taille: 2.7, tailleMax: 3.1, vram: 0, raison: 'petit modèle utilisable sans carte graphique' },
 ];
@@ -39,9 +39,11 @@ const AUTRES_MODELES = [
 // Ce pour quoi on prend chaque Qwen
 const USAGE_QWEN = { 'qwen3.6:27b': 'code', 'qwen3:14b': 'general', 'qwen3.5:9b': 'code', 'qwen3:8b': 'general', 'qwen3.5:4b': 'general', 'qwen3.5:2b': 'general' };
 
-// Le plus gros modèle qui tient dans la carte. Sans carte (ou petite), avec peu de RAM, Gemini est conseillé à côté.
+// Le modèle intégré par Cat Ai (celui pour lequel le chat est réglé et testé) dès qu'il tient dans la carte ;
+// sinon le plus gros qui tient. Sans carte (ou petite), avec peu de RAM, Gemini est conseillé à côté.
+const MODELE_INTEGRE = MODELES_QWEN.find((m) => m.integre);
 function modeleConseille({ vramGo, ramGo }) {
-  const choix = MODELES_QWEN.find((m) => (vramGo || 0) >= m.vram);
+  const choix = (vramGo || 0) >= MODELE_INTEGRE.vram ? MODELE_INTEGRE : MODELES_QWEN.find((m) => (vramGo || 0) >= m.vram);
   return { ...choix, vramGo: vramGo || 0, geminiMieux: (vramGo || 0) < 5 && (ramGo || 0) < 16 };
 }
 
