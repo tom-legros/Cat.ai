@@ -566,6 +566,11 @@ const MODELES_SELECTION = [
     ["qwen3:14b", "Rédaction et raisonnement sur des tâches complexes", "modeleQwen"],
     ["qwen2.5-coder:7b", "Écriture, explication et correction de code", "modeleQwen"],
     ["gemma4:e2b", "Lecture de captures et analyse d’images", "modeleGemma"],
+    ["gemma4:e4b-it-qat", "Images et texte, très léger (version QAT)", "modeleGemma"],
+    ["gemma4:12b-it-qat", "Images et documents, pour une carte de 10 Go", "modeleGemma"],
+    ["ministral-3:8b", "Mistral : français, images, long contexte", "modeleMistral"],
+    ["gemma4:e4b", "Images et captures, plus précis que e2b", "modeleGemma"],
+    ["gemma4:12b", "Images et documents sur une carte de 12 Go", "modeleGemma"],
     ["deepseek-r1:8b", "Maths et raisonnement étape par étape", "modeleDeepSeek"],
     ["gpt-oss:20b", "Raisonnement et tâches avec outils", "modeleOpenAI"],
     ["qwen3.6:27b", "Code avec outils et raisonnement sur une machine puissante", "modeleQwen"],
@@ -575,7 +580,7 @@ const MODELES_SELECTION = [
 // À quoi sert chaque modèle de la sélection, pour les filtres
 const USAGE_MODELE = {
     "qwen2.5-coder:7b": "code", "qwen3.5:9b": "code", "qwen3.6:27b": "code", "qwen3.6:35b": "code",
-    "gemma4:e2b": "images", "qwen3.5:0.8b": "images",
+    "gemma4:e2b": "images", "gemma4:e4b": "images", "gemma4:e4b-it-qat": "images", "gemma4:12b-it-qat": "images", "gemma4:12b": "images", "qwen3.5:0.8b": "images",
     "deepseek-r1:8b": "reflexion", "gpt-oss:20b": "reflexion", "qwen3:14b": "reflexion"
 };
 const USAGES = { tous: "Tous", general: "Général", code: "Code", images: "Images", reflexion: "Réflexion", installes: "Installés" };
@@ -603,9 +608,10 @@ filtreAdaptes.addEventListener("click", () => {
     dessinerModeles();
 });
 
-function evaluerModele({ vram, ramCPU, avis, conseille, integre }, { vramGo, ramGo }) {
+function evaluerModele({ vram, ramCPU, avis, conseille, integre, teste }, { vramGo, ramGo }) {
     if (vramGo >= vram) {
         if (integre) return { label: "Intégré par Cat Ai", classe: "avis--conseille", detail: "Réglé et testé pour Cat Ai", adapte: true };
+        if (teste) return { label: "Testé par Cat Ai", classe: "avis--ok", detail: "Essayé dans Cat Ai : français, tableaux et code", adapte: true };
         return conseille
             ? { label: "Conseillé", classe: "avis--conseille", detail: "Bon choix pour ton GPU", adapte: true }
             : { label: "Rapide", classe: "avis--ok", detail: "Tient dans ta VRAM", adapte: true };
@@ -640,6 +646,16 @@ function actionModele(m) {
     return boutonTelecharger(m.modele);
 }
 
+// Toutes les fiches connues, avec leur avis pour ce PC : la sélection et la liste partent des mêmes données
+function fichesModeles() {
+    const modelesConnus = new Map(catalogue.modeles.map(m => [m.modele, m]));
+    return MODELES_SELECTION.map(([modele, raison, pictogramme, ramCPU, budgetVRAM]) => {
+        const fiche = modelesConnus.get(modele);
+        const m = { ...fiche, modele, raison, pictogramme, ramCPU, vram: budgetVRAM ?? fiche.vram };
+        return { ...m, evaluation: evaluerModele(m, catalogue) };
+    });
+}
+
 function dessinerModeles() {
     if (!catalogue) return;
     const { vramGo, ramGo, disqueGo, modeles } = catalogue;
@@ -650,11 +666,8 @@ function dessinerModeles() {
     );
     $("#modeles-etat").textContent = ollamaLa ? "" : "Lance Ollama pour utiliser ou télécharger un modèle.";
     const modelesConnus = new Map(modeles.map(m => [m.modele, m]));
-    const selection = MODELES_SELECTION.map(([modele, raison, pictogramme, ramCPU, budgetVRAM]) => {
-        const fiche = modelesConnus.get(modele);
-        const m = { ...fiche, modele, raison, pictogramme, ramCPU, vram: budgetVRAM ?? fiche.vram };
-        return { ...m, evaluation: evaluerModele(m, catalogue) };
-    });
+    const selection = fichesModeles();
+    dessinerSelection(selection);
     // Les modèles installés que la sélection ne connaît pas restent visibles et utilisables
     for (const nom of installes.filter((n) => !modelesConnus.has(n) && !MODELES_SELECTION.some(([m]) => m === n))) {
         selection.push({ modele: nom, raison: "Installé par toi", pictogramme: "puce", taille: null, vram: null, evaluation: { label: "À vérifier", classe: "avis--trop", detail: "Pas dans la sélection : besoin en mémoire inconnu", adapte: false } });
@@ -673,30 +686,46 @@ function dessinerModeles() {
     effacer.type = "button";
     effacer.addEventListener("click", () => { $("#modeles-recherche").value = ""; usageChoisi = "tous"; filtreAdaptes.setAttribute("aria-pressed", "false"); dessinerModeles(); });
     if (actifs.length) $("#modeles-filtre-etat").append(" ", effacer);
-    $("#modeles-liste").replaceChildren(...visibles.map(carteCatalogue));
+    // Ce qu'on a d'abord (actif, puis installés), puis ce qui tient sur le PC, du plus léger au plus lourd
+    const rang = (m) => (m.modele === modeleActif() ? 0 : installes.includes(m.modele) ? 1 : m.evaluation.adapte ? 2 : 3);
+    visibles.sort((a, b) => rang(a) - rang(b) || (a.vram ?? 99) - (b.vram ?? 99));
+    $("#modeles-liste").replaceChildren(enteteListe(), ...visibles.map(carteCatalogue));
     if (!visibles.length) $("#modeles-liste").append(creer("li", "modele modele--vide", "Aucun modèle ne correspond. « Tout afficher » enlève les filtres."));
 }
 
+// Le modèle Ollama en service, s'il y en a un
+const modeleActif = () => (reglages.actif === "ollama" ? modelSel.value : "");
+
+// La liste se lit comme un tableau : une ligne d'en-tête, puis une ligne par modèle
+function enteteListe() {
+    const li = creer("li", "ligne-modele ligne-modele--entete");
+    li.setAttribute("aria-hidden", "true");
+    for (const texte of ["", "Modèle", "Usage", "Poids", "Mémoire", "Sur ton PC", ""]) li.append(creer("span", "", texte));
+    return li;
+}
+
 function carteCatalogue(m) {
-    const installe = installes.includes(m.modele);
-    const carte = creer('li', 'modele carte-modele');
-    const identite = creer('div', 'carte-modele__identite');
-    const pictogramme = creer('span', 'carte-modele__icone');
+    const ligne = creer("li", "ligne-modele");
+    if (m.modele === modeleActif()) ligne.classList.add("is-actif");
+    const pictogramme = creer("span", "ligne-modele__icone");
     pictogramme.innerHTML = icone(m.pictogramme);
-    identite.append(pictogramme);
-    const description = creer('div', 'carte-modele__description');
-    const titre = creer('div', 'carte-modele__titre');
-    const nom = creer('h3', 'carte-modele__nom');
-    nom.append(lienExterne(m.modele, 'https://ollama.com/library/' + m.modele, 'carte-modele__lien'));
-    titre.append(nom);
-    const avis = creer('span', 'avis ' + m.evaluation.classe, m.evaluation.label);
-    avis.title = m.evaluation.detail;
-    titre.append(avis);
-    const actif = installe && reglages.actif === 'ollama' && modelSel.value === m.modele;
-    description.append(titre, creer('p', 'carte-modele__specialite', m.raison));
-    identite.append(description);
-    carte.append(identite);
-    const pied = creer('div', 'carte-modele__pied');
+    const identite = creer("div", "ligne-modele__identite");
+    const nom = creer("h4", "ligne-modele__nom");
+    nom.append(lienExterne(m.modele, "https://ollama.com/library/" + m.modele, "carte-modele__lien"));
+    identite.append(nom, creer("p", "ligne-modele__raison", m.raison));
+    const usage = creer("span", "ligne-modele__usage", USAGES[m.usage] || "Général");
+    const poids = creer("span", "ligne-modele__chiffre", poidsModele(m) || "—");
+    poids.title = "À télécharger";
+    const memoire = creer("span", "ligne-modele__chiffre", m.vram ? `${m.vram} Go` : "—");
+    memoire.title = m.ramCPU ? `Carte graphique, ou ≈ ${m.ramCPU} Go de RAM sur le processeur` : "Mémoire de la carte graphique pour tourner";
+    const action = creer("div", "ligne-modele__action");
+    action.append(boutonModele(m));
+    ligne.append(pictogramme, identite, usage, poids, memoire, badgeModele(m), action);
+    return ligne;
+}
+
+// Poids et mémoire demandée : les mêmes lignes dans la liste et dans la sélection
+function infosModele(m) {
     const infos = creer('div', 'carte-modele__infos');
     if (m.taille != null) {
         const poids = m.tailleMax ? go(m.taille) + '–' + go(m.tailleMax) : go(m.taille);
@@ -704,28 +733,132 @@ function carteCatalogue(m) {
         infos.append(creer('small', '', '≈ ' + m.vram + ' Go de VRAM pour tourner'));
     }
     if (m.ramCPU) infos.append(creer('small', '', 'CPU · ≈ ' + m.ramCPU + ' Go de RAM'));
-    let action;
-    if (actif) action = etatModele('Actif', 'is-installe');
-    else if (installe) {
-        action = creer('button', 'bouton-calme', 'Utiliser');
-        action.type = 'button';
-        action.setAttribute('aria-label', 'Utiliser ' + m.modele);
-        action.addEventListener('click', async () => {
-            if (streaming) { $("#modeles-etat").textContent = 'Attends la fin de la réponse avant de changer de modèle.'; return; }
-            try {
-                const r = await window.api.choisirFournisseur({ id: "ollama", modele: m.modele });
-                if (!r.ok) throw new Error(r.erreur || 'Choix impossible.');
-                reglages = r.reglages;
-                fournisseurSel.value = "ollama";
-                await loadModels(m.modele);
-                if (modelSel.value !== m.modele) throw new Error("Ce modèle n’est plus disponible dans Ollama.");
-                voirPage('discussion');
-            } catch (err) { $("#modeles-etat").textContent = err.message; }
-        });
-    } else action = actionModele(m);
-    pied.append(infos, action);
-    carte.append(pied);
-    return carte;
+    return infos;
+}
+
+// Le bout de la carte : « Actif », « Utiliser », « Télécharger », ou ce qui empêche de le faire
+function boutonModele(m) {
+    const installe = installes.includes(m.modele);
+    if (installe && reglages.actif === 'ollama' && modelSel.value === m.modele) return etatModele('Actif', 'is-installe');
+    if (!installe) return actionModele(m);
+    const action = creer('button', 'bouton-calme', 'Utiliser');
+    action.type = 'button';
+    action.setAttribute('aria-label', 'Utiliser ' + m.modele);
+    // Trop gros pour la carte : il déborde en RAM, rame, et peut faire planter le pilote (vu avec gemma4:12b-it-qat sur 8 Go).
+    // Le premier clic prévient, le second confirme.
+    const tropGros = !!(m.vram && catalogue?.vramGo && m.vram > catalogue.vramGo);
+    let prevenu = false;
+    action.addEventListener('click', async () => {
+        // Une réponse locale en cours garde son modèle ; on attend sa fin pour ne pas recharger Ollama sous ses pieds
+        if (fluxLocalEnCours()) { $("#modeles-etat").textContent = 'Attends la fin de la réponse avant de changer de modèle.'; return; }
+        if (tropGros && !prevenu) {
+            prevenu = true;
+            action.textContent = 'Utiliser quand même';
+            action.classList.add('is-risque');
+            $("#modeles-etat").textContent = `${m.modele} demande environ ${m.vram} Go et ta carte en a ${catalogue.vramGo} : il sera lent, et il peut faire planter le pilote de la carte graphique.`;
+            return;
+        }
+        try {
+            const r = await window.api.choisirFournisseur({ id: "ollama", modele: m.modele });
+            if (!r.ok) throw new Error(r.erreur || 'Choix impossible.');
+            reglages = r.reglages;
+            fournisseurSel.value = "ollama";
+            await loadModels(m.modele);
+            if (modelSel.value !== m.modele) throw new Error("Ce modèle n’est plus disponible dans Ollama.");
+            voirPage('discussion');
+        } catch (err) { $("#modeles-etat").textContent = err.message; }
+    });
+    return action;
+}
+
+/* La sélection Cat Ai : le modèle conseillé pour ce PC et ce qu'il sait déjà faire, puis les spécialistes
+   qui apportent vraiment quelque chose sur ce PC. Chaque spécialiste prend le premier candidat qui tient
+   (du plus fort au plus léger). Ce qui demande une plus grosse carte tient en une seule ligne. */
+const SPECIALISTES = [
+    { id: "code", court: "Coder", pour: "le code", icone: "code", candidats: ["qwen3.6:27b", "qwen3.5:9b", "qwen2.5-coder:7b", "qwen3.5:4b"] },
+    { id: "images", court: "Images", pour: "les images", icone: "image", candidats: ["gemma4:12b", "qwen3.5:9b", "gemma4:e4b-it-qat", "qwen3.5:4b", "qwen3.5:2b"] },
+    { id: "reflexion", court: "Réfléchir", pour: "réfléchir", icone: "ampoule", candidats: ["gpt-oss:20b", "qwen3:14b", "qwen3.5:9b", "qwen3.5:4b"] },
+];
+// Pourquoi ce spécialiste, en quelques mots
+const RAISON_SPECIALISTE = {
+    "code:qwen3.6:27b": "Le plus fort pour le code, avec les outils",
+    "code:qwen2.5-coder:7b": "Spécialisé en code",
+    "images:gemma4:12b": "Lit bien les captures et les photos",
+    "images:gemma4:e4b-it-qat": "Voit les images dans 3 Go de carte",
+    "reflexion:gpt-oss:20b": "Réfléchit longtemps avant de répondre",
+    "reflexion:qwen3:14b": "Raisonne bien sur les tâches longues",
+};
+
+function choisirSpecialiste(specialiste, fiches, principal) {
+    const candidats = specialiste.candidats.map((nom) => fiches.find((f) => f.modele === nom)).filter(Boolean);
+    const choix = candidats.find((f) => f.evaluation.adapte && f.evaluation.classe !== "avis--lent") || null;
+    const plusFort = candidats[0] && candidats[0] !== choix ? candidats[0] : null;
+    return { choix, plusFort, deja: !!(choix && principal && choix.modele === principal.modele) };
+}
+
+function badgeModele(m) {
+    const b = creer("span", "avis " + m.evaluation.classe, m.evaluation.label);
+    b.title = m.evaluation.detail;
+    return b;
+}
+
+function nomModele(m, classe) {
+    const nom = creer("h4", classe);
+    nom.append(lienExterne(m.modele, "https://ollama.com/library/" + m.modele, "carte-modele__lien"));
+    return nom;
+}
+
+const poidsModele = (m) => m.taille == null ? "" : (m.tailleMax ? go(m.taille) + "–" + go(m.tailleMax) : go(m.taille)) + " Go";
+
+function dessinerSelection(fiches) {
+    const principal = fiches.find((f) => f.modele === catalogue.modeles.find((m) => m.conseille)?.modele);
+    const resultats = SPECIALISTES.map((s) => ({ s, ...choisirSpecialiste(s, fiches, principal) }));
+    const zone = $("#selection-principal");
+    zone.replaceChildren();
+    if (principal) {
+        const carte = creer("article", "selection__principal");
+        const pictogramme = creer("span", "selection__icone");
+        pictogramme.innerHTML = icone("etoile");
+        const corps = creer("div", "selection__corps");
+        const tete = creer("div", "selection__ligne");
+        tete.append(creer("span", "selection__etiquette", "Pour ton PC"), badgeModele(principal));
+        // Ce que le modèle conseillé couvre déjà : pas besoin d'un autre modèle pour ça
+        const usages = creer("ul", "selection__usages");
+        usages.setAttribute("aria-label", "Ce qu'il sait faire");
+        for (const texte of ["Discuter", ...resultats.filter((r) => r.deja).map((r) => r.s.court)]) {
+            const li = creer("li", "selection__usage");
+            li.innerHTML = icone("coche");
+            li.append(texte);
+            usages.append(li);
+        }
+        corps.append(tete, nomModele(principal, "selection__nom"), usages);
+        const action = creer("div", "selection__action");
+        action.append(creer("span", "selection__poids", poidsModele(principal)), boutonModele(principal));
+        carte.append(pictogramme, corps, action);
+        zone.append(carte);
+    }
+    // Les spécialistes qui tiennent sur ce PC et font mieux que le modèle conseillé
+    const utiles = resultats.filter((r) => r.choix && !r.deja);
+    const liste = $("#selection-specialistes");
+    liste.hidden = !utiles.length;
+    liste.replaceChildren(...utiles.map(({ s, choix }) => {
+        const li = creer("li", "specialiste");
+        const pictogramme = creer("span", "specialiste__icone");
+        pictogramme.innerHTML = icone(s.icone);
+        const corps = creer("div", "specialiste__corps");
+        const ligne = creer("div", "selection__ligne");
+        ligne.append(creer("span", "selection__etiquette", s.court), badgeModele(choix));
+        corps.append(ligne, nomModele(choix, "specialiste__nom"), creer("p", "specialiste__raison", RAISON_SPECIALISTE[`${s.id}:${choix.modele}`] || choix.raison));
+        const action = creer("div", "selection__action");
+        action.append(creer("span", "selection__poids", poidsModele(choix)), boutonModele(choix));
+        li.append(pictogramme, corps, action);
+        return li;
+    }));
+    // Une seule ligne pour ce qu'une plus grosse carte apporterait
+    const plusLoin = resultats.filter((r) => r.plusFort).map((r) => `${r.plusFort.modele} pour ${r.s.pour} (${r.plusFort.vram} Go)`);
+    const ligne = $("#selection-plus-loin");
+    ligne.hidden = !plusLoin.length;
+    ligne.textContent = plusLoin.length ? "Avec une plus grosse carte : " + plusLoin.join(" · ") : "";
 }
 
 async function telechargerDepuisPage(modele) {

@@ -52,7 +52,7 @@ test('AUTRES_MODELES : chacun a un usage connu, un nom téléchargeable, et de l
   for (const m of AUTRES_MODELES) {
     assert.match(m.modele, /^[\w.-]+:[\w.-]+$/, m.modele);
     assert.ok(['general', 'code', 'images', 'reflexion'].includes(m.usage), m.modele);
-    assert.ok(m.vram > m.taille, m.modele);
+    assert.ok(m.vram > m.taille || m.teste, m.modele); // plus petit que le téléchargement : seulement si on l'a mesuré
     assert.ok(m.raison.length <= 40, m.modele);
   }
   assert.equal(new Set(AUTRES_MODELES.map((m) => m.modele)).size, AUTRES_MODELES.length);
