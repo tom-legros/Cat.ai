@@ -238,6 +238,8 @@ async function discuter({ messages, modele, envoyer, limites, ctx, ev = {}, opti
   const appelsFaits = new Map();
   const afficher = (t) => ev.morceau?.(t);
   let relance = false;
+  let bouclesConsecutives = 0;
+  let arretBoucle = false;
   for (let etape = 0; etape < MAX_STEPS; etape++) {
     ctx.signal?.throwIfAborted();
     const aEnvoyer = limites ? compacter(historique, limites.total) : historique;
@@ -285,7 +287,18 @@ async function discuter({ messages, modele, envoyer, limites, ctx, ev = {}, opti
       let result;
       try {
         if (options.seulement && !options.seulement.includes(name)) result = "Cet outil n'est pas disponible dans cette tâche.";
-        else result = appelRepete(appelsFaits, name, args) ? BOUCLE : await executerOutil(name, args || {}, ctx);
+        else if (appelRepete(appelsFaits, name, args)) {
+          result = BOUCLE;
+          if (options.arreterSurBoucle) {
+            bouclesConsecutives++;
+            if (bouclesConsecutives >= 3) {
+              arretBoucle = true;
+            }
+          }
+        } else {
+          bouclesConsecutives = 0;
+          result = await executerOutil(name, args || {}, ctx);
+        }
       } catch (err) {
         result = `Erreur : ${err.message}`;
       }
@@ -299,6 +312,7 @@ async function discuter({ messages, modele, envoyer, limites, ctx, ev = {}, opti
       // tool_name sert à Ollama, tool_call_id aux fournisseurs OpenAI (chacun ignore l'autre)
       const texte = limites ? raccourcir(String(result), limites.resultatOutil) : String(result);
       historique.push({ role: 'tool', content: texte, tool_name: name, tool_call_id: call.id });
+      if (arretBoucle) return { fini: false, raison: 'boucle', historique };
     }
   }
   return { fini: false, historique };

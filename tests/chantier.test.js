@@ -149,3 +149,60 @@ test('detailEchec : ce qui suit « failing tests: », avec la différence attend
   assert.doesNotMatch(detail, /node:internal|TestContext/);
   assert.equal(detailEchec('tout va bien'), '');
 });
+
+test('jeterChantier : un nom préfixe ne supprime jamais le chantier voisin', () => {
+  const projet = depot();
+  const copies = fs.mkdtempSync(path.join(os.tmpdir(), 'catai-prefixe-'));
+  const voisin = path.join(copies, 'a-voisin');
+  const cible = path.join(copies, 'z-cible');
+  git(projet, 'worktree', 'add', '-b', 'catai/chantier-essai-long', voisin);
+  git(projet, 'worktree', 'add', '-b', 'catai/chantier-essai', cible);
+  fs.writeFileSync(path.join(voisin, 'travail.txt'), 'à préserver');
+  jeterChantier(projet, 'essai');
+  assert.equal(fs.existsSync(cible), false);
+  assert.equal(fs.readFileSync(path.join(voisin, 'travail.txt'), 'utf8'), 'à préserver');
+  assert.equal(git(voisin, 'branch', '--show-current'), 'catai/chantier-essai-long');
+});
+
+for (const conforme of [true, false]) test('sans diff : vérifie le résultat existant, conforme = ' + conforme, async () => {
+  const projet = depot();
+  const copies = fs.mkdtempSync(path.join(os.tmpdir(), 'catai-conforme-'));
+  let lectures = 0;
+  const controle = { type: 'relecture', modele: 'test', envoyer: async (messages) => {
+    const texte = messages.at(-1).content;
+    if (texte.includes('État existant')) {
+      lectures++;
+      assert.match(texte, /const a = 2/);
+      return { content: JSON.stringify({ ok: conforme, remarque: 'résultat incomplet' }) };
+    }
+    return { content: '{"ok":true}' };
+  } };
+  const r = await lancerChantier({
+    projet, dossierCopies: copies, plan: 'deux étapes', nom: 'conforme',
+    etapes: [{ titre: 'Préparer', consigne: 'écrire a.js et préparer la suite' }, { titre: 'Vérifier a', consigne: 'a.js doit contenir const a = 2' }],
+    codeurs: [{ nom: 'Dev', ...fauxOuvrier(), controles: [controle] ,
+      envoyer: async (messages) => messages[0].content.includes('Vérifier a') || messages.at(-1).role === 'tool'
+          ? { content: 'Déjà fait.', toolCalls: [] }
+          : { content: '', toolCalls: [{ function: { name: 'ecrire_fichier', arguments: { chemin: 'a.js', contenu: 'const a = 2;\n' } } }] }
+    }]
+  });
+  assert.deepEqual(r.etapes.map(e=>e.ok), [true, conforme]);
+  assert.ok(lectures > 0);
+  assert.equal(git(r.copie, 'rev-list', '--count', 'HEAD'), '2');
+  if(conforme) assert.equal(r.etapes[1].sansChangement, true);
+  assert.equal(git(projet, 'status', '--porcelain'), '');
+});
+
+test('sans diff : des tests échoués empêchent la validation et la relecture', async () => {
+  const projet = depot();
+  fs.writeFileSync(path.join(projet, 'a.test.js'), "require('node:test')('échec',()=>{throw Error('échec voulu')});");
+  git(projet,'add','.');
+  git(projet,'-c','user.name=Test','-c','user.email=test@example.invalid','commit','-qm','test');
+  let relu = false;
+  const r = await lancerChantier({projet, dossierCopies:fs.mkdtempSync(path.join(os.tmpdir(),'catai-sans-diff-')),nom:'tests',
+    plan:'Vérifier a.js',etapes:[{titre:'Vérifier',consigne:'a.js doit contenir const a = 1'}],
+    codeurs:[{nom:'Dev',...fauxOuvrier(false),controles:[{type:'tests'},{type:'relecture',envoyer:async()=>{relu=true;return {content:'{"ok":true}'};}}]}]});
+  assert.equal(r.etapes[0].ok,false);
+  assert.match(r.etapes[0].raison,/tests échouent/);
+  assert.equal(relu,false);
+});

@@ -5,6 +5,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { discuter, executerOutil } = require('../principal/agent');
+const { BOUCLE } = require('../principal/outils');
 
 const projetTemporaire = () => {
   const d = fs.mkdtempSync(path.join(os.tmpdir(), 'catai-agent-'));
@@ -136,4 +137,43 @@ test('sansPensee et sansCloture : un contenu légitime reste entier (relecture c
   const readme = '```js\nconsole.log(1);\n```';
   assert.equal(sansCloture(readme, 'README.md'), readme);
   assert.equal(sansCloture('```\nun bloc\n```', 'notes.md'), '```\nun bloc\n```');
+});
+
+test('discuter : arrêt sur boucle après 3 appels d outil identiques bloqués avec arreterSurBoucle', async () => {
+  const d = projetTemporaire();
+  const m = fauxModele([
+    { outils: [appel('lire_fichier', { chemin: 'a.js' })] },
+    { outils: [appel('lire_fichier', { chemin: 'a.js' })] },
+    { outils: [appel('lire_fichier', { chemin: 'a.js' })] },
+    { outils: [appel('lire_fichier', { chemin: 'a.js' })] },
+    { outils: [appel('lire_fichier', { chemin: 'a.js' })] }
+  ]);
+  const resultat = await discuter({
+    messages: [{ role: 'user', content: 'lis encore' }],
+    modele: 'test',
+    envoyer: m.envoyer,
+    ctx: contexte(d, fausseUi()),
+    options: { arreterSurBoucle: true }
+  });
+  assert.equal(resultat.fini, false);
+  assert.equal(resultat.raison, 'boucle');
+  assert.equal(resultat.historique.at(-1).content, BOUCLE);
+});
+
+test('discuter : fonctionnement normal sans interruption intempestive', async () => {
+  const d = projetTemporaire();
+  const m = fauxModele([
+    { outils: [appel('lire_fichier', { chemin: 'a.js' })] },
+    { outils: [appel('lire_fichier', { chemin: '.env' })] },
+    { texte: 'Terminé.' }
+  ]);
+  const resultat = await discuter({
+    messages: [{ role: 'user', content: 'lis' }],
+    modele: 'test',
+    envoyer: m.envoyer,
+    ctx: contexte(d, fausseUi()),
+    options: { arreterSurBoucle: true }
+  });
+  assert.equal(resultat.fini, true);
+  assert.equal(resultat.historique.at(-1).content, 'Terminé.');
 });

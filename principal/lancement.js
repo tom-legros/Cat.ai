@@ -89,17 +89,17 @@ function agentsDuChantier({ reglages, infos, envoyerLocal, envoyerEnLigne, limit
   const chef = chefForce ? agentSur('Chef', { fournisseur: chefForce, modele: reglages.modeles?.[chefForce] }) : agentDe(equipe.chef);
   const codeurs = equipe.codeurs.map((c, i) => {
     const controles = c.controles.map((k) => (k.type === 'tests'
-      ? { type: 'tests', nom: k.nom, logs: k.logs ? Object.assign(agentDe(k.logs), { nomAgent: k.logs.nom }) : null }
-      : { type: 'relecture', nom: k.nom, envoyer: agentDe(k.agent).envoyer, modele: k.agent.modele }));
+      ? { id: k.id, type: 'tests', nom: k.nom, logs: k.logs ? Object.assign(agentDe(k.logs), { nomAgent: k.logs.nom }) : null }
+      : { id: k.id, type: 'relecture', nom: k.nom, envoyer: agentDe(k.agent).envoyer, modele: k.agent.modele }));
     const choix = codeurForce ? { fournisseur: codeurForce, modele: reglages.modeles?.[codeurForce] } : c;
     if (choix.fournisseur === 'ollama') {
       const modele = (i === 0 && modeleForce) || choix.modele || modeleLocal;
-      return { nom: c.nom, specialite: c.specialite, envoyer: envoyerSurLePc, limites: limitesLocales, modele, local: true, qui: () => modele, controles };
+      return { id: c.id, nom: c.nom, specialite: c.specialite, envoyer: envoyerSurLePc, limites: limitesLocales, modele, local: true, qui: () => modele, controles };
     }
     // Un codeur en ligne : plus fort, mais s'il n'a plus de quota le modèle du PC reprend, avec ses propres limites
     const agent = agentSur(c.nom, choix);
     return {
-      nom: c.nom, specialite: c.specialite, envoyer: agent.envoyer, controles, qui: agent.nom,
+      id: c.id, nom: c.nom, specialite: c.specialite, envoyer: agent.envoyer, controles, qui: agent.nom,
       get modele() { return agent.modele; },
       get limites() { return agent.surLePc() ? limitesLocales : limitesEnLigne(choix.fournisseur); },
       get local() { return agent.surLePc(); },

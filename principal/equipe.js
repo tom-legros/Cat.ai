@@ -131,8 +131,8 @@ function planDeTravail(equipe) {
   const controlesSous = (id) => {
     const dessous = enfantsDe(equipe, id);
     return [
-      ...dessous.filter((a) => a.type === 'testeur').map((t) => ({ type: 'tests', nom: t.nom, logs: enfantsDe(equipe, t.id).find((a) => a.type === 'logs') || null })),
-      ...dessous.filter((a) => a.type === 'relecteur').map((r) => ({ type: 'relecture', nom: r.nom, agent: r })),
+      ...dessous.filter((a) => a.type === 'testeur').map((t) => ({ id: t.id, type: 'tests', nom: t.nom, logs: enfantsDe(equipe, t.id).find((a) => a.type === 'logs') || null })),
+      ...dessous.filter((a) => a.type === 'relecteur').map((r) => ({ id: r.id, type: 'relecture', nom: r.nom, agent: r })),
     ];
   };
   const chef = equipe.agents.find((a) => a.type === 'chef');
