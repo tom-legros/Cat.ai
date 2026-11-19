@@ -32,6 +32,7 @@ const PIXELS = {
     serveur: ["########", "#.#....#", "########", "........", "########", "#.#....#", "########", "........"],
     poids: ["..####..", ".#....#.", ".######.", "########", "########", "########", ".######.", "........"],
     puce: [".#.##.#.", "########", ".#....#.", "##....##", "##....##", ".#....#.", "########", ".#.##.#."],
+    image: ["########", "#......#", "#.....##", "#....##.", "#..##..#", "#.##...#", "########", "........"],
     bulle: ["########", "#......#", "#......#", "#......#", "########", ".##.....", ".#......", "........"],
     agents: ["..####..", "..####..", "...##...", ".######.", ".#....#.", "###..###", "###..###", "........"],
     boite: ["..####..", ".######.", "###..###", "#.####.#", "#..##..#", "#..##..#", ".######.", "........"],
@@ -51,5 +52,28 @@ function icone(nom, classe = "") {
     return `<svg class="icone icone-px${classe ? " " + classe : ""}" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true">${rects}</svg>`;
 }
 
+// Lettres pixel 5 × 7 pour le logo. motEnPixels renvoie null si une lettre manque (le logo garde alors le texte).
+const LETTRES_PIXEL = {
+    A: [".###.", "#...#", "#...#", "#####", "#...#", "#...#", "#...#"],
+    C: [".###.", "#...#", "#....", "#....", "#....", "#...#", ".###."],
+    I: ["###", ".#.", ".#.", ".#.", ".#.", ".#.", "###"],
+    T: ["#####", "..#..", "..#..", "..#..", "..#..", "..#..", "..#.."],
+    " ": ["..", "..", "..", "..", "..", "..", ".."]
+};
+
+function motEnPixels(mot) {
+    const lettres = [...String(mot).toUpperCase()].map((l) => LETTRES_PIXEL[l]);
+    if (!lettres.length || lettres.some((l) => !l)) return null;
+    let x = 0;
+    let rects = "";
+    for (const lettre of lettres) {
+        lettre.forEach((ligne, y) => {
+            for (const m of ligne.matchAll(/#+/g)) rects += `<rect x="${x + m.index}" y="${y}" width="${m[0].length}" height="1"/>`;
+        });
+        x += lettre[0].length + 1;
+    }
+    return `<svg class="logo__pixels" viewBox="0 0 ${x - 1} 7" shape-rendering="crispEdges" aria-hidden="true">${rects}</svg>`;
+}
+
 // Pour les tests et le script qui écrit les icônes dans index.html
-if (typeof module !== "undefined") module.exports = { PIXELS, icone };
+if (typeof module !== "undefined") module.exports = { PIXELS, icone, motEnPixels };

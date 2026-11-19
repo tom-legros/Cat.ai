@@ -13,7 +13,7 @@
       <span class="logo__nom">Cat Ai</span>
     </div>
 
-    <button id="new-chat" class="bouton--nouveau" type="button"><svg class="icone icone-px" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="3" y="0" width="2" height="1"/><rect x="3" y="1" width="2" height="1"/><rect x="3" y="2" width="2" height="1"/><rect x="0" y="3" width="8" height="1"/><rect x="0" y="4" width="8" height="1"/><rect x="3" y="5" width="2" height="1"/><rect x="3" y="6" width="2" height="1"/><rect x="3" y="7" width="2" height="1"/></svg>Nouvelle discussion</button>
+    <button id="new-chat" class="bouton--nouveau" type="button"><span data-icone="plus"></span>Nouvelle discussion</button>
 
     <!-- Les pages de l'app. Les icônes sont posées par interface/pages.js -->
     <nav class="nav" aria-label="Pages">
@@ -23,19 +23,26 @@
     </nav>
 
     <p class="etiquette">Discussions</p>
+    <div class="discussions__recherche">
+      <span class="discussions__loupe" data-icone="loupe" aria-hidden="true"></span>
+      <input id="conv-recherche" type="search" placeholder="Chercher dans l’historique…" aria-label="Chercher dans les discussions (titre et messages)" aria-controls="conv-list" autocomplete="off" spellcheck="false">
+      <button id="conv-recherche-effacer" class="discussions__effacer" type="button" title="Effacer la recherche" aria-label="Effacer la recherche" hidden>×</button>
+    </div>
+    <p id="conv-statut" class="conseil discussions__statut" role="status" aria-live="polite"></p>
+    <p id="historique-alerte" class="conseil discussions__alerte" role="alert" hidden></p>
     <ul id="conv-list" class="discussions"></ul>
 
     <!-- En bas, comme sur Claude : la mémoire, les réglages et l'état de la connexion -->
     <div class="cote__bas">
       <p id="memoire-ajout" class="conseil" aria-live="polite"></p>
-      <button id="open-memory" class="lien lien--bloc" type="button"><span class="lien__icone"><svg class="icone icone-px" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="1" y="1" width="2" height="1"/><rect x="5" y="1" width="2" height="1"/><rect x="0" y="2" width="8" height="1"/><rect x="0" y="3" width="8" height="1"/><rect x="1" y="4" width="6" height="1"/><rect x="2" y="5" width="4" height="1"/><rect x="3" y="6" width="2" height="1"/></svg>Mémoire</span> <span id="memory-count" class="compteur">0</span></button>
-      <button id="open-reglages" class="lien lien--bloc" type="button"><span class="lien__icone"><svg class="icone icone-px" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="3" y="0" width="2" height="1"/><rect x="1" y="1" width="6" height="1"/><rect x="1" y="2" width="2" height="1"/><rect x="5" y="2" width="2" height="1"/><rect x="0" y="3" width="3" height="1"/><rect x="5" y="3" width="3" height="1"/><rect x="0" y="4" width="3" height="1"/><rect x="5" y="4" width="3" height="1"/><rect x="1" y="5" width="2" height="1"/><rect x="5" y="5" width="2" height="1"/><rect x="1" y="6" width="6" height="1"/><rect x="3" y="7" width="2" height="1"/></svg>Réglages</span></button>
-      <p id="status" class="statut">Connexion…</p>
+      <button id="open-memory" class="lien lien--bloc" type="button"><span class="lien__icone" data-icone="livre"></span>Mémoire <span id="memory-count" class="compteur">0</span></button>
+      <button id="open-reglages" class="lien lien--bloc" type="button"><span class="lien__icone" data-icone="engrenage"></span>Réglages</button>
+      <p id="status" class="statut" role="status" aria-live="polite">Connexion…</p>
     </div>
   </aside>
 
   <main class="principal">
-    <header class="entete"><h1 id="titre-conv" class="entete__titre"></h1></header>
+    <header class="entete"><h1 id="titre-conv" class="entete__titre"></h1><button type="button" id="renommer-conv" class="entete__renommer" title="Renommer la discussion (F2)" aria-label="Renommer la discussion" hidden></button></header>
     <div id="messages" class="messages">
       <section id="welcome" class="accueil">
         <div class="mascotte" id="mascotte">
@@ -70,10 +77,10 @@
           </div>
         </div>
         <div class="suggestions">
-          <button class="suggestion" data-prompt="Explique-moi simplement un sujet qui m'intrigue, comme si j'avais 15 ans. Demande-moi d'abord lequel."><span class="suggestion__icone suggestion__icone--jaune"><svg class="icone icone-px" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="2" y="0" width="4" height="1"/><rect x="1" y="1" width="1" height="1"/><rect x="6" y="1" width="1" height="1"/><rect x="1" y="2" width="1" height="1"/><rect x="6" y="2" width="1" height="1"/><rect x="1" y="3" width="1" height="1"/><rect x="6" y="3" width="1" height="1"/><rect x="2" y="4" width="1" height="1"/><rect x="5" y="4" width="1" height="1"/><rect x="3" y="5" width="2" height="1"/><rect x="2" y="6" width="4" height="1"/><rect x="3" y="7" width="2" height="1"/></svg></span><span class="suggestion__texte"><strong>Explique-moi un truc</strong><small>Un sujet, simplement</small></span></button>
-          <button class="suggestion" data-prompt="Aide-moi à écrire un message clair et sympa. Demande-moi d'abord à qui il est destiné et ce que je veux dire."><span class="suggestion__icone suggestion__icone--rose"><svg class="icone icone-px" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="6" y="0" width="2" height="1"/><rect x="5" y="1" width="3" height="1"/><rect x="4" y="2" width="3" height="1"/><rect x="3" y="3" width="3" height="1"/><rect x="2" y="4" width="3" height="1"/><rect x="1" y="5" width="3" height="1"/><rect x="0" y="6" width="2" height="1"/><rect x="0" y="7" width="1" height="1"/></svg></span><span class="suggestion__texte"><strong>Écrire un message</strong><small>Mail, texto, lettre</small></span></button>
-          <button class="suggestion" data-prompt="Aide-moi à réviser un cours avec des questions, une par une. Demande-moi d'abord sur quoi."><span class="suggestion__icone suggestion__icone--bleu"><svg class="icone icone-px" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="1" y="0" width="6" height="1"/><rect x="1" y="1" width="1" height="1"/><rect x="6" y="1" width="1" height="1"/><rect x="1" y="2" width="1" height="1"/><rect x="3" y="2" width="2" height="1"/><rect x="6" y="2" width="1" height="1"/><rect x="1" y="3" width="1" height="1"/><rect x="6" y="3" width="1" height="1"/><rect x="1" y="4" width="1" height="1"/><rect x="3" y="4" width="2" height="1"/><rect x="6" y="4" width="1" height="1"/><rect x="1" y="5" width="1" height="1"/><rect x="6" y="5" width="1" height="1"/><rect x="1" y="6" width="6" height="1"/></svg></span><span class="suggestion__texte"><strong>Réviser un cours</strong><small>Avec des questions</small></span></button>
-          <button class="suggestion" data-prompt="Je veux apprendre à coder depuis zéro. Pose-moi d'abord deux ou trois questions, puis dis-moi par quoi commencer."><span class="suggestion__icone suggestion__icone--vert"><svg class="icone icone-px" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="2" y="1" width="1" height="1"/><rect x="5" y="1" width="1" height="1"/><rect x="1" y="2" width="1" height="1"/><rect x="6" y="2" width="1" height="1"/><rect x="0" y="3" width="1" height="1"/><rect x="7" y="3" width="1" height="1"/><rect x="1" y="4" width="1" height="1"/><rect x="6" y="4" width="1" height="1"/><rect x="2" y="5" width="1" height="1"/><rect x="5" y="5" width="1" height="1"/></svg></span><span class="suggestion__texte"><strong>Apprendre à coder</strong><small>Depuis zéro</small></span></button>
+          <button class="suggestion" data-prompt="Explique-moi simplement un sujet qui m'intrigue, comme si j'avais 15 ans. Demande-moi d'abord lequel."><span class="suggestion__icone suggestion__icone--jaune" data-icone="ampoule"></span><span class="suggestion__texte"><strong>Explique-moi un truc</strong><small>Un sujet, simplement</small></span></button>
+          <button class="suggestion" data-prompt="Aide-moi à écrire un message clair et sympa. Demande-moi d'abord à qui il est destiné et ce que je veux dire."><span class="suggestion__icone suggestion__icone--rose" data-icone="stylo"></span><span class="suggestion__texte"><strong>Écrire un message</strong><small>Mail, texto, lettre</small></span></button>
+          <button class="suggestion" data-prompt="Aide-moi à réviser un cours avec des questions, une par une. Demande-moi d'abord sur quoi."><span class="suggestion__icone suggestion__icone--bleu" data-icone="livre"></span><span class="suggestion__texte"><strong>Réviser un cours</strong><small>Avec des questions</small></span></button>
+          <button class="suggestion" data-prompt="Je veux apprendre à coder depuis zéro. Pose-moi d'abord deux ou trois questions, puis dis-moi par quoi commencer."><span class="suggestion__icone suggestion__icone--vert" data-icone="code"></span><span class="suggestion__texte"><strong>Apprendre à coder</strong><small>Depuis zéro</small></span></button>
         </div>
       </section>
     </div>
@@ -83,42 +90,43 @@
         <ul id="pieces" class="pieces" hidden></ul>
         <textarea id="input" rows="1" placeholder="Écris au chat…" spellcheck="true" lang="fr"></textarea>
         <button id="send" type="submit" class="bouton-envoi" title="Envoyer (Entrée)" aria-label="Envoyer">
-            <svg class="icone icone-px icone--envoi" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="3" y="0" width="2" height="1"/><rect x="2" y="1" width="4" height="1"/><rect x="1" y="2" width="6" height="1"/><rect x="0" y="3" width="2" height="1"/><rect x="3" y="3" width="2" height="1"/><rect x="6" y="3" width="2" height="1"/><rect x="3" y="4" width="2" height="1"/><rect x="3" y="5" width="2" height="1"/><rect x="3" y="6" width="2" height="1"/><rect x="3" y="7" width="2" height="1"/></svg>
-            <svg class="icone icone-px icone--stop" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="1" y="1" width="6" height="1"/><rect x="1" y="2" width="6" height="1"/><rect x="1" y="3" width="6" height="1"/><rect x="1" y="4" width="6" height="1"/><rect x="1" y="5" width="6" height="1"/><rect x="1" y="6" width="6" height="1"/></svg>
+            <span data-icone="envoi" data-classe="icone--envoi"></span>
+            <span data-icone="stop" data-classe="icone--stop"></span>
           </button>
       </div>
       <!-- Commandes sous le champ, à portée de clic. -->
         <div class="saisie__barre">
           <!-- À gauche : ce qui change la façon de répondre -->
           <div class="outils__groupe">
-            <span class="pastille-groupe">
+            <span class="raccourci">
+              <button id="joindre" class="pastille" type="button" aria-haspopup="true" aria-label="Joindre un fichier, une image, ou ouvrir un dossier" title="Joindre : un fichier, une image, ou ouvrir un dossier">
+                <span data-icone="plus"></span>
+              </button>
+              <div id="menu-joindre" class="menu-modeles menu-modeles--gauche" role="menu" aria-label="Joindre au message" hidden></div>
+            </span>
+            <span class="pastille-groupe" id="projet-groupe" hidden>
               <button id="open-project" class="pastille" type="button" title="Ouvrir un dossier pour que le chat lise son contenu">
-                <svg class="icone icone-px" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="0" y="1" width="3" height="1"/><rect x="0" y="2" width="7" height="1"/><rect x="0" y="3" width="1" height="1"/><rect x="7" y="3" width="1" height="1"/><rect x="0" y="4" width="1" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="0" y="5" width="1" height="1"/><rect x="7" y="5" width="1" height="1"/><rect x="0" y="6" width="8" height="1"/></svg>
+                <span data-icone="dossier"></span>
                 <span id="project-name">Dossier</span>
               </button>
               <button id="close-project" class="pastille pastille--x" type="button" title="Fermer le dossier" hidden>×</button>
             </span>
-            <button id="mode-prof" class="pastille" type="button" role="switch" aria-checked="false" title="Mode prof : il t'explique et te donne des pistes, mais c'est toi qui trouves">
-              <svg class="icone icone-px" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="0" y="1" width="1" height="1"/><rect x="7" y="1" width="1" height="1"/><rect x="0" y="2" width="3" height="1"/><rect x="5" y="2" width="3" height="1"/><rect x="0" y="3" width="1" height="1"/><rect x="2" y="3" width="4" height="1"/><rect x="7" y="3" width="1" height="1"/><rect x="0" y="4" width="1" height="1"/><rect x="2" y="4" width="1" height="1"/><rect x="5" y="4" width="1" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="0" y="5" width="3" height="1"/><rect x="5" y="5" width="3" height="1"/></svg>
-              <span>Mode prof</span>
+            <button id="mode-prof" class="pastille pastille--mode" type="button" role="switch" aria-checked="false" aria-label="Mode prof : il t'explique et te donne des pistes, mais c'est toi qui trouves" title="Mode prof : il t'explique et te donne des pistes, mais c'est toi qui trouves">
+              <span data-icone="lunettes"></span><span class="pastille__etiquette">Prof</span>
+            </button>
+            <button id="mode-reflexion" class="pastille pastille--mode" type="button" role="switch" aria-checked="false" aria-label="Mode Thinking : le modèle raisonne avant de répondre, plus lent mais plus solide. Sans lui, réponse rapide." title="Mode Thinking : le modèle raisonne avant de répondre, plus lent mais plus solide. Sans lui, réponse rapide." hidden>
+              <span data-icone="bulle"></span><span class="pastille__etiquette">Thinking</span>
             </button>
           </div>
-          <!-- À droite : qui répond (fournisseur et modèle) ; le petit rond = quota du jour -->
+          <!-- À droite : qui répond, dans un seul contrôle fournisseur + modèle ; le petit rond = quota du jour -->
           <div class="outils__groupe">
             <span class="raccourci">
-              <button id="fournisseur-raccourci" class="pastille pastille--discrete" type="button" aria-haspopup="true" title="Fournisseur : le service qui fait réfléchir le chat">
-                <span id="fournisseur-icone" class="menu-icone menu-icone--petite"></span><span class="pastille__terme">Fournisseur</span><span id="fournisseur-nom">…</span><svg class="icone icone-px icone--chevron" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="0" y="2" width="2" height="1"/><rect x="6" y="2" width="2" height="1"/><rect x="1" y="3" width="2" height="1"/><rect x="5" y="3" width="2" height="1"/><rect x="2" y="4" width="4" height="1"/><rect x="3" y="5" width="2" height="1"/></svg>
-              </button>
-              <div id="menu-fournisseurs" class="menu-modeles" hidden></div>
-            </span>
-            <span class="raccourci">
-              <button id="modele-raccourci" class="pastille pastille--discrete" type="button" aria-haspopup="true">
+              <button id="modele-raccourci" class="pastille pastille--discrete pastille--cerveau" type="button" aria-haspopup="menu" aria-expanded="false" title="Choisir le fournisseur et le modèle (Ctrl+K)">
                 <svg class="quota" viewBox="0 0 20 20" aria-hidden="true"><circle class="quota__fond" cx="10" cy="10" r="7"/><circle id="quota-arc" class="quota__plein" cx="10" cy="10" r="7"/></svg>
-                <span class="pastille__terme">Modèle</span><span id="modele-nom">…</span><svg class="icone icone-px icone--chevron" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="0" y="2" width="2" height="1"/><rect x="6" y="2" width="2" height="1"/><rect x="1" y="3" width="2" height="1"/><rect x="5" y="3" width="2" height="1"/><rect x="2" y="4" width="4" height="1"/><rect x="3" y="5" width="2" height="1"/></svg>
+                <span id="fournisseur-icone" class="menu-icone menu-icone--petite"></span><span id="fournisseur-nom">…</span><span class="pastille__point" aria-hidden="true">·</span><span id="modele-nom">…</span><span data-icone="chevron" data-classe="icone--chevron"></span>
               </button>
-              <div id="menu-modeles" class="menu-modeles" hidden></div>
+              <div id="menu-modeles" class="menu-modeles menu-modeles--cerveau" role="menu" aria-label="Choisir un fournisseur et un modèle" hidden></div>
             </span>
-
           </div>
         </div>
     </form>
@@ -136,6 +144,7 @@
         <div class="equipe-actions">
           <button id="equipe-dev" class="bouton-calme" type="button">Ajouter un dev</button>
           <button id="equipe-auteur-tests" class="bouton-calme" type="button">Ajouter un auteur de tests</button>
+          <button id="agents-projet" class="bouton-calme" type="button">Choisir un dossier</button>
           <button id="equipe-plan" class="bouton" type="button">Lancer un chantier</button>
           <p id="equipe-statut" class="conseil" aria-live="polite"></p>
         </div>
@@ -215,33 +224,52 @@
   </main>
 
   <!-- Réglages : tout au même endroit, en mots simples -->
-  <div id="reglages-modal" class="fenetre" hidden>
+  <div id="reglages-modal" class="fenetre" role="dialog" aria-modal="true" aria-labelledby="reglages-titre" hidden>
     <div class="fenetre__boite">
       <p class="etiquette">Réglages</p>
-      <h2 class="fenetre__titre">Le cerveau du chat</h2>
-      <p class="discret">C'est lui qui fait réfléchir le chat. Tous sont gratuits.</p>
-      <div class="bloc bloc--espace">
-        <label class="etiquette" for="fournisseur">Fournisseur : qui fait réfléchir le chat</label>
-        <select id="fournisseur"></select>
-        <label class="etiquette etiquette--suite" for="model">Modèle : la version du cerveau</label>
-        <select id="model"></select>
-        <p id="conseil-modele" class="conseil"></p>
-      </div>
-      <h2 class="fenetre__titre fenetre__titre--suite">Mes clés</h2>
-      <p class="discret">Pour les cerveaux en ligne, il faut une clé gratuite : clique sur « Obtenir une clé », copie-la, colle-la ici. <span id="protection-cles">Elle reste secrète sur ton PC.</span></p>
-      <div id="fournisseurs-liste" class="fournisseurs"></div>
-      <h2 class="fenetre__titre fenetre__titre--suite">Connecteur MCP local</h2>
-      <form id="mcp-form" class="enregistrer">
-        <input id="mcp-adresse" type="url" aria-label="Adresse du connecteur MCP local" placeholder="http://127.0.0.1:8765/mcp">
-        <button class="bouton" type="submit">Enregistrer</button>
-      </form>
-      <p id="mcp-statut" class="conseil" aria-live="polite"></p>
-      <div class="rangee rangee--fin"><button id="close-reglages" class="lien" type="button">Fermer</button></div>
+      <header class="fenetre__entete">
+        <h2 id="reglages-titre" class="fenetre__titre">Réglages</h2>
+        <button id="close-reglages" class="bouton-calme" type="button">Fermer</button>
+      </header>
+      <p id="reglages-statut" class="conseil" role="status" aria-live="polite"></p>
+
+      <section class="reglages__section">
+        <h3 class="reglages__titre">Cerveau</h3>
+        <p class="reglages__cerveau"><span id="reglages-cerveau"></span> <button id="reglages-voir-modeles" class="lien" type="button">Voir les modèles</button></p>
+        <p class="discret">Pour en changer, utilise le bouton sous la barre de saisie, ou la page Modèles.</p>
+        <!-- Sources de vérité du fournisseur et du modèle : lues par le code, choisies ailleurs -->
+        <div class="bloc" hidden>
+          <label for="fournisseur">Fournisseur</label>
+          <select id="fournisseur"></select>
+          <label for="model">Modèle</label>
+          <select id="model"></select>
+          <p id="conseil-modele" class="conseil"></p>
+        </div>
+      </section>
+
+      <section class="reglages__section">
+        <h3 class="reglages__titre">Clés API</h3>
+        <p class="discret">Pour un cerveau en ligne, il faut une clé gratuite : clique sur « Obtenir une clé », copie-la, colle-la ici. <span id="protection-cles">Elle reste secrète sur ton PC.</span></p>
+        <div id="fournisseurs-liste" class="fournisseurs"></div>
+        <details class="reglages__avance">
+          <summary>Avancé : ton propre serveur (LM Studio…)</summary>
+          <div id="fournisseurs-avance" class="fournisseurs"></div>
+        </details>
+      </section>
+
+      <section class="reglages__section">
+        <h3 class="reglages__titre">MCP et connexions</h3>
+        <form id="mcp-form" class="enregistrer">
+          <input id="mcp-adresse" type="url" aria-label="Adresse du connecteur MCP local" placeholder="http://127.0.0.1:8765/mcp">
+          <button class="bouton" type="submit">Enregistrer</button>
+        </form>
+        <p id="mcp-statut" class="conseil" aria-live="polite"></p>
+      </section>
     </div>
   </div>
 
   <!-- Mise à jour : ouverte par renderer.js quand GitHub a une version plus récente -->
-  <div id="maj-modal" class="fenetre" hidden>
+  <div id="maj-modal" class="fenetre" role="dialog" aria-modal="true" aria-labelledby="maj-titre" hidden>
     <div class="fenetre__boite">
       <p class="etiquette">Mise à jour</p>
       <h2 id="maj-titre" class="fenetre__titre"></h2>
@@ -251,7 +279,7 @@
     </div>
   </div>
 
-  <div id="diff-modal" class="fenetre" hidden>
+  <div id="diff-modal" class="fenetre" role="dialog" aria-modal="true" aria-labelledby="diff-chemin" hidden>
     <div class="fenetre__boite fenetre__boite--large">
       <p class="etiquette" id="diff-type">Modification</p>
       <h2 class="fenetre__titre" id="diff-chemin"></h2>
@@ -264,25 +292,27 @@
     </div>
   </div>
 
-  <div id="memory-modal" class="fenetre" hidden>
+  <div id="memory-modal" class="fenetre" role="dialog" aria-modal="true" aria-labelledby="memory-titre" hidden>
     <div class="fenetre__boite">
       <p class="etiquette">Mémoire</p>
-      <h2 class="fenetre__titre">Ce que le chat retient</h2>
+      <header class="fenetre__entete">
+        <h2 id="memory-titre" class="fenetre__titre">Ce que le chat retient</h2>
+        <button id="close-memory" class="bouton-calme" type="button">Fermer</button>
+      </header>
       <p class="discret">D'une discussion à l'autre. Demande au chat de retenir une information : elle est enregistrée après ton accord. Tu peux tout modifier ici.</p>
       <p class="discret prenom-ligne">Il t'appelle <span id="prenom-actuel"></span>. <button id="changer-prenom" class="lien" type="button">Changer</button></p>
       <ul id="memory-list" class="souvenirs"></ul>
       <form id="memory-form" class="rangee">
-        <input id="memory-input" placeholder="Ex : je code surtout en Python">
+        <input id="memory-input" aria-label="Souvenir à ajouter" placeholder="Ex : je code surtout en Python">
         <button class="bouton">Ajouter</button>
       </form>
-      <div class="rangee rangee--fin"><button id="close-memory" class="lien">Fermer</button></div>
     </div>
   </div>
 
-  <div id="prenom-modal" class="fenetre" hidden>
+  <div id="prenom-modal" class="fenetre" role="dialog" aria-modal="true" aria-labelledby="prenom-titre" hidden>
     <div class="fenetre__boite">
       <p class="etiquette">Premier lancement</p>
-      <h2 class="fenetre__titre">Comment tu t'appelles&nbsp;?</h2>
+      <h2 id="prenom-titre" class="fenetre__titre">Comment tu t'appelles&nbsp;?</h2>
       <p class="discret">Le chat s'en sert pour te parler. Tu pourras le changer dans « Mémoire ».</p>
       <form id="prenom-form" class="rangee prenom-form">
         <input id="prenom-input" maxlength="30" placeholder="Ton prénom" autocomplete="given-name">

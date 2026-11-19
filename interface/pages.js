@@ -7,8 +7,15 @@
 /* ---------- 10. Navigation ---------- */
 const PAGES = { agents: $("#page-agents"), modeles: $("#page-modeles") };
 let pageOuverte = "discussion";
+// La page Agents est rangée le temps de la refonte de l'agent (façon Claude Code, avec Git) : le code reste, l'entrée disparaît
+const PAGE_AGENTS = false;
+if (!PAGE_AGENTS) {
+    document.querySelector('.nav__lien[data-page="agents"]')?.remove();
+    delete PAGES.agents;
+}
 
-document.querySelectorAll("[data-icone]").forEach((el) => { el.innerHTML = icone(el.dataset.icone); });
+// Toutes les icônes viennent de la même source (PIXELS dans icones.js) : même grille 8 × 8, même rendu, même alignement.
+document.querySelectorAll("[data-icone]").forEach((el) => { el.innerHTML = icone(el.dataset.icone, el.dataset.classe); });
 
 function voirPage(nom) {
     pageOuverte = PAGES[nom] ? nom : "discussion";
@@ -239,6 +246,17 @@ for (const [id, tests] of [["#equipe-dev", false], ["#equipe-auteur-tests", true
         }
     });
 }
+$("#agents-projet").addEventListener("click", async () => {
+    const bouton = $("#agents-projet");
+    bouton.disabled = true;
+    try {
+        await choisirProjet();
+    } catch {
+        $("#equipe-statut").textContent = "Impossible d’ouvrir le dossier.";
+    } finally {
+        bouton.disabled = chantierTourne;
+    }
+});
 $("#equipe-plan").addEventListener("click", () => {
     $("#chantier").scrollIntoView({ block: "start" });
     $("#chantier-plan").focus({ preventScroll: true });
@@ -314,10 +332,11 @@ function majChantier(etat) {
     $("#page-agents").classList.toggle("is-chantier", chantierTourne);
     $("#chantier-importer").hidden = chantierTourne;
     $("#chantier-plan").readOnly = chantierTourne;
-    for (const id of ["#equipe-dev", "#equipe-auteur-tests", "#equipe-remettre"]) $(id).disabled = chantierTourne;
+    for (const id of ["#equipe-dev", "#equipe-auteur-tests", "#equipe-remettre", "#agents-projet"]) $(id).disabled = chantierTourne;
     if (!etat) return;
     const dossier = $("#chantier-dossier");
-    dossier.textContent = etat.projet ? `Dans ${etat.projet}` : "Ouvre d'abord le dossier de ton projet, avec le bouton Dossier sous la saisie.";
+    dossier.textContent = etat.projet ? `Dossier : ${etat.projet}` : "Aucun dossier sélectionné.";
+    $("#agents-projet").textContent = etat.projet ? "Changer de dossier" : "Choisir un dossier";
     $("#chantier-preparer").hidden = chantierTourne || !etat.projet || etat.pret || etat.raison === "git-absent";
     if (etat.projet && !etat.pret && !chantierTourne) $("#chantier-statut").textContent = etat.message;
 }
@@ -487,7 +506,9 @@ async function lancerOuArreter(reprendre = false) {
     $("#chantier-reprendre").hidden = !r.incomplet;
     const choix = $("#chantier-nouveau-dev");
     choix.hidden = !r.incomplet;
-    choix.replaceChildren(new Option("Même dev", ""), ...equipe.agents.filter((a) => a.type === "codeur").map((a) => new Option(a.nom, a.nom)));
+    choix.replaceChildren(new Option("Même dev", ""), ...equipe.agents.filter((a) => a.type === "codeur").map((a, _, codeurs) => new Option(
+        codeurs.filter((c) => c.nom === a.nom).length > 1 ? a.nom + " · " + a.id : a.nom, a.id
+    )));
     $("#chantier-fin").hidden = false;
     chantierFini = r.nom;
 }
@@ -582,8 +603,9 @@ filtreAdaptes.addEventListener("click", () => {
     dessinerModeles();
 });
 
-function evaluerModele({ vram, ramCPU, avis, conseille }, { vramGo, ramGo }) {
+function evaluerModele({ vram, ramCPU, avis, conseille, integre }, { vramGo, ramGo }) {
     if (vramGo >= vram) {
+        if (integre) return { label: "Intégré par Cat Ai", classe: "avis--conseille", detail: "Réglé et testé pour Cat Ai", adapte: true };
         return conseille
             ? { label: "Conseillé", classe: "avis--conseille", detail: "Bon choix pour ton GPU", adapte: true }
             : { label: "Rapide", classe: "avis--ok", detail: "Tient dans ta VRAM", adapte: true };

@@ -6,11 +6,37 @@
 // DOMPurify nettoie le résultat (le modèle ne peut pas glisser de HTML dangereux)
 const escape = (s) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
+// Colorer le même bloc deux fois serait du travail perdu : pendant le streaming, les blocs déjà
+// terminés sont redessinés à chaque fragment. On garde les résultats déjà obtenus, sans grandir sans fin.
+const CACHE_COLORATION = new Map();
+const LIMITE_CACHE_COLORATION = 100;
 function colorer(code, lang) {
     const langage = (lang || "").toLowerCase();
-    if (langage && hljs.getLanguage(langage)) return hljs.highlight(code, { language: langage, ignoreIllegals: true }).value;
-    return escape(code);
+    if (!langage || !hljs.getLanguage(langage)) return escape(code);
+    const cle = langage + "\u0000" + code;
+    if (CACHE_COLORATION.has(cle)) return CACHE_COLORATION.get(cle);
+    const valeur = hljs.highlight(code, { language: langage, ignoreIllegals: true }).value;
+    if (CACHE_COLORATION.size >= LIMITE_CACHE_COLORATION) {
+        const premiere = CACHE_COLORATION.keys().next().value;
+        CACHE_COLORATION.delete(premiere);
+    }
+    CACHE_COLORATION.set(cle, valeur);
+    return valeur;
 }
+
+// L'étiquette du bloc : le nom courant du langage, jamais une capacité inventée
+const ETIQUETTES_LANGAGES = {
+    js: "JavaScript", javascript: "JavaScript", ts: "TypeScript", typescript: "TypeScript",
+    py: "Python", python: "Python", rb: "Ruby", ruby: "Ruby", php: "PHP",
+    html: "HTML", xml: "XML", css: "CSS", scss: "SCSS", json: "JSON", yaml: "YAML", yml: "YAML",
+    md: "Markdown", markdown: "Markdown", sh: "Terminal", bash: "Terminal", shell: "Terminal", zsh: "Terminal",
+    ps1: "PowerShell", powershell: "PowerShell", bat: "Batch", batch: "Batch",
+    sql: "SQL", c: "C", cpp: "C++", "c++": "C++", csharp: "C#", cs: "C#", java: "Java",
+    go: "Go", rust: "Rust", rs: "Rust", kotlin: "Kotlin", swift: "Swift", gdscript: "GDScript",
+    diff: "Diff", dockerfile: "Dockerfile", docker: "Dockerfile", ini: "INI", toml: "TOML",
+    text: "Texte", txt: "Texte", plaintext: "Texte",
+};
+const etiquetteLangage = (lang) => ETIQUETTES_LANGAGES[lang] || lang || "Code";
 
 marked.use({
     gfm: true,
@@ -18,10 +44,12 @@ marked.use({
     renderer: {
         // Nos blocs de code, avec les boutons Enregistrer et Copier
         code({ text, lang }) {
-            const langage = (lang || "").trim().split(/\s/)[0];
-            return `<div class="code" data-lang="${escape(langage)}"><div class="code__tete"><span>${escape(langage || "code")}</span>`
-                + `<span class="code__actions"><button class="enregistrer-btn">Enregistrer</button><button class="copier-btn">Copier</button></span></div>`
-                + `<pre><code class="hljs">${colorer(text, langage)}</code></pre></div>`;
+            const langage = (lang || "").trim().split(/\s/)[0].toLowerCase();
+            const etiquette = etiquetteLangage(langage);
+            const description = langage ? `Bloc de code ${etiquette}` : "Bloc de code";
+            return `<div class="code" data-lang="${escape(langage)}"><div class="code__tete"><span class="code__langue">${escape(etiquette)}</span>`
+                + `<span class="code__actions"><button type="button" class="enregistrer-btn">Enregistrer</button><button type="button" class="copier-btn">Copier</button></span></div>`
+                + `<pre tabindex="0" aria-label="${escape(description)}"><code class="hljs">${colorer(text, langage)}</code></pre></div>`;
         },
         // Du HTML écrit par le modèle en dehors d'un bloc de code s'affiche comme du texte
         html({ text }) { return escape(text); }
