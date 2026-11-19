@@ -416,10 +416,11 @@ function surFondBlanc(image) {
 ipcMain.handle('choisir-fichier', async (_e, options = {}) => {
   const { canceled, filePaths } = await dialog.showOpenDialog(win, {
     title: options.image ? 'Choisir une image' : 'Choisir un fichier',
-    properties: ['openFile'],
+    properties: options.plusieurs ? ['openFile', 'multiSelections'] : ['openFile'],
     ...(options.image ? { filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg'] }] } : {}),
   });
-  return canceled ? null : filePaths[0];
+  if (canceled) return null;
+  return options.plusieurs ? filePaths : filePaths[0];
 });
 
 ipcMain.handle('read-dropped', async (_e, chemin) => {

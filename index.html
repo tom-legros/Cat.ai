@@ -11,6 +11,7 @@
     <div class="logo" id="logo">
       <span class="logo__yeux" aria-hidden="true"><span class="logo__oeil"></span><span class="logo__oeil"></span></span>
       <span class="logo__nom">Cat Ai</span>
+      <button id="cote-replier" class="cote__replier" type="button" title="Replier le menu (Ctrl+B)" aria-label="Replier le menu"></button>
     </div>
 
     <button id="new-chat" class="bouton--nouveau" type="button"><span data-icone="plus"></span>Nouvelle discussion</button>
@@ -39,9 +40,12 @@
       <button id="open-reglages" class="lien lien--bloc" type="button"><span class="lien__icone" data-icone="engrenage"></span>Réglages</button>
       <p id="status" class="statut" role="status" aria-live="polite">Connexion…</p>
     </div>
+    <!-- La bordure se tire pour régler la largeur du menu ; double-clic pour la largeur normale -->
+    <div id="cote-poignee" class="cote__poignee" role="separator" aria-orientation="vertical" aria-label="Largeur du menu" tabindex="0" title="Tirer pour régler la largeur · double-clic : largeur normale"></div>
   </aside>
 
   <main class="principal">
+    <button id="cote-deplier" class="cote__deplier" type="button" title="Afficher le menu (Ctrl+B)" aria-label="Afficher le menu" hidden></button>
     <header class="entete"><h1 id="titre-conv" class="entete__titre"></h1><button type="button" id="renommer-conv" class="entete__renommer" title="Renommer la discussion (F2)" aria-label="Renommer la discussion" hidden></button></header>
     <div id="messages" class="messages">
       <section id="welcome" class="accueil">
@@ -99,7 +103,7 @@
           <!-- À gauche : ce qui change la façon de répondre -->
           <div class="outils__groupe">
             <span class="raccourci">
-              <button id="joindre" class="pastille" type="button" aria-haspopup="true" aria-label="Joindre un fichier, une image, ou ouvrir un dossier" title="Joindre : un fichier, une image, ou ouvrir un dossier">
+              <button id="joindre" class="pastille" type="button" aria-haspopup="true" aria-label="Ajouter des fichiers, des photos ou un dossier" title="Ajouter des fichiers, des photos ou un dossier (Ctrl+U)">
                 <span data-icone="plus"></span>
               </button>
               <div id="menu-joindre" class="menu-modeles menu-modeles--gauche" role="menu" aria-label="Joindre au message" hidden></div>
@@ -114,9 +118,12 @@
             <button id="mode-prof" class="pastille pastille--mode" type="button" role="switch" aria-checked="false" aria-label="Mode prof : il t'explique et te donne des pistes, mais c'est toi qui trouves" title="Mode prof : il t'explique et te donne des pistes, mais c'est toi qui trouves">
               <span data-icone="lunettes"></span><span class="pastille__etiquette">Prof</span>
             </button>
-            <button id="mode-reflexion" class="pastille pastille--mode" type="button" role="switch" aria-checked="false" aria-label="Mode Thinking : le modèle raisonne avant de répondre, plus lent mais plus solide. Sans lui, réponse rapide." title="Mode Thinking : le modèle raisonne avant de répondre, plus lent mais plus solide. Sans lui, réponse rapide." hidden>
-              <span data-icone="bulle"></span><span class="pastille__etiquette">Thinking</span>
-            </button>
+            <span class="raccourci">
+              <button id="mode-reflexion" class="pastille pastille--mode" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Niveau de réflexion : Rapide ou Réflexion" title="Niveau de réflexion" hidden>
+                <span data-icone="eclair"></span><span class="pastille__etiquette">Rapide</span><span data-icone="chevron" data-classe="icone--chevron"></span>
+              </button>
+              <div id="menu-reflexion" class="menu-modeles menu-modeles--gauche" role="menu" aria-label="Niveau de réflexion" hidden></div>
+            </span>
           </div>
           <!-- À droite : qui répond, dans un seul contrôle fournisseur + modèle ; le petit rond = quota du jour -->
           <div class="outils__groupe">
@@ -201,10 +208,18 @@
         <header class="page__tete">
           <div>
             <h2 class="page__titre">Modèles</h2>
-            <p class="page__resume">Modèles Ollama à télécharger sur ton PC, sans clé API.</p>
+            <p class="page__resume">Gratuits, sur ton PC, sans clé API.</p>
           </div>
           <div class="infos-pc" id="infos-pc"></div>
         </header>
+        <!-- La sélection Cat Ai : le modèle conseillé pour ce PC, puis un spécialiste par usage (interface/pages.js) -->
+        <section class="selection" aria-labelledby="selection-titre">
+          <h3 id="selection-titre" class="section__titre">La sélection Cat Ai</h3>
+          <div id="selection-principal"></div>
+          <ul id="selection-specialistes" class="selection__liste" aria-label="Spécialistes pour ton PC"></ul>
+          <p id="selection-plus-loin" class="selection__plus-loin"></p>
+        </section>
+        <h3 class="section__titre section__titre--tous">Tous les modèles</h3>
         <!-- Trouver vite : une recherche par nom, un usage, et « Adaptés à mon PC » à la demande -->
         <div class="modeles-outils">
           <input id="modeles-recherche" class="modeles-recherche" type="search" placeholder="Chercher un modèle, par exemple qwen3:8b" aria-label="Chercher un modèle par son nom" autocomplete="off" spellcheck="false">
@@ -214,7 +229,7 @@
         <p class="conseil" id="modeles-filtre-etat" aria-live="polite"></p>
         <p class="conseil" id="modeles-etat" aria-live="polite"></p>
         <p class="conseil" id="modeles-progression" aria-live="polite"></p>
-        <ul class="modeles" id="modeles-liste" aria-label="Sélection de modèles"></ul>
+        <ul class="modeles" id="modeles-liste" aria-label="Tous les modèles"></ul>
       </div>
     </section>
 
@@ -225,50 +240,86 @@
 
   <!-- Réglages : tout au même endroit, en mots simples -->
   <div id="reglages-modal" class="fenetre" role="dialog" aria-modal="true" aria-labelledby="reglages-titre" hidden>
-    <div class="fenetre__boite">
+    <div class="fenetre__boite fenetre__boite--reglages">
       <p class="etiquette">Réglages</p>
       <header class="fenetre__entete">
         <h2 id="reglages-titre" class="fenetre__titre">Réglages</h2>
-        <button id="close-reglages" class="bouton-calme" type="button">Fermer</button>
+        <button id="close-reglages" class="fenetre__fermer" type="button" aria-label="Fermer les réglages" title="Fermer (Échap)"><span data-icone="plus" data-classe="icone--croix"></span></button>
       </header>
       <p id="reglages-statut" class="conseil" role="status" aria-live="polite"></p>
 
-      <section class="reglages__section">
-        <h3 class="reglages__titre">Cerveau</h3>
-        <p class="reglages__cerveau"><span id="reglages-cerveau"></span> <button id="reglages-voir-modeles" class="lien" type="button">Voir les modèles</button></p>
-        <p class="discret">Pour en changer, utilise le bouton sous la barre de saisie, ou la page Modèles.</p>
-        <!-- Sources de vérité du fournisseur et du modèle : lues par le code, choisies ailleurs -->
-        <div class="bloc" hidden>
-          <label for="fournisseur">Fournisseur</label>
-          <select id="fournisseur"></select>
-          <label for="model">Modèle</label>
-          <select id="model"></select>
-          <p id="conseil-modele" class="conseil"></p>
+      <!-- Une seule page qu'on fait défiler : le menu de gauche y saute, rien n'est caché -->
+      <div class="reglages">
+        <nav class="reglages__nav" aria-label="Sections des réglages">
+          <button class="reglages__lien is-actif" type="button" data-section="reglages-section-cerveau"><span data-icone="puce"></span>Cerveau</button>
+          <button class="reglages__lien" type="button" data-section="reglages-section-cles"><span data-icone="eclair"></span>Clés API</button>
+          <button class="reglages__lien" type="button" data-section="reglages-section-apparence"><span data-icone="panneau"></span>Apparence</button>
+          <button class="reglages__lien" type="button" data-section="reglages-section-avance"><span data-icone="serveur"></span>Avancé</button>
+        </nav>
+        <div class="reglages__contenu" id="reglages-contenu">
+          <section class="reglages__section" id="reglages-section-cerveau" aria-labelledby="reglages-titre-cerveau">
+            <h3 class="reglages__titre" id="reglages-titre-cerveau">Cerveau</h3>
+            <div class="reglages__ligne">
+              <div>
+                <p class="reglages__valeur" id="reglages-cerveau"></p>
+                <p class="discret">Le modèle qui répond. Tu peux aussi le changer avec le bouton sous la barre de saisie.</p>
+              </div>
+              <button id="reglages-voir-modeles" class="bouton-calme" type="button">Voir les modèles</button>
+            </div>
+            <!-- Sources de vérité du fournisseur et du modèle : lues par le code, choisies ailleurs -->
+            <div class="bloc" hidden>
+              <label for="fournisseur">Fournisseur</label>
+              <select id="fournisseur"></select>
+              <label for="model">Modèle</label>
+              <select id="model"></select>
+              <p id="conseil-modele" class="conseil"></p>
+            </div>
+          </section>
+
+          <section class="reglages__section" id="reglages-section-cles" aria-labelledby="reglages-titre-cles">
+            <h3 class="reglages__titre" id="reglages-titre-cles">Clés API</h3>
+            <p class="discret">Pour un cerveau en ligne, gratuit. Clique sur « Obtenir une clé », copie-la, colle-la ici. <span id="protection-cles">Elle reste secrète sur ton PC.</span></p>
+            <div id="fournisseurs-liste" class="fournisseurs"></div>
+          </section>
+
+          <section class="reglages__section" id="reglages-section-apparence" aria-labelledby="reglages-titre-apparence">
+            <h3 class="reglages__titre" id="reglages-titre-apparence">Apparence</h3>
+            <div class="reglages__ligne">
+              <div>
+                <p class="reglages__valeur">Menu latéral</p>
+                <p class="discret">Tire sa bordure pour régler sa largeur. Ctrl+B le replie ou le déplie.</p>
+              </div>
+              <div class="rangee">
+                <button id="reglages-largeur-normale" class="bouton-calme" type="button">Largeur normale</button>
+                <button id="reglages-replier" class="bouton-calme" type="button">Replier</button>
+              </div>
+            </div>
+            <label class="reglages__ligne reglages__interrupteur">
+              <span>
+                <span class="reglages__valeur">Réduire les animations</span>
+                <span class="discret">Les fenêtres et les menus s'ouvrent sans mouvement.</span>
+              </span>
+              <input id="reglages-sans-animations" type="checkbox" role="switch">
+            </label>
+          </section>
+
+          <section class="reglages__section" id="reglages-section-avance" aria-labelledby="reglages-titre-avance">
+            <h3 class="reglages__titre" id="reglages-titre-avance">Avancé</h3>
+            <p class="reglages__sous-titre">Ton propre serveur</p>
+            <p class="discret">Un serveur compatible OpenAI sur ton PC, comme LM Studio.</p>
+            <div id="fournisseurs-avance" class="fournisseurs"></div>
+            <p class="reglages__sous-titre">Connecteur MCP</p>
+            <form id="mcp-form" class="enregistrer">
+              <input id="mcp-adresse" type="url" aria-label="Adresse du connecteur MCP local" placeholder="http://127.0.0.1:8765/mcp">
+              <button class="bouton" type="submit">Enregistrer</button>
+            </form>
+            <p id="mcp-statut" class="conseil" aria-live="polite"></p>
+          </section>
         </div>
-      </section>
-
-      <section class="reglages__section">
-        <h3 class="reglages__titre">Clés API</h3>
-        <p class="discret">Pour un cerveau en ligne, il faut une clé gratuite : clique sur « Obtenir une clé », copie-la, colle-la ici. <span id="protection-cles">Elle reste secrète sur ton PC.</span></p>
-        <div id="fournisseurs-liste" class="fournisseurs"></div>
-        <details class="reglages__avance">
-          <summary>Avancé : ton propre serveur (LM Studio…)</summary>
-          <div id="fournisseurs-avance" class="fournisseurs"></div>
-        </details>
-      </section>
-
-      <section class="reglages__section">
-        <h3 class="reglages__titre">MCP et connexions</h3>
-        <form id="mcp-form" class="enregistrer">
-          <input id="mcp-adresse" type="url" aria-label="Adresse du connecteur MCP local" placeholder="http://127.0.0.1:8765/mcp">
-          <button class="bouton" type="submit">Enregistrer</button>
-        </form>
-        <p id="mcp-statut" class="conseil" aria-live="polite"></p>
-      </section>
+      </div>
     </div>
   </div>
 
-  <!-- Mise à jour : ouverte par renderer.js quand GitHub a une version plus récente -->
   <div id="maj-modal" class="fenetre" role="dialog" aria-modal="true" aria-labelledby="maj-titre" hidden>
     <div class="fenetre__boite">
       <p class="etiquette">Mise à jour</p>
@@ -350,5 +401,6 @@
   <script src="interface/sprites.js"></script>
   <script src="renderer.js"></script>
   <script src="interface/pages.js"></script>
+  <script src="interface/barre-laterale.js"></script>
 </body>
 </html>

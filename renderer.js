@@ -32,6 +32,7 @@ let pieces = [];          // fichiers glissés, en attente d'envoi : { nom, cont
 // Clé : la discussion, ou null pour la nouvelle discussion pas encore envoyée.
 const brouillons = new Map();
 let convDuBrouillon = null; // la discussion à qui appartient ce qui est dans la saisie
+let convAffichee = null;    // la discussion dessinée : on n'anime la colonne que si elle change
 let messagesEnvoyes = 0;  // depuis l'ouverture de l'app
 
 
@@ -319,6 +320,13 @@ const enBas = () => messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.
 
 function renderConv() {
     changerBrouillon();
+    // Une autre discussion : la colonne arrive en fondu, d'un bloc (les nouveaux messages gardent leur arrivée)
+    if (current !== convAffichee) {
+        convAffichee = current;
+        messagesEl.classList.remove("is-change");
+        void messagesEl.offsetWidth; // relance l'animation
+        messagesEl.classList.add("is-change");
+    }
     messagesEl.querySelectorAll(".msg").forEach((m) => m.remove());
     // La discussion ouverte n'a plus rien de nouveau à signaler
     if (current?.nonLu) {
@@ -868,6 +876,7 @@ async function send(text, destination = current, configuration = null, piecesPri
             if (current === destination) current = conv;
             // Ce qu'on tape pendant que le chat répond appartient à la discussion qui vient de naître
             if (convDuBrouillon === destination) convDuBrouillon = conv;
+            if (convAffichee === destination) convAffichee = conv;
         }
         const message = { role: "user", content: contenu };
         if (fichiers.length) Object.assign(message, { affichage: text, fichiers });
@@ -1331,6 +1340,7 @@ input.addEventListener("input", () => {
 
 document.querySelectorAll(".suggestions button").forEach((b) => (b.onclick = () => send(b.dataset.prompt)));
 
+messagesEl.addEventListener("animationend", (e) => { if (e.target === messagesEl) messagesEl.classList.remove("is-change"); });
 $("#renommer-conv").innerHTML = icone("stylo");
 $("#renommer-conv").onclick = () => renommerDiscussion();
 $("#titre-conv").ondblclick = () => renommerDiscussion();
@@ -1476,17 +1486,22 @@ const boutonReflexion = $("#mode-reflexion");
 
 function renderReflexion() {
     boutonReflexion.hidden = !reflexionPossible;
-    boutonReflexion.setAttribute("aria-checked", String(reflexion && reflexionPossible));
-    boutonReflexion.title = reflexion && reflexionPossible
-        ? "Mode Thinking activé : le modèle raisonne avant de répondre, plus lent mais plus solide. Clique pour revenir à la réponse rapide."
-        : "Mode Thinking : le modèle raisonne avant de répondre, plus lent mais plus solide. Clique pour l'activer.";
+    const actif = reflexion && reflexionPossible;
+    boutonReflexion.classList.toggle("is-reflexion", actif);
+    boutonReflexion.querySelector(".pastille__etiquette").textContent = actif ? "Réflexion" : "Rapide";
+    // Même icône que dans le menu : un éclair pour Rapide, une ampoule pour Réflexion
+    boutonReflexion.firstElementChild.innerHTML = icone(actif ? "ampoule" : "eclair");
+    boutonReflexion.title = actif
+        ? "Réflexion : le modèle raisonne avant de répondre, plus lent mais plus solide"
+        : "Rapide : réponse directe. Clique pour choisir le niveau de réflexion";
 }
 
-boutonReflexion.onclick = () => {
-    reflexion = !reflexion;
+// Le menu du bouton choisit le niveau ; le choix est retenu pour les prochaines fois
+function choisirReflexion(oui) {
+    reflexion = oui;
     try { localStorage.setItem("modeReflexion", reflexion ? "1" : "0"); } catch {}
     renderReflexion();
-};
+}
 
 // Une seule vérification par modèle choisi : /api/show est interrogé au changement, et re-demandé si Ollama ne répondait pas
 let modeleReflexionVu = "";
@@ -2278,21 +2293,62 @@ function naviguerMenu(e) {
     choix[Math.min(choix.length - 1, Math.max(0, i + (e.key === "ArrowDown" ? 1 : -1)))].focus();
 }
 
-// Menu Joindre du bouton + : un fichier, une image, ou un dossier. La lecture passe toujours par
+// Une ligne de menu sobre, comme dans Claude : une icône, une phrase claire, le raccourci à droite,
+// une coche sur le choix en cours. L'explication reste dans l'infobulle, pas en petit gris sous le texte.
+function choixSimple(menu, texte, dessin, action, { actif = null, raccourci = "", aide = "" } = {}) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "menu-modeles__choix menu-choix" + (actif ? " is-on" : "");
+    b.setAttribute("role", actif === null ? "menuitem" : "menuitemradio");
+    if (actif !== null) b.setAttribute("aria-checked", String(actif));
+    if (aide) b.title = aide;
+    const pictogramme = document.createElement("span");
+    pictogramme.className = "menu-choix__icone";
+    pictogramme.innerHTML = icone(dessin);
+    const nom = document.createElement("span");
+    nom.className = "menu-choix__nom";
+    nom.textContent = texte;
+    b.append(pictogramme, nom);
+    if (raccourci) {
+        const touche = document.createElement("kbd");
+        touche.className = "menu-choix__raccourci";
+        touche.textContent = raccourci;
+        b.append(touche);
+    }
+    if (actif) {
+        const coche = document.createElement("span");
+        coche.className = "menu-choix__coche";
+        coche.innerHTML = icone("coche");
+        b.append(coche);
+    }
+    b.onclick = () => { fermerMenus(); action(); };
+    menu.append(b);
+}
+
+// Fichiers ou photos : un seul sélecteur, plusieurs fichiers d'un coup. La lecture passe toujours par
 // readDropped, qui applique les mêmes vérifications que le glisser-déposer (sensible, format, taille).
+async function ajouterFichiers() {
+    const chemins = await window.api.choisirFichier({ plusieurs: true });
+    if (!chemins?.length) return; // annulé : rien n'est joint
+    for (const chemin of chemins) await joindreChemin(chemin);
+    renderPieces();
+}
+
+// Menu du bouton + : des fichiers ou des photos, ou un dossier entier
 function ouvrirMenuJoindre() {
     const menu = $("#menu-joindre");
     menu.replaceChildren();
-    titreMenu(menu, "Joindre au message");
-    choixMenu(menu, "Un fichier", false, async () => {
-        const chemin = await window.api.choisirFichier();
-        if (chemin) { await joindreChemin(chemin); renderPieces(); }
-    }, "", { icone: "copier", couleur: "gris", conseil: "Texte, code, PDF…" });
-    choixMenu(menu, "Une image", false, async () => {
-        const chemin = await window.api.choisirFichier({ image: true });
-        if (chemin) { await joindreChemin(chemin); renderPieces(); }
-    }, "", { icone: "image", couleur: "bleu", conseil: "JPG ou PNG" });
-    choixMenu(menu, "Un dossier", false, choisirProjet, "", { icone: "dossier", couleur: "vert", conseil: "Le chat lira son contenu" });
+    choixSimple(menu, "Ajouter des fichiers ou des photos", "trombone", ajouterFichiers, { raccourci: "Ctrl+U", aide: "Texte, code, PDF, Word, images…" });
+    choixSimple(menu, "Ajouter un dossier", "dossier", choisirProjet, { aide: "Le chat lira son contenu" });
+    menu.hidden = false;
+}
+
+// Menu du niveau de réflexion : Rapide (réponse directe) ou Réflexion (le modèle raisonne d'abord)
+function ouvrirMenuReflexion() {
+    const menu = $("#menu-reflexion");
+    menu.replaceChildren();
+    choixSimple(menu, "Rapide", "eclair", () => choisirReflexion(false), { actif: !reflexion, aide: "Répond tout de suite" });
+    choixSimple(menu, "Réflexion", "ampoule", () => choisirReflexion(true), { actif: reflexion, aide: "Réfléchit avant de répondre : plus lent, plus solide" });
     menu.hidden = false;
 }
 
@@ -2312,8 +2368,18 @@ const basculer = (id, ouvrir) => (e) => {
 };
 $("#modele-raccourci").onclick = basculer("menu-modeles", ouvrirMenuModeles);
 $("#joindre").onclick = basculer("menu-joindre", ouvrirMenuJoindre);
-["menu-modeles", "menu-joindre"].forEach((id) => $(`#${id}`).addEventListener("keydown", naviguerMenu));
+boutonReflexion.onclick = basculer("menu-reflexion", ouvrirMenuReflexion);
+["menu-modeles", "menu-joindre", "menu-reflexion"].forEach((id) => $(`#${id}`).addEventListener("keydown", naviguerMenu));
 document.addEventListener("click", (e) => { if (!e.target.closest(".raccourci")) fermerMenus(); });
+
+// Ctrl+U (Cmd+U sur Mac) : ajouter des fichiers ou des photos, comme dans le menu +
+window.addEventListener("keydown", (e) => {
+    if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || e.key.toLowerCase() !== "u") return;
+    if (document.querySelector(".fenetre:not([hidden]), dialog[open]")) return;
+    e.preventDefault();
+    fermerMenus();
+    ajouterFichiers();
+});
 
 // Ctrl+K (Cmd+K sur Mac) ouvre ou ferme le choix du fournisseur et du modèle.
 // Une fenêtre ouverte garde la main : le raccourci ne va pas chercher un menu derrière elle.
@@ -2342,7 +2408,7 @@ function renderPanneauFournisseurs() {
     if (avance) avance.innerHTML = "";
     reglages.fournisseurs.filter((f) => f.type !== "ollama").forEach((f) => {
         const carte = document.createElement("form");
-        carte.className = "fournisseur";
+        carte.className = "fournisseur" + (f.modifiable ? " fournisseur--perso" : "");
         carte.dataset.fournisseur = f.id;
 
         const tete = document.createElement("div");

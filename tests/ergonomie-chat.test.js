@@ -28,39 +28,43 @@ test('icônes : une seule source (PIXELS, grille 8 × 8), plus aucun SVG dessin�
   assert.doesNotMatch(html, /<svg class="icone/, 'plus aucun SVG en ligne : style, taille et alignement viennent de la même grille');
 });
 
-test('menu Joindre : trois choix, la lecture passe par readDropped comme le glisser-déposer', () => {
+test('menu du bouton + : deux lignes sobres (fichiers ou photos, dossier), la lecture passe par readDropped', () => {
   assert.match(html, /<button id="joindre" class="pastille" type="button" aria-haspopup="true"/);
   assert.match(html, /id="menu-joindre" class="menu-modeles menu-modeles--gauche" role="menu"/);
   assert.match(renderer, /function ouvrirMenuJoindre/);
-  assert.match(renderer, /titreMenu\(menu, "Joindre au message"\)/);
   assert.match(renderer, /\$\("#joindre"\)\.onclick = basculer\("menu-joindre", ouvrirMenuJoindre\)/);
+  // Une phrase claire et le raccourci, sans liste de formats en petit gris (elle reste dans l'infobulle)
+  assert.match(renderer, /choixSimple\(menu, "Ajouter des fichiers ou des photos", "trombone", ajouterFichiers, \{ raccourci: "Ctrl\+U"/);
+  assert.match(renderer, /choixSimple\(menu, "Ajouter un dossier", "dossier", choisirProjet/);
+  assert.match(renderer, /e\.key\.toLowerCase\(\) !== "u"\) return;[\s\S]*?ajouterFichiers\(\);/);
   // Même chemin de validation que le glisser-déposer (fichier sensible, format, taille, document)
   assert.match(renderer, /async function joindreChemin\(choix\) \{[\s\S]*?await window\.api\.readDropped\(choix\);/);
-  // Une annulation du sélecteur ne joint rien ; un dossier réutilise le sélecteur de projet existant
-  assert.match(renderer, /if \(chemin\) \{ await joindreChemin\(chemin\); renderPieces\(\); \}/);
-  assert.match(renderer, /choisirFichier\(\)/);
-  assert.match(renderer, /choisirFichier\(\{ image: true \}\)/);
-  assert.match(renderer, /choixMenu\(menu, "Un dossier", false, choisirProjet/);
+  // Une annulation du sélecteur ne joint rien ; plusieurs fichiers passent un par un
+  assert.match(renderer, /if \(!chemins\?\.length\) return; \/\/ annulé : rien n'est joint\s*for \(const chemin of chemins\) await joindreChemin\(chemin\);/);
   const main = lire('main.js');
   assert.match(main, /ipcMain\.handle\('choisir-fichier'/);
-  assert.match(main, /properties: \['openFile'\]/);
+  assert.match(main, /properties: options\.plusieurs \? \['openFile', 'multiSelections'\] : \['openFile'\]/);
   assert.match(lire('preload.js'), /choisirFichier: \(options\) => ipcRenderer\.invoke\('choisir-fichier', options\)/);
   // readDropped accepte un chemin (sélecteur) comme un fichier (glisser-déposer)
   assert.match(lire('preload.js'), /typeof file === 'string' \? file : webUtils\.getPathForFile\(file\)/);
 });
 
-test('Modes Prof et Thinking : libellés visibles, Thinking réservé aux modèles qui réfléchissent', () => {
-  for (const [id, libelle] of [['mode-prof', 'Prof'], ['mode-reflexion', 'Thinking']]) {
-    const bouton = html.match(new RegExp(`<button id="${id}"[^>]*>([\\s\\S]*?)</button>`));
-    assert.ok(bouton, `#${id} présent`);
-    assert.match(bouton[0], /role="switch"/);
-    assert.match(bouton[0], /aria-checked="false"/);
-    assert.match(bouton[0], /aria-label=/, `#${id} garde un nom accessible`);
-    assert.match(bouton[1], new RegExp(`class="pastille__etiquette">${libelle}<`), `#${id} affiche « ${libelle} »`);
-  }
-  // L'état actif est lisible : bordure jaune en plus du fond, pour chaque pastille à deux états
+test('Prof et niveau de réflexion : libellés visibles, menu Rapide / Réflexion réservé aux modèles qui réfléchissent', () => {
+  const prof = html.match(/<button id="mode-prof"[^>]*>([\s\S]*?)<\/button>/);
+  assert.match(prof[0], /role="switch"/);
+  assert.match(prof[0], /aria-checked="false"/);
+  assert.match(prof[1], /class="pastille__etiquette">Prof</);
+  const reflexion = html.match(/<button id="mode-reflexion"[^>]*>([\s\S]*?)<\/button>/);
+  assert.match(reflexion[0], /aria-haspopup="menu"/);
+  assert.match(reflexion[0], /aria-label=/);
+  assert.match(reflexion[1], /class="pastille__etiquette">Rapide</);
+  assert.match(html, /id="menu-reflexion" class="menu-modeles menu-modeles--gauche" role="menu" aria-label="Niveau de réflexion"/);
+  assert.match(renderer, /choixSimple\(menu, "Rapide", "eclair", \(\) => choisirReflexion\(false\), \{ actif: !reflexion/);
+  assert.match(renderer, /choixSimple\(menu, "Réflexion", "ampoule", \(\) => choisirReflexion\(true\), \{ actif: reflexion/);
+  assert.match(renderer, /textContent = actif \? "Réflexion" : "Rapide"/);
+  // L'état actif de Prof reste lisible : bordure jaune en plus du fond
   assert.match(lire('style.css'), /\.saisie__barre \.pastille\[aria-checked="true"\]/);
-  // Thinking n'apparaît que lorsque le modèle choisi sait réellement réfléchir
+  // Le bouton n'apparaît que lorsque le modèle choisi sait réellement réfléchir
   assert.match(renderer, /boutonReflexion\.hidden = !reflexionPossible/);
 });
 
@@ -108,7 +112,7 @@ test('sélecteur unique fournisseur + modèle : recherche, groupes et choix dire
   assert.match(renderer, /function naviguerMenu/);
   assert.match(renderer, /ArrowDown/);
   assert.match(renderer, /Escape/);
-  assert.match(renderer, /\["menu-modeles", "menu-joindre"\]\.forEach/);
+  assert.match(renderer, /\["menu-modeles", "menu-joindre", "menu-reflexion"\]\.forEach/);
   assert.match(renderer, /setAttribute\("role", "menuitem"\)/);
   // Un choix referme le menu même quand il est placé dans un groupe
   assert.match(renderer, /b\.onclick = \(\) => \{ fermerMenus\(\); action\(\); \}/);
@@ -277,4 +281,9 @@ test('le modèle intégré par Cat Ai a la même mention partout, et le logo res
   const css = lire('style.css');
   assert.doesNotMatch(css, /#mode-prof span/);
   assert.match(css, /\.pastille--mode \.pastille__etiquette, #project-name \{ display: none; \}/);
+});
+
+test('niveau de réflexion : le bouton montre l’icône du choix (éclair pour Rapide, ampoule pour Réflexion)', () => {
+  assert.match(html, /<span data-icone="eclair"><\/span><span class="pastille__etiquette">Rapide<\/span>/);
+  assert.match(renderer, /boutonReflexion\.firstElementChild\.innerHTML = icone\(actif \? "ampoule" : "eclair"\)/);
 });

@@ -144,7 +144,7 @@ test('câblage : payload chat, préférence persistée, bouton masqué si incapa
   const html = lire('index.html');
   const bouton = html.match(/<button id="mode-reflexion"[^>]*>/);
   assert.ok(bouton, 'le bouton Réflexion existe dans la barre du chat');
-  assert.match(bouton[0], /role="switch"/);
+  assert.match(bouton[0], /aria-haspopup="menu"/);
   assert.match(bouton[0], /hidden/, 'masqué tant que la capacité du modèle n\'est pas connue');
   assert.match(lire('preload.js'), /capacitesModele/);
   assert.match(sourceMain, /fournisseurId = 'ollama', reflexion = false/, 'le handler du chat reçoit le mode');

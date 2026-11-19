@@ -145,7 +145,7 @@ async function verifierDiscussionsEnParallele(js, fenetre) {
   await js(`convs = [origine, autre]; current = origine; renderConv();`);
   // Composeur : les deux modes portent un libellé lisible (et non une icône seule)
   assert.deepEqual(await js(`[...document.querySelectorAll('#mode-prof .pastille__etiquette, #mode-reflexion .pastille__etiquette')].map(e => e.textContent)`),
-    ['Prof', 'Thinking']);
+    ['Prof', 'Rapide']);
   // Sélecteur unique : fournisseur + modèle dans un seul menu, recherche filtrante, Échap rend le focus
   await js(`document.querySelector('#modele-raccourci').click();`);
   await attendre(js, '!document.querySelector("#menu-modeles").hidden');
@@ -246,7 +246,7 @@ async function verifierDiscussionsEnParallele(js, fenetre) {
   const refusPptx = await js(`window.api.readDropped(${JSON.stringify(cheminPptx)})`);
   assert.match(refusPptx.erreur, /Word, PowerPoint ou Excel/);
   assert.match(refusPptx.erreur, /Exporte-le en PDF/);
-  resultats.push('Composeur : libellés Prof/Thinking et dossier affiché seulement quand il est ouvert ; .pptx refusé avant l’envoi avec la solution PDF');
+  resultats.push('Composeur : libellés Prof/Rapide et dossier affiché seulement quand il est ouvert ; .pptx refusé avant l’envoi avec la solution PDF');
   // La réponse Gemini se rattache à « autre » ; la génération d'« origine » reste vivante
   requetesUI[1].event.sender.send('chat-chunk', { id: requetesUI[1].payload.id, text: 'Réponse gemini.' });
   await pause(100);
