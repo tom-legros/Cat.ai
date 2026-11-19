@@ -271,9 +271,9 @@ test('Ollama : les rappels system après le début deviennent une note de l app,
     { role: 'tool', content: 'contenu' },
   ];
   const envoyes = rappelsPourOllama(messages);
-  assert.deepEqual(envoyes.slice(0, 3), messages.slice(0, 3));
-  assert.deepEqual(envoyes[3], { role: 'user', content: NOTE_APP + 'Rappel : MODE PROF.' });
-  assert.deepEqual(envoyes.slice(4), messages.slice(4));
+  assert.deepEqual(envoyes.slice(0, 2), messages.slice(0, 2));
+  assert.deepEqual(envoyes[2], { role: 'user', content: NOTE_APP + 'Rappel : MODE PROF.\n\nquestion' });
+  assert.deepEqual(envoyes.slice(3), messages.slice(4));
   assert.equal(messages[3].role, 'system');
   assert.deepEqual(rappelsPourOllama([{ role: 'system', content: 'seul' }]), [{ role: 'system', content: 'seul' }]);
 });

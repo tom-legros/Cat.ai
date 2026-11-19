@@ -65,11 +65,40 @@ const NOTE_APP = "(Note de l'app, pas un message de l'utilisateur) ";
 function rappelsPourOllama(messages) {
   const debut = messages.findIndex((m) => m.role !== 'system');
   if (debut < 0) return messages;
-  return messages.map((m, i) => (i > debut && m.role === 'system' ? { role: 'user', content: NOTE_APP + m.content } : m));
+  const envoyes = [];
+  for (let i = 0; i < messages.length; i++) {
+    const message = messages[i];
+    if (message.role === 'user' && messages[i + 1]?.role === 'system') {
+      const notes = [];
+      while (messages[i + 1]?.role === 'system') notes.push(NOTE_APP + messages[++i].content);
+      // Une note seule dans un nouveau tour peut faire ignorer la vraie question à Qwen.
+      envoyes.push({ ...message, content: [...notes, message.content].join('\n\n') });
+    } else {
+      envoyes.push(i > debut && message.role === 'system' ? { role: 'user', content: NOTE_APP + message.content } : message);
+    }
+  }
+  return envoyes;
 }
 
 async function envoyerOllama(messages, modele, onMorceau, signal, options = {}) {
   if (options.chantier) return lireOllama(messages, modele, onMorceau, signal, options, false, false);
+  // Mode Réflexion du chat (sélecteur de l'utilisateur) : think:true seulement si ce modèle n'a pas déjà refusé
+  // la réflexion. Un refus (400) retombe silencieusement sur le mode rapide : jamais de réponse perdue.
+  if (options.reflexion === true && !sansReflexionPossible.has(modele)) {
+    try {
+      if (messages.at(-1)?.role !== 'tool' || !verifierLangue(messages, modele)) {
+        return await lireOllama(messages, modele, onMorceau, signal, options, true, false);
+      }
+      const premier = await lireOllama(messages, modele, onMorceau, signal, options, true, true);
+      if (!premier.anglais) return premier;
+      return await lireOllama(messages, modele, onMorceau, signal, options, true, false);
+    } catch (err) {
+      if (signal?.aborted || !/répondu 400/.test(err.message)) throw err;
+      sansReflexionPossible.add(modele);
+      // Le modèle est maintenant dans le set : le nouvel appel prend le chemin historique, sans réflexion
+      return envoyerOllama(messages, modele, onMorceau, signal, options);
+    }
+  }
   if (messages.at(-1)?.role !== 'tool' || !verifierLangue(messages, modele)) return lireOllama(messages, modele, onMorceau, signal, options, sansReflexion(modele), false);
   const premier = await lireOllama(messages, modele, onMorceau, signal, options, sansReflexion(modele), true);
   if (!premier.anglais) return premier;
@@ -88,18 +117,34 @@ async function envoyerOllama(messages, modele, onMorceau, signal, options = {}) 
 // Une demande à Ollama. Avec verifier, le début est gardé de côté et sa langue vérifiée : en anglais, la lecture
 // s'arrête (sortir de la boucle ferme la connexion, et Ollama arrête d'écrire) et le résultat est { anglais: true },
 // sans rien avoir affiché.
+// Mesures facultatives du chat : aucun contenu, aucune incidence sur les chantiers.
 async function lireOllama(messages, modele, onMorceau, signal, options, reflexion, verifier) {
+  if (!options.onStatistiques || options.chantier) return lireFluxOllama(messages, modele, onMorceau, signal, options, reflexion, verifier);
+  const debut = performance.now();
+  const mesure = { requetes: 0, reflexion, termine: false };
+  try {
+    return await lireFluxOllama(messages, modele, onMorceau, signal, options, reflexion, verifier, mesure, debut);
+  } finally {
+    mesure.dureeMs = performance.now() - debut;
+    options.onStatistiques(mesure);
+  }
+}
+
+async function lireFluxOllama(messages, modele, onMorceau, signal, options, reflexion, verifier, mesure, debut) {
   const corps = { model: modele, messages: rappelsPourOllama(messages), tools: outilsPour(options), stream: true, think: reflexion, keep_alive: options.chantier ? '5m' : GARDER_CHARGE, options: optionsOllama(modele) };
   if (options.chantier) {
     corps.options.temperature = 0.2;
     corps.options.num_predict = 2048;
   }
-  const envoyer = () => fetch(`${OLLAMA}/api/chat`, {
-    method: 'POST',
-    // think: false : qwen3 répond direct au lieu d'écrire une longue réflexion avant
-    body: JSON.stringify(corps),
-    signal,
-  });
+  const envoyer = () => {
+    if (mesure) mesure.requetes++;
+    return fetch(`${OLLAMA}/api/chat`, {
+      method: 'POST',
+      // think: false : qwen3 répond direct au lieu d'écrire une longue réflexion avant
+      body: JSON.stringify(corps),
+      signal,
+    });
+  };
   let res = await envoyer();
   // Les modèles de discussion seuls restent utilisables. Le premier appel a été refusé,
   // aucune génération ni aucun outil n'a eu lieu. Ne jamais réessayer une autre erreur.
@@ -126,9 +171,24 @@ async function lireOllama(messages, modele, onMorceau, signal, options, reflexio
     if (!ligne.trim()) return false;
     const data = JSON.parse(ligne);
     if (data.error) throw new Error(`Ollama : ${data.error}`);
-    if (data.done === true) termine = true;
+    if (data.done === true) {
+      termine = true;
+      if (mesure) {
+        mesure.termine = true;
+        // Liste fermée : ne jamais transmettre messages, documents ou champs arbitraires.
+        for (const cle of ['total_duration', 'load_duration', 'prompt_eval_count', 'prompt_eval_duration', 'eval_count', 'eval_duration']) {
+          if (Number.isFinite(data[cle]) && data[cle] >= 0) mesure[cle] = data[cle];
+        }
+      }
+    }
     if (data.message?.tool_calls) toolCalls.push(...data.message.tool_calls);
+    // Phase de réflexion séparée (Ollama, modèles qui réfléchissent) : comptée pour les statistiques,
+    // jamais affichée ni renvoyée. La réflexion inline <think> reste dans content, retirée à l'affichage.
+    if (mesure && typeof data.message?.thinking === 'string' && data.message.thinking) {
+      mesure.reflexionCaracteres = (mesure.reflexionCaracteres || 0) + data.message.thinking.length;
+    }
     if (!data.message?.content) return false;
+    if (mesure && mesure.premierFragmentMs == null) mesure.premierFragmentMs = performance.now() - debut;
     content += data.message.content;
     if (!enAttente) onMorceau(data.message.content);
     return enAttente && content.length >= DEBUT_A_VERIFIER && debutAnglais();
@@ -362,7 +422,7 @@ async function messageErreurOpenAI(config, res) {
   return `${config.nom} a répondu ${res.status}.${suite}`;
 }
 
-// Vulkan pour Ollama : utile sous Windows avec une carte AMD (une RX 6600 par exemple), que Ollama ne sait pas
+// Vulkan pour Ollama : utile sous Windows avec une carte AMD, que Ollama ne sait pas
 // toujours utiliser autrement. Avec une NVIDIA, CUDA est plus rapide : on laisse Ollama choisir. Une carte
 // Intel seule n'y gagne rien. Une valeur OLLAMA_VULKAN réglée à la main est toujours respectée.
 const AMD = 0x1002;

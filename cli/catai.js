@@ -258,7 +258,7 @@ function creerAttente() {
 // ---------- Une réponse ----------
 async function repondre({ conversation, question, o, lire, signal }) {
   conversation.push({ role: 'user', content: question });
-  const messages = [{ role: 'system', content: consignes(o) + infosProjet(o.dossier, question) }, ...conversation];
+  const messages = [{ role: 'system', content: consignes(o) }, { role: 'system', name: 'contexte_projet', content: infosProjet(o.dossier, question) }, ...conversation];
   let debutLigne = true;
   const attente = creerAttente();
   const ecrire = (t) => { attente.arreter(); process.stdout.write(t); if (t) debutLigne = t.endsWith('\n'); };

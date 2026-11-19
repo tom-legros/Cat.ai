@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('api', {
   chat: (payload) => ipcRenderer.send('chat', payload),
   stop: (id) => ipcRenderer.send('chat-stop', id),
   onChunk: (cb) => ipcRenderer.on('chat-chunk', (_e, d) => cb(d)),
+  onChatEtat: (cb) => ipcRenderer.on('chat-etat', (_e, d) => cb(d)),
   onUndo: (cb) => ipcRenderer.on('chat-undo', (_e, d) => cb(d)),
   onTool: (cb) => ipcRenderer.on('chat-tool', (_e, d) => cb(d)),
   // Résumé d'une action terminée (« a lu main.js »), gardé dans l'historique de la discussion
@@ -21,10 +22,12 @@ contextBridge.exposeInMainWorld('api', {
   onError: (cb) => ipcRenderer.on('chat-error', (_e, d) => cb(d)),
   summarize: (payload) => ipcRenderer.invoke('summarize', payload),
   onConfirmWrite: (cb) => ipcRenderer.on('confirm-write', (_e, d) => cb(d)),
-  onConfirmCancel: (cb) => ipcRenderer.on('confirm-write-cancel', () => cb()),
+  onConfirmCancel: (cb) => ipcRenderer.on('confirm-write-cancel', (_e, d) => cb(d)),
   replyConfirmWrite: (id, ok) => ipcRenderer.send('confirm-write-reply', { id, ok }),
   // Electron ne donne plus le chemin d'un fichier glissé directement : on passe par webUtils
-  readDropped: (file) => ipcRenderer.invoke('read-dropped', webUtils.getPathForFile(file)),
+  // Un fichier glissé arrive en File (webUtils retrouve son chemin) ; le bouton + passe un chemin du
+  // sélecteur. Dans les deux cas, la lecture et ses vérifications se font dans main.js (read-dropped).
+  readDropped: (file) => ipcRenderer.invoke('read-dropped', typeof file === 'string' ? file : webUtils.getPathForFile(file)),
   saveCode: (payload) => ipcRenderer.invoke('save-code', payload),
   openProject: () => ipcRenderer.invoke('open-project'),
   closeProject: () => ipcRenderer.invoke('close-project'),
@@ -54,6 +57,10 @@ contextBridge.exposeInMainWorld('api', {
   modifierAgent: (id, changement) => ipcRenderer.invoke('equipe-modifier', { id, changement }),
   remettreEquipe: () => ipcRenderer.invoke('equipe-remettre'),
   modeleVoitImages: (choix) => ipcRenderer.invoke('modele-voit-images', choix),
+  // Bouton + du chat : sélecteur de fichier, puis lecture par readDropped (mêmes règles que le glisser-déposer)
+  choisirFichier: (options) => ipcRenderer.invoke('choisir-fichier', options),
+  // Capacités du modèle pour le sélecteur « Réflexion » du chat
+  capacitesModele: (choix) => ipcRenderer.invoke('capacites-modele', choix),
   onProgressionOllama: (cb) => ipcRenderer.on('ollama-progression', (_e, p) => cb(p)),
   // Chantier depuis la page Agents : état du dossier, plan, lancement, suivi, puis garder ou jeter
   etatChantier: () => ipcRenderer.invoke('chantier-etat'),

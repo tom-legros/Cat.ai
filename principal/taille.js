@@ -32,16 +32,22 @@ const taille = (m) => (m.content || '').length + (m.tool_calls ? JSON.stringify(
 
 // Coupe un texte trop long, avec une note qui dit au modèle où reprendre s'il s'agit d'un fichier
 function raccourcir(texte, max) {
+  max = Math.max(0, Math.floor(max));
   if (texte.length <= max) return texte;
-  const garde = texte.slice(0, max);
-  // Un morceau de lire_fichier commence par « (x.js : lignes D à F sur N. …) » : on compte à partir de la ligne D
-  const n = garde.split('\n').length;
-  const entete = /^\(([^\n]*) : lignes (\d+) à \d+ sur \d+\./.exec(garde);
-  const suite = entete ? Number(entete[2]) + n - 2 : n;
-  // Un morceau de document joint (lire_document) s'appelle « document <identifiant> » : la suite se lit avec le même outil
+  const entete = /^\(([^\n]*) : lignes (\d+) à \d+ sur \d+\./.exec(texte);
   const doc = entete && /^document ([a-f0-9]{16})$/.exec(entete[1]);
-  const relire = doc ? `lire_document, document = « ${doc[1]} » et ligne = ${suite}` : `lire_fichier et ligne = ${suite}`;
-  return `${garde}\n[… coupé ici pour tenir dans la limite du modèle. Si c'est un fichier, la suite commence à la ligne ${suite} : relis-le avec ${relire}.]`;
+  let place = max;
+  while (place >= 0) {
+    const garde = texte.slice(0, place);
+    const n = garde.split('\n').length;
+    const suite = entete ? Math.max(Number(entete[2]), Number(entete[2]) + n - 2) : n;
+    const relire = doc ? `lire_document, document = « ${doc[1]} » et ligne = ${suite}` : `lire_fichier et ligne = ${suite}`;
+    const note = `\n[… coupé ici pour tenir dans la limite du modèle. Si c'est un fichier, la suite commence à la ligne ${suite} : relis-le avec ${relire}.]`;
+    if (garde.length + note.length <= max) return garde + note;
+    place = Math.min(place - 1, max - note.length);
+  }
+  // Trop peu de place pour une indication complète : ne jamais dépasser max.
+  return '…'.slice(0, max);
 }
 
 // Ramène l'historique sous `total` caractères, sans casser le lien entre un appel d'outil et son résultat :
@@ -52,8 +58,11 @@ function raccourcir(texte, max) {
 function compacter(messages, total) {
   const liste = messages.map((m) => ({ ...m }));
   const somme = () => liste.reduce((n, m) => n + taille(m), 0);
-  // Les consignes (avec le contenu des fichiers cités) ne prennent jamais plus de la moitié
-  if (liste[0]?.role === 'system') liste[0].content = raccourcir(liste[0].content, total / 2);
+  // Garder les instructions entières ; réduire les données facultatives d'abord.
+  for (const m of liste.filter((m) => m.role === 'system' && m.name === 'contexte_projet')) {
+    const place = Math.max(0, Math.min(total / 2, total - (somme() - taille(m))));
+    m.content = raccourcir(m.content, place);
+  }
   // sort est stable : à taille égale, le plus ancien passe en premier
   const parTaille = liste.filter((m) => m.role === 'tool').sort((a, b) => b.content.length - a.content.length);
   for (const m of parTaille) {
@@ -78,6 +87,7 @@ function compacter(messages, total) {
       if (m.role === 'user' && m.content.length > total / 3) m.content = raccourcir(m.content, total / 3);
     }
   }
+  if (somme() > total) throw new Error('Contexte trop volumineux : les consignes sont conservées. Réduis la mémoire ou les pièces jointes avant de réessayer.');
   return liste;
 }
 

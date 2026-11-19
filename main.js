@@ -4,12 +4,14 @@ const fs = require('fs');
 const { spawn, execFileSync } = require('child_process');
 const { adresseMcp } = require('./principal/connecteur-mcp');
 const { discuter, MAX_STEPS } = require('./principal/agent');
+const { creerFileOllama } = require('./principal/file-ollama');
+const fileOllama = creerFileOllama();
 
 const { configurerStockage, readJson, writeJson, prendreAlertes } = require('./principal/stockage');
 const { IGNORED, MAX_FILE, MAX_FICHIER_OUTIL, cheminSur, estSensible, listFiles, fichiersCites, contenuJoint } = require('./principal/fichiers');
 const { outilsPour } = require('./principal/outils');
 const { hote, HOTES_LOCAUX, fournisseurGratuit, modeleGratuit, conseilGratuit, adresseValide } = require('./principal/gratuit');
-const { LIMITES_OLLAMA, MAX_JOINT, limitesTaille, raccourcir, listeCourte } = require('./principal/taille');
+const { LIMITES_OLLAMA, MAX_JOINT, limitesTaille, raccourcir, listeCourte, compacter } = require('./principal/taille');
 const { ajouterFait, nettoyerPrenom, nettoyerMemoire, demandeMemoire } = require('./principal/memoire');
 const { configurerMiseAJour } = require('./principal/miseajour');
 const { urlsDans } = require('./principal/web');
@@ -137,11 +139,34 @@ const uiFenetres = {
 };
 
 // Le contexte des outils pour une réponse : dossier ouvert, réglages, ce qui est joint, et comment demander l'accord
-function contexteAgent({ prof, fournisseurId, liensDonnes = [], documentsJoints = new Set(), signal, maxExtrait = 20000 }) {
+function contexteAgent({ prof, fournisseurId, liensDonnes = [], documentsJoints = new Set(), signal, maxExtrait = 20000, requeteId, projetInitial = projectDir }) {
   const config = infosFournisseur(fournisseurId);
+  let dossier = projetInitial;
+  const ui = {
+    ...uiFenetres,
+    demander: async (infos) => {
+      if (signal?.aborted) return false;
+      const accord = await uiFenetres.demander(infos);
+      return !signal?.aborted && accord;
+    },
+    choisirExecutable: async (infos) => {
+      if (signal?.aborted) return null;
+      const choix = await uiFenetres.choisirExecutable(infos);
+      return signal?.aborted ? null : choix;
+    },
+    confirmerEcriture: infos => demanderConfirmation(infos, { requeteId, signal }),
+  };
   return {
-    projet: () => projectDir, ouvrirProjet: setProject, reglages: () => readJson('settings.json', {}),
-    dossierDocuments: DOSSIER_DOCUMENTS(), ui: uiFenetres, prof, liensDonnes, documentsJoints, signal, maxExtrait,
+    projet: () => dossier,
+    ouvrirProjet: dir => {
+      signal?.throwIfAborted();
+      // Un changement manuel intervenu depuis le départ ne doit pas être remplacé par cet outil.
+      if (projectDir === dossier) setProject(dir);
+      dossier = dir;
+      return dossier;
+    },
+    reglages: () => readJson('settings.json', {}),
+    dossierDocuments: DOSSIER_DOCUMENTS(), ui, prof, liensDonnes, documentsJoints, signal, maxExtrait,
     fournisseurLocal: !config || config.type === 'ollama' || HOTES_LOCAUX.includes(hote(config.baseUrl)), nomFournisseur: config?.nom,
   };
 }
@@ -152,17 +177,40 @@ const REFUS_ECRITURE = "L'utilisateur a refusé la modification.";
 
 const confirmations = new Map();
 let prochaineConfirmation = 1;
+let confirmationAffichee = null;
+
+function afficherConfirmationSuivante() {
+  if (confirmationAffichee !== null || !confirmations.size) return;
+  const [id, demande] = confirmations.entries().next().value;
+  confirmationAffichee = id;
+  win.webContents.send('confirm-write', { ...demande.infos, id, requeteId: demande.requeteId });
+}
+
+function terminerConfirmation(id, ok, annulee = false) {
+  const demande = confirmations.get(id);
+  if (!demande) return;
+  confirmations.delete(id);
+  demande.signal?.removeEventListener('abort', demande.annuler);
+  if (confirmationAffichee === id) {
+    confirmationAffichee = null;
+    if (annulee) win.webContents.send('confirm-write-cancel', { id });
+  }
+  demande.resolve(ok === true && !demande.signal?.aborted);
+  afficherConfirmationSuivante();
+}
 
 ipcMain.on('confirm-write-reply', (_e, { id, ok }) => {
-  confirmations.get(id)?.(ok);
-  confirmations.delete(id);
+  if (id === confirmationAffichee) terminerConfirmation(id, ok);
 });
 
-function demanderConfirmation(infos) {
+function demanderConfirmation(infos, { requeteId, signal } = {}) {
+  if (signal?.aborted) return Promise.resolve(false);
   const id = prochaineConfirmation++;
   return new Promise((resolve) => {
-    confirmations.set(id, resolve);
-    win.webContents.send('confirm-write', { id, ...infos });
+    const annuler = () => terminerConfirmation(id, false, true);
+    confirmations.set(id, { resolve, infos, requeteId, signal, annuler });
+    signal?.addEventListener('abort', annuler, { once: true });
+    afficherConfirmationSuivante();
   });
 }
 
@@ -209,28 +257,45 @@ function verifierGratuit(fournisseurId, modele) {
   }
 }
 
-ipcMain.on('chat', async (event, { id, model, messages, prof, documents = [], fournisseurId = 'ollama' }) => {
+ipcMain.on('chat', async (event, { id, model, messages, prof, documents = [], fournisseurId = 'ollama', reflexion = false }) => {
+  if (controllers.has(id)) return; // un doublon IPC ne remplace jamais le contrôleur actif
+  const projetInitial = projectDir;
   const documentsJoints = new Set(Array.isArray(documents) ? documents.filter(idValide) : []);
   const controller = new AbortController();
   controllers.set(id, controller);
   // Les liens écrits par l'utilisateur dans la discussion, puis ceux trouvés par chercher_web : lire_page_web les ouvre sans redemander
   const liensDonnes = messages.filter((m) => m.role === 'user').flatMap((m) => urlsDans(m.content));
   const envoiChat = (canal, donnees) => event.sender.send(canal, { id, ...donnees });
-  try {
+  const statistiquesOllama = [];
+  let nombreOutils = 0;
+  let libererOllama;
+try {
     verifierGratuit(fournisseurId, model);
     const envoyer = await envoyeurPour(fournisseurId);
     // Petite limite de taille (Ollama et ses 8 192 tokens, Groq gratuit) : chaque envoi est allégé,
     // pour que ce soit nous qui choisissions quoi raccourcir, et pas le modèle qui oublie la question
     const config = infosFournisseur(fournisseurId);
     const limites = config.type === 'ollama' ? LIMITES_OLLAMA : limitesTaille(config);
-    const ctx = contexteAgent({ prof, fournisseurId, liensDonnes, documentsJoints, signal: controller.signal, maxExtrait: limites ? limites.resultatOutil - 500 : 20000 });
+    const ctx = contexteAgent({ prof, fournisseurId, liensDonnes, documentsJoints, signal: controller.signal, maxExtrait: limites ? limites.resultatOutil - 500 : 20000, requeteId: id, projetInitial });
+    if (config.type === 'ollama') {
+      prechauffage?.arret.abort();
+      libererOllama = await fileOllama.prendre({ signal: controller.signal,
+        onAttente: () => envoiChat('chat-etat', { etat: 'attente-ollama' }) });
+      controller.signal.throwIfAborted();
+      envoiChat('chat-etat', { etat: 'generation' });
+    }
     const { fini } = await discuter({
       messages, modele: model, envoyer, limites, ctx,
-      options: { projet: !!projectDir, documents: documentsJoints.size > 0, connecteur: !!readJson('settings.json', {}).adresseMcp },
+      options: { projet: !!projetInitial, documents: documentsJoints.size > 0, connecteur: !!readJson('settings.json', {}).adresseMcp,
+        // Mode Réflexion choisi dans le chat : option du transport Ollama seulement (les fournisseurs en ligne
+        // gardent leur comportement inchangé). Les chantiers n'ont pas accès à cette option.
+        ...(config.type === 'ollama' ? { onStatistiques: (mesure) => statistiquesOllama.push(mesure) } : {}),
+        ...(config.type === 'ollama' && reflexion === true ? { reflexion: true } : {}),
+      },
       ev: {
         morceau: (text) => envoiChat('chat-chunk', { text }),
         annuler: (length) => envoiChat('chat-undo', { length }),
-        outil: (name, args) => envoiChat('chat-tool', { name, args }),
+        outil: (name, args) => { nombreOutils++; envoiChat('chat-tool', { name, args }); },
         action: (action) => envoiChat('chat-action', { action }),
         // Une étiquette pendant que l'app attend la fin de la limite par minute
         pause: (secondes) => envoiChat('chat-tool', { name: 'pause', args: { secondes } }),
@@ -238,7 +303,7 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, documents = [], fo
     });
     // Toutes les étapes utilisées sans réponse finale : l'utilisateur le voit, au lieu d'une réponse qui s'arrête sans rien dire
     if (!fini) event.sender.send('chat-tool', { id, name: 'limite', args: { etapes: MAX_STEPS } });
-    event.sender.send('chat-done', { id });
+    event.sender.send('chat-done', { id, statistiquesOllama, nombreOutils });
   } catch (err) {
     if (err.name === 'AbortError') event.sender.send('chat-done', { id, interrompu: true });
     else {
@@ -246,38 +311,63 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, documents = [], fo
       event.sender.send('chat-error', { id, error: err.message, modeleCasse: err.modeleCasse ? model : null });
     }
   } finally {
+    libererOllama?.();
     controllers.delete(id);
   }
 });
 
 ipcMain.on('chat-stop', (_e, id) => {
   controllers.get(id)?.abort();
-  // Si une fenêtre avant / après attendait, on la considère comme refusée
-  confirmations.forEach((resolve) => resolve(false));
-  confirmations.clear();
-  win.webContents.send('confirm-write-cancel');
+  // Le signal refuse uniquement les confirmations appartenant à cette requête.
 });
 
-// Résume le début d'une longue discussion, pour que le modèle ne l'oublie pas
-ipcMain.handle('summarize', async (_e, { model, messages, ancienResume, fournisseurId = 'ollama' }) => {
+// Mesures natives du résumé, liste fermée : durées Ollama (ns) de la réponse non streamée,
+// et tokens « usage » des fournisseurs en ligne remappés sur les mêmes clés. Jamais de contenu.
+function mesuresResumeOllama(data) {
+  const mesures = {};
+  for (const cle of ['total_duration', 'load_duration', 'prompt_eval_count', 'prompt_eval_duration', 'eval_count', 'eval_duration']) {
+    if (Number.isFinite(data[cle]) && data[cle] >= 0) mesures[cle] = data[cle];
+  }
+  return mesures;
+}
+
+function mesuresResumeUsage(data) {
+  const usage = data?.usage || {};
+  const mesures = {};
+  if (Number.isFinite(usage.prompt_tokens) && usage.prompt_tokens >= 0) mesures.prompt_eval_count = usage.prompt_tokens;
+  if (Number.isFinite(usage.completion_tokens) && usage.completion_tokens >= 0) mesures.eval_count = usage.completion_tokens;
+  return mesures;
+}
+
+// Résume le début d'une longue discussion, pour que le modèle ne l'oublie pas.
+// avecMesures : retourne en plus { resume, mesures } ; sans lui, le contrat historique (contenu seul ou null) est conservé.
+ipcMain.handle('summarize', async (_e, { model, messages, ancienResume, fournisseurId = 'ollama', avecMesures = false }) => {
   const nom = lirePrenom() || "L'utilisateur";
   const texte = messages.map((m) => `${m.role === 'user' ? nom : 'Le chat'} : ${m.content}`).join('\n\n');
   const consigne = `Résume cette discussion entre ${nom} et son assistant en 10 lignes maximum, en français.
+IMPORTANT : Conserve à l'identique tous les codes de référence, identifiants, noms précis, décisions et contraintes que l'utilisateur demande explicitement de retenir. Préserve aussi ces informations lorsqu'elles figurent dans l'ancien résumé. N'invente jamais d'informations absentes de la discussion.
 Garde : ce que ${nom} veut faire, les décisions prises, les fichiers et noms importants, ce qui reste à faire. Pas de blabla.
 ${ancienResume ? `\nRésumé de ce qui s'est passé encore avant :\n${ancienResume}\n` : ''}
 Discussion :
 ${texte}`;
   const config = await configFournisseur(fournisseurId);
   if (!modeleGratuit(config, model)) return null; // pas de résumé payant
+  let libererOllama;
   try {
     if (!config || config.type === 'ollama') {
+      const signal = AbortSignal.timeout(60000);
+      prechauffage?.arret.abort();
+      libererOllama = await fileOllama.prendre({ signal });
+      signal.throwIfAborted();
       const res = await fetch(`${OLLAMA}/api/chat`, {
         method: 'POST',
+        signal,
         body: JSON.stringify({ model, messages: [{ role: 'user', content: consigne }], stream: false, think: sansReflexion(model), keep_alive: GARDER_CHARGE, options: optionsOllama(model) }),
       });
       if (!res.ok) return null; // le résumé est facultatif : on envoie quand même, sans lui
       const data = await res.json();
-      return data.message?.content?.trim() || null;
+      const resume = data.message?.content?.trim() || null;
+      return avecMesures ? { resume, mesures: mesuresResumeOllama(data) } : resume;
     }
     // Fournisseur en ligne : même requête, sans streaming et sans outils
     const res = await fetch(`${config.baseUrl.replace(/\/+$/, '')}/chat/completions`, {
@@ -288,9 +378,12 @@ ${texte}`;
     });
     if (!res.ok) return null; // y compris si le réglage de réflexion est refusé : le résumé est facultatif
     const data = await res.json();
-    return data.choices?.[0]?.message?.content?.replace(/<think>[\s\S]*?<\/think>/g, '').trim() || null;
+    const resume = data.choices?.[0]?.message?.content?.replace(/<think>[\s\S]*?<\/think>/g, '').trim() || null;
+    return avecMesures ? { resume, mesures: mesuresResumeUsage(data) } : resume;
   } catch {
     return null;
+  } finally {
+    libererOllama?.();
   }
 });
 
@@ -318,6 +411,17 @@ function surFondBlanc(image) {
   return nativeImage.createFromBitmap(pixels, image.getSize());
 }
 
+// Sélecteur de fichier pour le bouton + du chat : renvoie seulement un chemin, la lecture passe ensuite par
+// read-dropped (mêmes vérifications que le glisser-déposer : fichier sensible, format, taille, document).
+ipcMain.handle('choisir-fichier', async (_e, options = {}) => {
+  const { canceled, filePaths } = await dialog.showOpenDialog(win, {
+    title: options.image ? 'Choisir une image' : 'Choisir un fichier',
+    properties: ['openFile'],
+    ...(options.image ? { filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg'] }] } : {}),
+  });
+  return canceled ? null : filePaths[0];
+});
+
 ipcMain.handle('read-dropped', async (_e, chemin) => {
   try {
     chemin = fs.realpathSync(chemin);
@@ -338,7 +442,12 @@ ipcMain.handle('read-dropped', async (_e, chemin) => {
       return { nom, chemin, image: image.toJPEG(85).toString('base64'), apercu };
     }
     if (BINAIRES.test(chemin)) {
-      return { erreur: `${nom} n'est pas un PDF ni un fichier texte : je ne sais pas encore le lire. Enregistre-le en PDF, ou copie son texte ici.` };
+      // Word, PowerPoint, Excel : formats bureautiques pas encore lus. Le dire clairement avant l'envoi,
+      // avec la solution (export PDF) au lieu d'un « pas un PDF ni un fichier texte » générique.
+      const bureautique = /\.(docx?|odt|pptx?|xlsx?|ods)$/i.test(chemin);
+      return { erreur: bureautique
+        ? `${nom} : Cat Ai ne lit pas encore les documents Word, PowerPoint ou Excel. Exporte-le en PDF, ou copie son texte ici.`
+        : `${nom} n'est pas un PDF ni un fichier texte : Cat Ai ne lit pas ce format. Exporte-le en PDF, ou copie son texte ici.` };
     }
     // PDF, ou fichier texte trop long pour partir en entier : texte extrait et rangé, le modèle le lit par morceaux
     if (/\.pdf$/i.test(chemin) || stat.size > MAX_FILE) {
@@ -422,8 +531,8 @@ ipcMain.handle('etat-ollama', async () => {
 //
 // Il lit aussi les consignes du chat et la description de ses outils (2 000 mots environ), exactement comme les enverra
 // le prochain message : Ollama garde ce début en mémoire, et le premier message n'a plus que la question à lire.
-// Mesuré sur une RX 6600 : ~12 s de lecture avant le premier mot sinon. Les outils sont choisis comme dans le handler
-// 'chat' (mêmes réglages, sans document joint) et les consignes coupées comme le fait compacter, sinon le début ne
+// Mesuré sur une carte AMD de 8 Go : ~12 s de lecture avant le premier mot sinon. Les outils sont choisis comme dans le handler
+// 'chat' (mêmes réglages, sans document joint) et le contexte réduit par compacter, sinon le début ne
 // correspondrait plus. Les rappels (mode prof) arrivent après la question : ils ne gênent pas.
 //
 // Les consignes du dernier préchargement réussi sont retenues (prechauffe.json) : au démarrage suivant, main.js les
@@ -432,28 +541,37 @@ ipcMain.handle('etat-ollama', async () => {
 const FICHIER_PRECHAUFFE = 'prechauffe.json';
 let prechauffage = null; // { corps, debut, promesse } pendant qu'Ollama lit
 
-function prechaufferOllama({ modele, consignes, prof }) {
+function prechaufferOllama({ modele, consignes, contexteProjet = '', prof }) {
   if (chantierEnCours) return false;
   const outils = outilsPour({ prof, projet: !!projectDir, documents: false, connecteur: !!readJson('settings.json', {}).adresseMcp });
-  const corps = JSON.stringify({ model: modele, messages: [{ role: 'system', content: raccourcir(consignes, LIMITES_OLLAMA.total / 2) }], tools: outils, stream: false, think: sansReflexion(modele), keep_alive: GARDER_CHARGE, options: { ...optionsOllama(modele), num_predict: 1 } });
+  let messages;
+  try { messages = compacter([{ role: 'system', content: consignes }, { role: 'system', name: 'contexte_projet', content: contexteProjet }], LIMITES_OLLAMA.total); }
+  catch { return false; } // Le préchauffage est facultatif ; l'envoi affichera le diagnostic.
+  const corps = JSON.stringify({ model: modele, messages, tools: outils, stream: false, think: sansReflexion(modele), keep_alive: GARDER_CHARGE, options: { ...optionsOllama(modele), num_predict: 1 } });
   if (prechauffage?.corps === corps) return prechauffage.promesse;
+  if (fileOllama.occupee) return false;
   prechauffage?.arret.abort();
   const arret = new AbortController();
   const debut = Date.now();
   win?.webContents.send('prechauffage', { enCours: true, debut });
   const promesse = Promise.resolve().then(async () => {
     let ok = false;
+    let libererOllama;
     try {
       const signal = AbortSignal.any([arret.signal, AbortSignal.timeout(60_000)]);
+      libererOllama = await fileOllama.prendre({ signal });
+      signal.throwIfAborted();
       const res = await fetch(`${OLLAMA}/api/chat`, { method: 'POST', body: corps, signal });
       await res.arrayBuffer();
       ok = res.ok;
     } catch {
       ok = false;
+    } finally {
+      libererOllama?.();
     }
     if (prechauffage?.promesse !== promesse) return false;
     prechauffage = null;
-    if (ok) writeJson(FICHIER_PRECHAUFFE, { modele, consignes, prof });
+    if (ok) writeJson(FICHIER_PRECHAUFFE, { modele, consignes, contexteProjet, prof });
     win?.webContents.send('prechauffage', { enCours: false, ok, secondes: Math.round((Date.now() - debut) / 1000) });
     return ok;
   });
@@ -516,6 +634,21 @@ ipcMain.handle('modele-voit-images', async (_e, { fournisseurId, modele }) => {
     }
   }
   return hote(config.baseUrl) === 'generativelanguage.googleapis.com';
+});
+
+// Capacités du modèle choisi pour le sélecteur « Réflexion » : le bouton n'apparaît que si le modèle sait réfléchir
+// (capability « thinking » dans /api/show). Fournisseurs en ligne : false, leur comportement reste inchangé.
+ipcMain.handle('capacites-modele', async (_e, { fournisseurId, modele }) => {
+  const config = infosFournisseur(fournisseurId);
+  if (!config || config.type === 'ollama') {
+    try {
+      const res = await fetch(`${OLLAMA}/api/show`, { method: 'POST', body: JSON.stringify({ model: modele }), signal: AbortSignal.timeout(5000) });
+      return { reflexion: !!(await res.json()).capabilities?.includes('thinking') };
+    } catch {
+      return { reflexion: false };
+    }
+  }
+  return { reflexion: false };
 });
 
 // Le Qwen conseillé selon la mémoire de la carte graphique (principal/materiel.js), pour l'accueil
@@ -822,10 +955,11 @@ ipcMain.handle('chantier-lancer', async (_e, { plan, action, agent } = {}) => {
     }
     const equipe = preparation || { chef, codeurs };
     const etapes = (reprise?.plan || preparation?.etapes)?.map((e) => ({ ...e }));
-    if (reprise && agent) {
-      const choix = equipe.codeurs.find((c) => c.nom === agent);
-      if (!choix) return { ok: false, erreur: 'Ce dev ne fait plus partie de ton équipe.' };
-      etapes[reprise.etapes.filter((e) => e.ok).length].agent = choix.nom;
+    if (reprise && agent != null && agent !== '') {
+      // Le nom est un libellé : deux codeurs peuvent le partager. Aucun repli par nom.
+      const choix = typeof agent === 'string' ? equipe.codeurs.filter((c) => c.id === agent) : [];
+      if (choix.length !== 1) return { ok: false, erreur: 'Ce dev est introuvable ou son identifiant est ambigu. Sélectionne à nouveau un codeur.' };
+      etapes[reprise.etapes.filter((e) => e.ok).length].agent = choix[0].id;
     }
     direChantier({ type: 'info', texte: `Équipe : ${resume}` });
     if (etat.modifs) direChantier({ type: 'info', texte: `Attention : ${etat.modifs} fichier(s) modifié(s) mais pas enregistré(s) dans git ne seront pas dans la copie.` });
