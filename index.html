@@ -9,7 +9,7 @@
 <body>
   <aside class="cote">
     <div class="logo" id="logo">
-      <span class="logo__yeux" aria-hidden="true"><span class="logo__oeil"></span><span class="logo__oeil"></span></span>
+      <span class="logo__marque" id="logo-marque" aria-hidden="true"></span>
       <span class="logo__nom">Cat Ai</span>
       <button id="cote-replier" class="cote__replier" type="button" title="Replier le menu (Ctrl+B)" aria-label="Replier le menu"></button>
     </div>
@@ -23,8 +23,11 @@
       <button class="nav__lien" data-page="modeles" type="button"><span data-icone="boite"></span>Modèles</button>
     </nav>
 
-    <p class="etiquette">Discussions</p>
-    <div class="discussions__recherche">
+    <div class="discussions__entete">
+      <p class="etiquette">Discussions</p>
+      <button id="conv-recherche-ouvrir" class="discussions__loupe-bouton" type="button" aria-expanded="false" aria-controls="conv-recherche" title="Chercher dans l’historique (Ctrl+F)" aria-label="Chercher dans l’historique"><span data-icone="loupe"></span></button>
+    </div>
+    <div class="discussions__recherche" hidden>
       <span class="discussions__loupe" data-icone="loupe" aria-hidden="true"></span>
       <input id="conv-recherche" type="search" placeholder="Chercher dans l’historique…" aria-label="Chercher dans les discussions (titre et messages)" aria-controls="conv-list" autocomplete="off" spellcheck="false">
       <button id="conv-recherche-effacer" class="discussions__effacer" type="button" title="Effacer la recherche" aria-label="Effacer la recherche" hidden>×</button>
@@ -36,7 +39,7 @@
     <!-- En bas, comme sur Claude : la mémoire, les réglages et l'état de la connexion -->
     <div class="cote__bas">
       <p id="memoire-ajout" class="conseil" aria-live="polite"></p>
-      <button id="open-memory" class="lien lien--bloc" type="button"><span class="lien__icone" data-icone="livre"></span>Mémoire <span id="memory-count" class="compteur">0</span></button>
+      <button id="ouvrir-terminal" class="lien lien--bloc" type="button" title="Ouvrir Cat Ai dans un terminal (catai), sur le dossier ouvert"><span class="lien__icone" data-icone="terminal"></span>Terminal</button>
       <button id="open-reglages" class="lien lien--bloc" type="button"><span class="lien__icone" data-icone="engrenage"></span>Réglages</button>
       <p id="status" class="statut" role="status" aria-live="polite">Connexion…</p>
     </div>
@@ -80,12 +83,8 @@
             </div>
           </div>
         </div>
-        <div class="suggestions">
-          <button class="suggestion" data-prompt="Explique-moi simplement un sujet qui m'intrigue, comme si j'avais 15 ans. Demande-moi d'abord lequel."><span class="suggestion__icone suggestion__icone--jaune" data-icone="ampoule"></span><span class="suggestion__texte"><strong>Explique-moi un truc</strong><small>Un sujet, simplement</small></span></button>
-          <button class="suggestion" data-prompt="Aide-moi à écrire un message clair et sympa. Demande-moi d'abord à qui il est destiné et ce que je veux dire."><span class="suggestion__icone suggestion__icone--rose" data-icone="stylo"></span><span class="suggestion__texte"><strong>Écrire un message</strong><small>Mail, texto, lettre</small></span></button>
-          <button class="suggestion" data-prompt="Aide-moi à réviser un cours avec des questions, une par une. Demande-moi d'abord sur quoi."><span class="suggestion__icone suggestion__icone--bleu" data-icone="livre"></span><span class="suggestion__texte"><strong>Réviser un cours</strong><small>Avec des questions</small></span></button>
-          <button class="suggestion" data-prompt="Je veux apprendre à coder depuis zéro. Pose-moi d'abord deux ou trois questions, puis dis-moi par quoi commencer."><span class="suggestion__icone suggestion__icone--vert" data-icone="code"></span><span class="suggestion__texte"><strong>Apprendre à coder</strong><small>Depuis zéro</small></span></button>
-        </div>
+        <!-- Suggestions personnelles seulement (perso.json) : l'accueil reste épuré -->
+        <div class="suggestions" hidden></div>
       </section>
     </div>
 
@@ -208,7 +207,6 @@
         <header class="page__tete">
           <div>
             <h2 class="page__titre">Modèles</h2>
-            <p class="page__resume">Gratuits, sur ton PC, sans clé API.</p>
           </div>
           <div class="infos-pc" id="infos-pc"></div>
         </header>
@@ -224,7 +222,7 @@
         <div class="modeles-outils">
           <input id="modeles-recherche" class="modeles-recherche" type="search" placeholder="Chercher un modèle, par exemple qwen3:8b" aria-label="Chercher un modèle par son nom" autocomplete="off" spellcheck="false">
           <div class="filtres" id="modeles-usages" role="group" aria-label="Usage"></div>
-          <button class="bouton-calme" id="modeles-adaptes" type="button" aria-pressed="false" aria-controls="modeles-liste" hidden>Adaptés à mon PC</button>
+          <button class="bouton-calme" id="modeles-adaptes" type="button" aria-pressed="true" aria-controls="modeles-liste" hidden>Adaptés à mon PC</button>
         </div>
         <p class="conseil" id="modeles-filtre-etat" aria-live="polite"></p>
         <p class="conseil" id="modeles-etat" aria-live="polite"></p>
@@ -252,6 +250,7 @@
       <div class="reglages">
         <nav class="reglages__nav" aria-label="Sections des réglages">
           <button class="reglages__lien is-actif" type="button" data-section="reglages-section-cerveau"><span data-icone="puce"></span>Cerveau</button>
+          <button class="reglages__lien" type="button" data-section="reglages-section-memoire"><span data-icone="livre"></span>Mémoire</button>
           <button class="reglages__lien" type="button" data-section="reglages-section-cles"><span data-icone="eclair"></span>Clés API</button>
           <button class="reglages__lien" type="button" data-section="reglages-section-apparence"><span data-icone="panneau"></span>Apparence</button>
           <button class="reglages__lien" type="button" data-section="reglages-section-avance"><span data-icone="serveur"></span>Avancé</button>
@@ -262,7 +261,6 @@
             <div class="reglages__ligne">
               <div>
                 <p class="reglages__valeur" id="reglages-cerveau"></p>
-                <p class="discret">Le modèle qui répond. Tu peux aussi le changer avec le bouton sous la barre de saisie.</p>
               </div>
               <button id="reglages-voir-modeles" class="bouton-calme" type="button">Voir les modèles</button>
             </div>
@@ -276,9 +274,19 @@
             </div>
           </section>
 
+          <section class="reglages__section" id="reglages-section-memoire" aria-labelledby="reglages-titre-memoire">
+            <h3 class="reglages__titre" id="reglages-titre-memoire">Mémoire</h3>
+            <div class="reglages__ligne">
+              <div>
+                <p class="reglages__valeur">Ce que le chat retient de toi : <span id="memory-count">0</span></p>
+              </div>
+              <button id="open-memory" class="bouton-calme" type="button">Ouvrir la mémoire</button>
+            </div>
+          </section>
+
           <section class="reglages__section" id="reglages-section-cles" aria-labelledby="reglages-titre-cles">
             <h3 class="reglages__titre" id="reglages-titre-cles">Clés API</h3>
-            <p class="discret">Pour un cerveau en ligne, gratuit. Clique sur « Obtenir une clé », copie-la, colle-la ici. <span id="protection-cles">Elle reste secrète sur ton PC.</span></p>
+            <p class="discret">Une clé gratuite pour un cerveau en ligne. <span id="protection-cles">Elle reste secrète sur ton PC.</span></p>
             <div id="fournisseurs-liste" class="fournisseurs"></div>
           </section>
 
@@ -287,7 +295,6 @@
             <div class="reglages__ligne">
               <div>
                 <p class="reglages__valeur">Menu latéral</p>
-                <p class="discret">Tire sa bordure pour régler sa largeur. Ctrl+B le replie ou le déplie.</p>
               </div>
               <div class="rangee">
                 <button id="reglages-largeur-normale" class="bouton-calme" type="button">Largeur normale</button>
@@ -297,7 +304,6 @@
             <label class="reglages__ligne reglages__interrupteur">
               <span>
                 <span class="reglages__valeur">Réduire les animations</span>
-                <span class="discret">Les fenêtres et les menus s'ouvrent sans mouvement.</span>
               </span>
               <input id="reglages-sans-animations" type="checkbox" role="switch">
             </label>
@@ -305,8 +311,7 @@
 
           <section class="reglages__section" id="reglages-section-avance" aria-labelledby="reglages-titre-avance">
             <h3 class="reglages__titre" id="reglages-titre-avance">Avancé</h3>
-            <p class="reglages__sous-titre">Ton propre serveur</p>
-            <p class="discret">Un serveur compatible OpenAI sur ton PC, comme LM Studio.</p>
+            <p class="reglages__sous-titre">Ton propre serveur (LM Studio…)</p>
             <div id="fournisseurs-avance" class="fournisseurs"></div>
             <p class="reglages__sous-titre">Connecteur MCP</p>
             <form id="mcp-form" class="enregistrer">

@@ -302,9 +302,10 @@ async function lancerChantier({ projet, plan, chef, codeurs, ouvrier, verificate
                 if (GESTES[nom]) ev.info?.(`  ${GESTES[nom]} ${a?.chemin || a?.texte || a?.dossier || ''}`.trimEnd());
               },
               resultatOutil: (nom, resultat) => {
-                // Les erreurs d'outils sont rendues en texte par la boucle partagée.
-                // Ne pas relayer un refus de permission ou une erreur interne.
-                if (/^Erreur :|^L'utilisateur a refusé|Cet outil n'est pas disponible/.test(resultat)) throw new Error(resultat);
+                // Un refus de l'utilisateur ou une sortie du projet arrête le chantier (sécurité).
+                // Une erreur ordinaire (fichier absent, texte introuvable…) est déjà rendue en texte
+                // au modèle, qui peut se corriger : elle ne doit pas faire planter l'étape.
+                if (/^L'utilisateur a refusé|^Erreur : Chemin en dehors du projet/.test(resultat)) throw new Error(resultat);
                 if (!OUTILS_ECRITURE.has(nom)) return;
                 const resume = resultat.split('\n', 1)[0].slice(0, 240);
                 if (/^Fichier (modifié|créé) :/.test(resume)) {
@@ -322,12 +323,16 @@ async function lancerChantier({ projet, plan, chef, codeurs, ouvrier, verificate
           continue;
         }
         signal?.throwIfAborted();
-        if (resultatDiscussion?.fini === false) {
-          remarque = dernierEchecEcriture || "L'agent a atteint la limite de tours sans finir son exécution.";
-          continue;
-        }
         git(copie, 'add', '-A');
         const diff = git(copie, 'diff', '--cached', '--unified=8');
+        // Limite de tours atteinte : sans changement on réessaie, avec un diff les contrôles le jugent
+        if (resultatDiscussion?.fini === false) {
+          if (!diff) {
+            remarque = dernierEchecEcriture || "L'agent a atteint la limite de tours sans finir son exécution.";
+            continue;
+          }
+          ev.info?.('  Limite de tours atteinte : vérification du travail déjà fait.');
+        }
         let preuves = '';
         if (!diff) {
           const fichiers = fichiersCites(etape.titre + '\n' + etape.consigne, listFiles(copie));

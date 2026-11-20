@@ -20,8 +20,8 @@ const { quotaDuJour, FOURNISSEURS_AFFICHAGE, conseilModele, estGourmand } = cont
 
 test('icônes : une seule source (PIXELS, grille 8 × 8), plus aucun SVG dessiné à la main dans la page', () => {
   // icones.js est un script de page pur, exporté pour les tests
-  const { PIXELS } = require('../interface/icones');
-  const noms = Object.keys(PIXELS);
+  const { PIXELS, LIGNES } = require('../interface/icones');
+  const noms = [...Object.keys(PIXELS), ...Object.keys(LIGNES)];
   const utilisees = [...html.matchAll(/data-icone="([\w-]+)"/g)].map((m) => m[1]);
   assert.ok(utilisees.length >= 10, 'la page utilise bien les icônes de la source commune');
   for (const nom of utilisees) assert.ok(noms.includes(nom), `icône « ${nom} » absente de icones.js`);
@@ -33,8 +33,8 @@ test('menu du bouton + : deux lignes sobres (fichiers ou photos, dossier), la le
   assert.match(html, /id="menu-joindre" class="menu-modeles menu-modeles--gauche" role="menu"/);
   assert.match(renderer, /function ouvrirMenuJoindre/);
   assert.match(renderer, /\$\("#joindre"\)\.onclick = basculer\("menu-joindre", ouvrirMenuJoindre\)/);
-  // Une phrase claire et le raccourci, sans liste de formats en petit gris (elle reste dans l'infobulle)
-  assert.match(renderer, /choixSimple\(menu, "Ajouter des fichiers ou des photos", "trombone", ajouterFichiers, \{ raccourci: "Ctrl\+U"/);
+  // Une phrase claire, sans raccourci affiché ni liste de formats en petit gris (ils restent dans l'infobulle)
+  assert.match(renderer, /choixSimple\(menu, "Ajouter des fichiers ou des photos", "trombone", ajouterFichiers, \{ aide: "Texte, code, PDF, Word, images… \(Ctrl\+U\)" \}\)/);
   assert.match(renderer, /choixSimple\(menu, "Ajouter un dossier", "dossier", choisirProjet/);
   assert.match(renderer, /e\.key\.toLowerCase\(\) !== "u"\) return;[\s\S]*?ajouterFichiers\(\);/);
   // Même chemin de validation que le glisser-déposer (fichier sensible, format, taille, document)
@@ -96,7 +96,12 @@ test('sélecteur unique fournisseur + modèle : recherche, groupes et choix dire
   assert.doesNotMatch(html, /id="menu-fournisseurs"/);
   assert.match(html, /id="menu-modeles" class="menu-modeles menu-modeles--cerveau" role="menu"/);
   assert.match(renderer, /function ouvrirMenuModeles/);
-  assert.match(renderer, /titreMenu\(menu, "Fournisseur et modèle"\)/);
+  // Pas de titre : une ligne de recherche avec sa loupe et « + » pour ajouter un fournisseur, puis les récents
+  assert.match(renderer, /recherche\.placeholder = "Rechercher un modèle";/);
+  assert.match(renderer, /ajouter\.onclick = \(\) => \{ fermerMenus\(\); ouvrirFournisseurs\(\); \};/);
+  assert.match(renderer, /const recents = q \? \[\] : lireRecents\(\)/); // pas de doublon pendant une recherche
+  // Un groupe se déroule sans redessiner le menu (la transition reste fluide)
+  assert.match(renderer, /groupe\.classList\.toggle\("is-ouvert", ouvre\);/);
   // Recherche sans accents, et Entrée ne doit jamais envoyer le message
   assert.match(renderer, /type = "search"/);
   const sansAccents = vm.runInNewContext(`${renderer.match(/const sansAccents = .*;/)[0]}\nsansAccents;`);

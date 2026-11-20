@@ -119,7 +119,7 @@ function etiquettePiece(nom, apercu) {
 }
 
 function addMessage(role, text, fichiers = [], apercus = {}, message = null, conversation = current) {
-    if (conversation === current) welcomeEl.hidden = true;
+    if (conversation === current) { welcomeEl.hidden = true; $(".principal").classList.remove("is-accueil"); }
     const wrap = document.createElement("div");
     wrap.className = `msg ${role}`;
     const bulle = document.createElement("div");
@@ -196,6 +196,93 @@ function texteResumeAutomatique(appels, dureeReponse) {
     return blocs + "\n\n" + bilan + "\n" + part;
 }
 
+// Les chiffres qui comptent, additionnés sur tous les appels d'une réponse (un appel par tour d'outils)
+function syntheseOllama(appels) {
+    const somme = (cle) => appels.reduce((t, m) => t + (Number.isFinite(m[cle]) && m[cle] > 0 ? m[cle] : 0), 0);
+    const genere = somme("eval_count");
+    const dureeGeneration = somme("eval_duration");
+    const premier = appels.find((m) => Number.isFinite(m.premierFragmentMs))?.premierFragmentMs;
+    const reflexion = somme("reflexionCaracteres");
+    return {
+        debit: genere > 0 && dureeGeneration > 0 ? genere * 1e9 / dureeGeneration : null,
+        premierMot: Number.isFinite(premier) ? premier / 1000 : null,
+        lecture: somme("prompt_eval_duration") / 1e9 || null,
+        lectureTokens: somme("prompt_eval_count") || null,
+        ecriture: dureeGeneration / 1e9 || null,
+        tokens: genere || null,
+        chargement: somme("load_duration") / 1e9 || null,
+        reflexion: reflexion || null,
+        appels: appels.length,
+        incomplet: appels.some((m) => !m.termine),
+    };
+}
+
+// Les statistiques sous une réponse : une ligne de résumé, puis des tuiles lisibles, puis le détail brut
+function blocStatistiques(message) {
+    const details = document.createElement("details");
+    details.className = "msg__stats";
+    const resume = document.createElement("summary");
+    const contenu = document.createElement("div");
+    contenu.className = "stats";
+    const nombre = (n, decimales = 1) => n.toLocaleString("fr-FR", { maximumFractionDigits: decimales });
+    const tuile = (titre, valeur, aide = "") => {
+        if (valeur === null || valeur === undefined) return;
+        const el = document.createElement("div");
+        el.className = "stats__tuile";
+        if (aide) el.title = aide;
+        const v = document.createElement("strong");
+        v.textContent = valeur;
+        const t = document.createElement("span");
+        t.textContent = titre;
+        el.append(v, t);
+        grille.append(el);
+    };
+    const grille = document.createElement("div");
+    grille.className = "stats__grille";
+    if (message.statistiquesOllama?.length) {
+        const s = syntheseOllama(message.statistiquesOllama);
+        resume.textContent = [
+            s.debit && `${nombre(s.debit, 0)} tokens/s`,
+            s.premierMot !== null && `premier mot en ${nombre(s.premierMot)} s`,
+        ].filter(Boolean).join(" · ") || "Statistiques";
+        tuile("Vitesse", s.debit && `${nombre(s.debit, 0)} tokens/s`, "Vitesse d'écriture du modèle sur ton PC");
+        tuile("Premier mot", s.premierMot !== null ? `${nombre(s.premierMot)} s` : null, "Temps avant que la réponse commence à s'afficher");
+        tuile("Lecture de la question", s.lecture && `${nombre(s.lecture)} s`, s.lectureTokens ? `${nombre(s.lectureTokens, 0)} tokens lus (consignes, historique, fichiers)` : "");
+        tuile("Écriture", s.ecriture && `${nombre(s.ecriture)} s`, s.tokens ? `${nombre(s.tokens, 0)} tokens écrits` : "");
+        tuile("Chargement du modèle", s.chargement && s.chargement >= 0.5 ? `${nombre(s.chargement)} s` : null, "Le modèle n'était pas encore en mémoire");
+        tuile("Réflexion", s.reflexion && `${nombre(s.reflexion, 0)} caractères`, "Raisonnement du mode Réflexion, retiré de l'affichage");
+        tuile("Outils", message.nombreOutils ? String(message.nombreOutils) : null, "Outils demandés par le modèle pendant la réponse");
+        if (s.appels > 1) tuile("Appels", String(s.appels), "Un appel à Ollama par tour d'outils");
+        if (s.incomplet) {
+            const alerte = document.createElement("p");
+            alerte.className = "stats__alerte";
+            alerte.textContent = "Réponse interrompue : certains chiffres manquent.";
+            contenu.append(alerte);
+        }
+    } else resume.textContent = "Résumé automatique";
+    contenu.prepend(grille);
+    // Le détail complet, pour qui veut tout voir (et pour copier dans un rapport de bug)
+    const brut = document.createElement("details");
+    brut.className = "stats__brut";
+    const titreBrut = document.createElement("summary");
+    titreBrut.textContent = "Détail technique";
+    const texte = document.createElement("p");
+    const rubriques = [];
+    if (message.statistiquesOllama?.length) rubriques.push(texteStatistiquesOllama(message.statistiquesOllama)
+        + "\n\nOutils demandés : " + message.nombreOutils
+        + "\nEnvois du chat uniquement ; le préchauffage reste exclu. La durée totale Cat Ai inclut aussi la préparation (dont le résumé automatique, "
+        + (message.statistiquesResume?.length ? "détaillé ci-dessous" : "détaillé à part le cas échéant") + ") et l’affichage.");
+    if (message.statistiquesResume?.length) {
+        const detail = texteResumeAutomatique(message.statistiquesResume, message.dureeReponse);
+        rubriques.push(message.statistiquesOllama?.length ? "Résumé automatique\n" + detail : detail);
+    }
+    texte.textContent = rubriques.join("\n\n");
+    brut.append(titreBrut, texte);
+    contenu.append(brut);
+    details.append(resume, contenu);
+    return details;
+}
+
 function ajouterActionsMessage(wrap, conv, message) {
     const barre = document.createElement("div");
     barre.className = "msg__actions";
@@ -233,23 +320,7 @@ function ajouterActionsMessage(wrap, conv, message) {
     barre.append(retour);
     (message.role === "assistant" ? wrap.lastElementChild : wrap).append(barre);
     if (message.statistiquesOllama?.length || message.statistiquesResume?.length) {
-        const details = document.createElement("details");
-        details.className = "msg__stats";
-        const titre = document.createElement("summary");
-        titre.textContent = message.statistiquesOllama?.length ? "Statistiques Ollama" : "Résumé automatique";
-        const texte = document.createElement("p");
-        const rubriques = [];
-        if (message.statistiquesOllama?.length) rubriques.push(texteStatistiquesOllama(message.statistiquesOllama)
-            + "\n\nOutils demandés : " + message.nombreOutils
-            + "\nEnvois du chat uniquement ; le préchauffage reste exclu. La durée totale Cat Ai inclut aussi la préparation (dont le résumé automatique, "
-            + (message.statistiquesResume?.length ? "détaillé ci-dessous" : "détaillé à part le cas échéant") + ") et l’affichage.");
-        if (message.statistiquesResume?.length) {
-            const detail = texteResumeAutomatique(message.statistiquesResume, message.dureeReponse);
-            rubriques.push(message.statistiquesOllama?.length ? "Résumé automatique\n" + detail : detail);
-        }
-        texte.textContent = rubriques.join("\n\n");
-        details.append(titre, texte);
-        wrap.lastElementChild.append(details);
+        wrap.lastElementChild.append(blocStatistiques(message));
     }
 }
 
@@ -338,6 +409,8 @@ function renderConv() {
     const enCoursIci = !!vivante;
     const erreur = current && erreursEnAttente.get(current);
     welcomeEl.hidden = !!(current && current.messages.length) || enCoursIci || !!erreur;
+    // Accueil : le chat, la phrase et la saisie se regroupent au milieu de l'écran
+    $(".principal").classList.toggle("is-accueil", !welcomeEl.hidden);
     current?.messages.forEach((m) => addMessage(m.role, m.affichage ?? m.content, m.fichiers, {}, m));
     if (enCoursIci && vivante.wrap) {
         messagesEl.appendChild(vivante.wrap);
@@ -433,7 +506,15 @@ function renderList() {
             if (vivante) return;
             demanderSuppressionDiscussion(c, li, place);
         };
-        li.append(ouvrir, suppr);
+        // Renommer d'un clic, sans connaître le double-clic ni F2
+        const renommer = document.createElement("button");
+        renommer.type = "button";
+        renommer.className = "conv__renommer";
+        renommer.title = `Renommer « ${c.title} »`;
+        renommer.setAttribute("aria-label", renommer.title);
+        renommer.innerHTML = icone("stylo");
+        renommer.onclick = (e) => { e.stopPropagation(); renommerDansListe(c, li, ouvrir); };
+        li.append(ouvrir, renommer, suppr);
         convList.appendChild(li);
     });
 }
@@ -563,6 +644,22 @@ $("#conv-recherche").addEventListener("keydown", (e) => {
         e.target.value = "";
         renderList();
     }
+});
+// La recherche s'affiche ou se cache avec la loupe (ou Ctrl+F) ; le choix est retenu
+function montrerRecherche(oui, focus = true) {
+    $(".discussions__recherche").hidden = !oui;
+    $("#conv-recherche-ouvrir").setAttribute("aria-expanded", String(oui));
+    try { localStorage.setItem("rechercheHistorique", oui ? "1" : "0"); } catch {}
+    if (oui && focus) $("#conv-recherche").focus();
+    if (!oui && $("#conv-recherche").value) { $("#conv-recherche").value = ""; renderList(); }
+}
+try { if (localStorage.getItem("rechercheHistorique") === "1") montrerRecherche(true, false); } catch {}
+$("#conv-recherche-ouvrir").onclick = () => montrerRecherche($(".discussions__recherche").hidden);
+window.addEventListener("keydown", (e) => {
+    if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || e.key.toLowerCase() !== "f") return;
+    if (document.querySelector(".fenetre:not([hidden])")) return;
+    e.preventDefault();
+    montrerRecherche(true);
 });
 $("#conv-recherche-effacer").onclick = () => {
     $("#conv-recherche").value = "";
@@ -831,6 +928,7 @@ async function send(text, destination = current, configuration = null, piecesPri
     preparations.set(destination, { conv: destination });
     majBoutonEnvoi();
     configuration ||= configurationDuTour();
+    if (configuration.choix?.model) retenirRecent(configuration.choix.fournisseurId, configuration.choix.model);
     // Pièces prises tout de suite : deux envois simultanés ne doivent pas prendre deux fois les mêmes
     const piecesDuTour = piecesPrises || [...pieces];
     if (!piecesPrises && piecesDuTour.length) {
@@ -962,7 +1060,7 @@ async function lancerReponse(conv, text, contexte = conv, remplace = null, confi
         bulle.classList.add("is-typing", "attend-modele");
         // Avec Ollama, des consignes lourdes réduisent la place disponible : l'utilisateur le voit en haut de la réponse
         const alerteBudget = local ? budgetConsignes(consignes) : "";
-        const flux = { id, el: bulle, wrap: preparations.get(conv)?.wrap, conv, chat, remplace, discussionEntamee, text: alerteBudget ? etiquetteAction(alerteBudget) : "", actions: [], statistiquesResume, debut: debutReponse, dernierSignal: Date.now(), local };
+        const flux = { id, el: bulle, wrap: preparations.get(conv)?.wrap, conv, chat, remplace, discussionEntamee, text: alerteBudget ? etiquetteAction(alerteBudget) : "", actions: [], statistiquesResume, debut: debutReponse, dernierSignal: Date.now(), local, modele: choix.model };
         fluxParConv.set(conv, flux);
         preparations.delete(conv);
         renderList();
@@ -1173,7 +1271,30 @@ window.api.onDone(({ id, interrompu, statistiquesOllama, nombreOutils }) => {
         if (current === conv) renderConv();
     }
     save();
+    void proposerTitre(conv, flux, interrompu);
 });
+
+// Après la première réponse, le modèle propose un titre court à la place des premiers mots du message.
+// Seulement avec Ollama (gratuit, sans quota), une seule fois, en arrière-plan ; un titre renommé à la main ne bouge plus.
+const titresEnCours = new Set(); // hors de la discussion : jamais enregistré
+async function proposerTitre(conv, flux, interrompu) {
+    if (interrompu || !flux.local || !flux.modele || conv.titreChoisi || conv.titreIA || titresEnCours.has(conv)) return;
+    // Après la première réponse ; si Ollama était occupé, on retente aux deux réponses suivantes
+    if (conv.messages.filter((m) => m.role === "assistant").length > 3) return;
+    const premier = conv.messages.find((m) => m.role === "user");
+    const texte = (premier?.affichage || premier?.content || "").trim();
+    if (!texte) return;
+    titresEnCours.add(conv);
+    let titre = null;
+    try { titre = await window.api.titreDiscussion({ model: flux.modele, premierMessage: texte }); } catch {}
+    titresEnCours.delete(conv);
+    if (titre?.occupe) return; // Ollama occupé : pas de tentative comptée
+    conv.titreIA = true; // une seule vraie tentative par discussion
+    if (typeof titre !== "string" || !titre || conv.titreChoisi || !convs.includes(conv)) return;
+    conv.title = titre;
+    save();
+    renderList();
+}
 
 
 window.api.onError(({ id, error, modeleCasse }) => {
@@ -1363,7 +1484,6 @@ const mascotte = $("#mascotte");
 const bulle = $("#bulle");
 const bulleTexte = $("#bulle-texte");
 const grandChat = new ChatNoir($("#grand-chat"));
-const logo = $("#logo");
 
 let minuterieFrappe = null;
 let derniereReplique = "";
@@ -1418,8 +1538,6 @@ function surActivite() {
 }
 ["pointermove", "pointerdown", "keydown"].forEach((type) => window.addEventListener(type, surActivite, { passive: true }));
 
-// Les yeux du logo imitent ceux du grand chat
-setInterval(() => logo.classList.toggle("is-closed", grandChat.etatDessine.startsWith("true")), 50);
 
 
 /* ---------- 7. Projet ---------- */
@@ -1735,7 +1853,8 @@ $("#memory-form").addEventListener("submit", (e) => {
     renderMemory();
 });
 
-$("#open-memory").onclick = () => { $("#prenom-actuel").textContent = prenom; $("#memory-modal").hidden = false; $("#close-memory").focus(); };
+// La mémoire s'ouvre depuis les Réglages ; en la fermant, on revient aux Réglages
+$("#open-memory").onclick = () => { $("#reglages-modal").hidden = true; $("#prenom-actuel").textContent = prenom; $("#memory-modal").hidden = false; $("#close-memory").focus(); };
 $("#changer-prenom").onclick = async () => { $("#memory-modal").hidden = true; await demanderPrenom(); };
 
 // Fenêtre du prénom : au premier lancement, ou depuis « Mémoire ». Elle ne se ferme qu'avec un prénom.
@@ -1750,6 +1869,7 @@ function demanderPrenom() {
             e.preventDefault();
             if (!champ.value.trim()) return champ.focus();
             prenom = await window.api.setPrenom(champ.value);
+            renderSalutation(); // le titre de l'accueil dit tout de suite le prénom
             modal.hidden = true;
             resolve();
         };
@@ -1917,7 +2037,7 @@ let conseil = null;
 async function renderDemarrage(f, models) {
     const bloc = $("#demarrage");
     bloc.hidden = models.length > 0;
-    $(".suggestions").hidden = !bloc.hidden;
+    $(".suggestions").hidden = !bloc.hidden || !$(".suggestions").children.length;
     if (bloc.hidden) return;
     etatOllama = await window.api.etatOllama();
 
@@ -2134,6 +2254,43 @@ function choixMenu(menu, texte, actif, action, classe = "", deco = null) {
     menu.append(b);
 }
 
+// Un modèle dans le menu : son nom, une étiquette courte à droite (Intégré, Gourmand…), une coche s'il est en service.
+// La phrase complète du conseil reste dans l'infobulle : pas de petit texte gris sous chaque modèle.
+function choixModele(menu, texte, actif, action, deco, fournisseur = "") {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "menu-modeles__choix menu-modele" + (actif ? " is-on" : "");
+    b.setAttribute("role", "menuitemradio");
+    b.setAttribute("aria-checked", String(!!actif));
+    const nom = document.createElement("span");
+    nom.className = "menu-modele__nom";
+    nom.textContent = texte;
+    b.append(nom);
+    if (fournisseur) {
+        const qui = document.createElement("span");
+        qui.className = "menu-modele__fournisseur";
+        qui.textContent = fournisseur;
+        nom.append(qui);
+    }
+    // « Sans limite » sur chaque modèle d'Ollama n'apprend rien : seules les étiquettes utiles restent
+    const etiquette = (deco?.conseil || "").split(" · ")[0].replace(/^Environ (\d+) messages par jour$/, "≈ $1 / jour");
+    if (deco?.conseil) b.title = deco.conseil;
+    if (etiquette && etiquette !== "Sans limite") {
+        const tag = document.createElement("span");
+        tag.className = `menu-modele__tag menu-modele__tag--${deco.couleur || "gris"}`;
+        tag.textContent = etiquette.replace(/^Intégré par Cat Ai$/, "Intégré");
+        b.append(tag);
+    }
+    if (actif) {
+        const coche = document.createElement("span");
+        coche.className = "menu-choix__coche";
+        coche.innerHTML = icone("coche");
+        b.append(coche);
+    }
+    b.onclick = () => { fermerMenus(); action(); };
+    menu.append(b);
+}
+
 // Une ligne discrète dans un menu : chargement, liste vide, ou erreur d'un fournisseur
 function noteMenu(conteneur, texte, erreur = false) {
     const note = document.createElement("p");
@@ -2144,27 +2301,50 @@ function noteMenu(conteneur, texte, erreur = false) {
 
 let generationMenuModeles = 0;
 
-// Sélecteur unique : le fournisseur et son modèle dans le même menu, avec recherche et groupes.
+// Les derniers modèles utilisés, tous fournisseurs confondus : en tête du menu, comme dans OpenCode
+const MAX_RECENTS = 3;
+function lireRecents() {
+    try { return JSON.parse(localStorage.getItem("modelesRecents") || "[]").filter((r) => r?.f && r?.m).slice(0, MAX_RECENTS); } catch { return []; }
+}
+function retenirRecent(fournisseurId, modele) {
+    const liste = [{ f: fournisseurId, m: modele }, ...lireRecents().filter((r) => !(r.f === fournisseurId && r.m === modele))].slice(0, MAX_RECENTS);
+    try { localStorage.setItem("modelesRecents", JSON.stringify(liste)); } catch {}
+}
+
+// Sélecteur unique, sobre : une ligne de recherche, les récents, puis un groupe par fournisseur qui se déroule.
 // Les modèles de chaque fournisseur prêt sont chargés en arrière-plan (mis en cache 30 s).
 function ouvrirMenuModeles() {
     const menu = $("#menu-modeles");
     const generation = ++generationMenuModeles;
     menu.replaceChildren();
-    titreMenu(menu, "Fournisseur et modèle");
 
+    // En haut : la loupe, la recherche, et « + » pour ajouter un fournisseur
+    const tete = document.createElement("div");
+    tete.className = "menu-modeles__tete";
+    const loupe = document.createElement("span");
+    loupe.className = "menu-modeles__loupe";
+    loupe.innerHTML = icone("loupe");
     const recherche = document.createElement("input");
     recherche.type = "search";
     recherche.className = "menu-modeles__recherche";
-    recherche.placeholder = "Chercher un fournisseur ou un modèle…";
+    recherche.placeholder = "Rechercher un modèle";
     recherche.setAttribute("aria-label", "Chercher un fournisseur ou un modèle");
     recherche.autocomplete = "off";
     recherche.spellcheck = false;
+    const ajouter = document.createElement("button");
+    ajouter.type = "button";
+    ajouter.className = "menu-modeles__ajouter";
+    ajouter.title = "Ajouter un fournisseur";
+    ajouter.setAttribute("aria-label", "Ajouter un fournisseur");
+    ajouter.innerHTML = icone("plus");
+    ajouter.onclick = () => { fermerMenus(); ouvrirFournisseurs(); };
+    tete.append(loupe, recherche, ajouter);
 
     const liste = document.createElement("div");
     liste.className = "menu-modeles__liste";
     liste.id = "menu-modeles-liste";
     recherche.setAttribute("aria-controls", liste.id);
-    menu.append(recherche, liste);
+    menu.append(tete, liste);
 
     // Le fournisseur actif d'abord : c'est celui qu'on change le plus souvent
     const fournisseurs = reglages.fournisseurs
@@ -2179,14 +2359,40 @@ function ouvrirMenuModeles() {
         chargement: false,
         erreur: null,
     }));
+    const nomDe = (f) => f.nom.replace(/ \(local\)$/, "");
+    const estActif = (f, m) => f.id === reglages.actif && m === modelSel.value;
+    const choisir = (f, m) => () => { retenirRecent(f.id, m); choisirCerveau(f, m); };
+
+    // Chaque fournisseur se replie : seul celui en service est ouvert au départ
+    const ouverts = new Set([reglages.actif]);
 
     const dessiner = () => {
         if (generation !== generationMenuModeles) return; // menu rouvert depuis
         const q = sansAccents(recherche.value.trim());
         liste.replaceChildren();
         let trouves = 0;
+
+        // Récents : seulement sans recherche (pendant une recherche, une seule liste, sans doublon)
+        const recents = q ? [] : lireRecents()
+            .map((r) => ({ r, g: groupes.find((g) => g.f.id === r.f) }))
+            .filter(({ r, g }) => g && (g.models || []).includes(r.m));
+        if (recents.length) {
+            const section = document.createElement("section");
+            section.className = "menu-modeles__groupe menu-modeles__groupe--recents";
+            section.setAttribute("role", "group");
+            section.setAttribute("aria-label", "Récents");
+            const titre = document.createElement("p");
+            titre.className = "menu-modeles__section";
+            titre.textContent = "Récents";
+            section.append(titre);
+            for (const { r, g } of recents) {
+                choixModele(section, nomCourt(r.m), estActif(g.f, r.m), choisir(g.f, r.m), conseilModele(r.m, g.f.id, modeleConseille(g.models, g.f.id)), nomDe(g.f));
+            }
+            liste.append(section);
+        }
+
         for (const g of groupes) {
-            const nom = g.f.nom.replace(/ \(local\)$/, "");
+            const nom = nomDe(g.f);
             const fournisseurCorrespond = sansAccents(`${nom} ${g.f.id}`).includes(q);
             const visibles = (g.models || []).filter((m) => fournisseurCorrespond || sansAccents(m).includes(q));
             if (q && !fournisseurCorrespond && !visibles.length) continue;
@@ -2195,23 +2401,41 @@ function ouvrirMenuModeles() {
             groupe.className = "menu-modeles__groupe";
             groupe.setAttribute("role", "group");
             groupe.setAttribute("aria-label", nom);
-            const entete = document.createElement("div");
+            // Une recherche ouvre tous les fournisseurs où elle trouve quelque chose
+            const ouvert = !!q || ouverts.has(g.f.id);
+            groupe.classList.toggle("is-ouvert", ouvert);
+            const entete = document.createElement("button");
+            entete.type = "button";
             entete.className = "menu-modeles__titre menu-modeles__titre--fournisseur";
+            entete.setAttribute("aria-expanded", String(ouvert));
             const affichage = FOURNISSEURS_AFFICHAGE[g.f.id] || FOURNISSEURS_AFFICHAGE.perso;
             const pastille = document.createElement("span");
             pastille.className = `menu-icone menu-icone--petite menu-icone--${affichage.couleur}`;
             pastille.innerHTML = icone(affichage.icone);
-            entete.append(pastille, document.createTextNode(nom));
-            groupe.append(entete);
-            if (g.chargement) noteMenu(groupe, "Chargement des modèles…");
-            else if (g.erreur) noteMenu(groupe, g.erreur, true);
-            else if (!g.models?.length) noteMenu(groupe, "Aucun modèle disponible");
+            const fleche = document.createElement("span");
+            fleche.className = "menu-modeles__fleche";
+            fleche.innerHTML = icone("chevron");
+            entete.append(pastille, document.createTextNode(nom), fleche);
+            // Le groupe se déroule en douceur : on bascule une classe, sans redessiner le menu
+            entete.onclick = (e) => {
+                e.stopPropagation();
+                const ouvre = !groupe.classList.contains("is-ouvert");
+                if (ouvre) ouverts.add(g.f.id); else ouverts.delete(g.f.id);
+                groupe.classList.toggle("is-ouvert", ouvre);
+                entete.setAttribute("aria-expanded", String(ouvre));
+            };
+            const contenu = document.createElement("div");
+            contenu.className = "menu-modeles__contenu";
+            const interieur = document.createElement("div");
+            interieur.className = "menu-modeles__interieur";
+            contenu.append(interieur);
+            groupe.append(entete, contenu);
+            if (g.chargement) noteMenu(interieur, "Chargement des modèles…");
+            else if (g.erreur) noteMenu(interieur, g.erreur, true);
+            else if (!g.models?.length) noteMenu(interieur, "Aucun modèle disponible");
             else {
                 const conseilleF = modeleConseille(g.models, g.f.id);
-                for (const m of visibles) {
-                    choixMenu(groupe, nomCourt(m), g.f.id === reglages.actif && m === modelSel.value,
-                        () => choisirCerveau(g.f, m), "", conseilModele(m, g.f.id, conseilleF));
-                }
+                for (const m of visibles) choixModele(interieur, nomCourt(m), estActif(g.f, m), choisir(g.f, m), conseilModele(m, g.f.id, conseilleF));
             }
             liste.append(groupe);
         }
@@ -2244,14 +2468,14 @@ function ouvrirMenuModeles() {
         // Entrée ne doit jamais envoyer le message : elle prend le premier modèle trouvé
         if (e.key !== "Enter") return;
         e.preventDefault();
-        liste.querySelector(".menu-modeles__choix")?.click();
+        liste.querySelector(".menu-modeles__groupe:not(.menu-modeles__groupe--recents) .menu-modeles__choix")?.click();
     });
 
-    choixMenu(menu, "Ajouter un fournisseur", false, ouvrirFournisseurs, "menu-modeles__autre", { icone: "plus", couleur: "gris", conseil: "Avec une clé gratuite" });
     dessiner();
     menu.hidden = false;
     recherche.focus();
 }
+
 
 // Choisit un modèle : même fournisseur, changement direct ; autre fournisseur, on le charge d'abord
 function choisirCerveau(f, modele) {
@@ -2338,7 +2562,7 @@ async function ajouterFichiers() {
 function ouvrirMenuJoindre() {
     const menu = $("#menu-joindre");
     menu.replaceChildren();
-    choixSimple(menu, "Ajouter des fichiers ou des photos", "trombone", ajouterFichiers, { raccourci: "Ctrl+U", aide: "Texte, code, PDF, Word, images…" });
+    choixSimple(menu, "Ajouter des fichiers ou des photos", "trombone", ajouterFichiers, { aide: "Texte, code, PDF, Word, images… (Ctrl+U)" });
     choixSimple(menu, "Ajouter un dossier", "dossier", choisirProjet, { aide: "Le chat lira son contenu" });
     menu.hidden = false;
 }
@@ -2444,7 +2668,7 @@ function renderPanneauFournisseurs() {
         champCle.type = "password";
         champCle.autocomplete = "off";
         champCle.spellcheck = false;
-        champCle.placeholder = f.aCle ? "Clé enregistrée : laisse vide pour la garder" : "Colle ta clé ici";
+        champCle.placeholder = f.aCle ? "Clé enregistrée" : "Colle ta clé ici";
         champCle.setAttribute("aria-label", f.aCle ? `Nouvelle clé pour ${f.nom}, facultative` : `Clé API pour ${f.nom}`);
         const ok = document.createElement("button");
         ok.type = "submit";
@@ -2565,10 +2789,39 @@ function ouvrirFournisseurs() {
 // Ollama, ou un serveur sur le PC (LM Studio…) : rien ne sort du PC
 const fournisseurLocal = (f) => f.type === "ollama" || /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/i.test(f.baseUrl || "");
 
+// Le titre de l'accueil change avec l'heure : quelques phrases par moment de la journée, une tirée au hasard.
+// {p} est remplacé par le prénom (ou disparaît s'il n'y en a pas).
+const SALUTATIONS = [
+    { de: 5, a: 10, phrases: ["C'est l'heure du café{, p}", "Bien dormi{, p} ?", "Café et Cat Ai ?", "On commence doucement{, p} ?"] },
+    { de: 10, a: 12, phrases: ["On s'y met{, p} ?", "Qu'est-ce qu'on apprend ce matin ?", "Prêt à bosser{, p} ?"] },
+    { de: 12, a: 14, phrases: ["Pause déj{, p} ?", "On mange d'abord, ou on code ?", "Le chat a déjà mangé. Et toi ?"] },
+    { de: 14, a: 18, phrases: ["On fait quoi cet après-midi ?", "Un coup de main{, p} ?", "Prêt pour l'après-midi{, p} ?"] },
+    { de: 18, a: 22, phrases: ["Bonsoir{, p}", "On continue ce soir ?", "Une dernière idée avant ce soir ?"] },
+    { de: 22, a: 29, phrases: ["Encore debout{, p} ?", "Les chats sortent la nuit", "Une idée de minuit ?"] },
+];
+function salutation(heure = new Date().getHours(), nom = "", hasard = Math.random) {
+    const h = heure < 5 ? heure + 24 : heure;
+    const moment = SALUTATIONS.find((s) => h >= s.de && h < s.a) || SALUTATIONS[3];
+    const phrase = moment.phrases[Math.floor(hasard() * moment.phrases.length) % moment.phrases.length];
+    return phrase.replace(/\{, p\}/g, nom ? `, ${nom}` : "");
+}
+// La phrase est tirée une fois par moment de la journée (renderAccueil repasse toutes les 10 s : elle ne doit pas changer sous les yeux)
+let salutationRetenue = null;
+function renderSalutation() {
+    const heure = new Date().getHours();
+    const h = heure < 5 ? heure + 24 : heure;
+    const cle = SALUTATIONS.findIndex((m) => h >= m.de && h < m.a) + "|" + prenom;
+    if (salutationRetenue?.cle !== cle) salutationRetenue = { cle, texte: salutation(heure, prenom) };
+    $(".accueil__titre").textContent = salutationRetenue.texte;
+}
+
+// Sous le titre : rien avec un modèle local (tout reste sur le PC). Avec un fournisseur en ligne, on prévient
+// que les messages passent par ses serveurs : c'est une information de confidentialité, pas une décoration.
 function renderAccueil(f) {
-    $("#accueil-texte").textContent = fournisseurLocal(f)
-        ? "Modèle local : gratuit et sans limite, tout reste sur ton PC."
-        : `Modèle en ligne, chez ${f.nom} : gratuit, mais tes messages passent par ses serveurs.`;
+    const texte = $("#accueil-texte");
+    texte.hidden = fournisseurLocal(f);
+    texte.textContent = fournisseurLocal(f) ? "" : `Modèle en ligne, chez ${f.nom} : tes messages passent par ses serveurs.`;
+    renderSalutation();
 }
 
 
@@ -2592,6 +2845,13 @@ function appliquerNom() {
     // Le logo est dessiné en pixels (lettres nettes) ; le texte reste pour les lecteurs d'écran
     const logo = document.querySelector(".logo__nom");
     const dessin = motEnPixels(NOM_DU_CHAT);
+    // Le logo : le vrai petit chat de la mascotte, vivant (il cligne, bouge la queue, suit la souris)
+    if (!$("#logo-marque canvas")) {
+        const toile = document.createElement("canvas");
+        toile.className = "logo__chat";
+        $("#logo-marque").replaceChildren(toile);
+        new ChatNoir(toile);
+    }
     if (dessin) { logo.innerHTML = dessin; logo.setAttribute("aria-label", NOM_DU_CHAT); }
     else logo.textContent = NOM_DU_CHAT;
     document.querySelector(".bulle__nom").textContent = NOM_DU_CHAT;
@@ -2622,6 +2882,7 @@ function appliquerPerso() {
             b.onclick = () => send(texte(s.message));
             return b;
         }));
+        $(".suggestions").hidden = !$("#demarrage").hidden;
     }
     const repliques = perso.repliquesProjets && typeof perso.repliquesProjets === "object" ? perso.repliquesProjets : {};
     for (const [cle, replique] of Object.entries(repliques)) if (texte(replique)) REPLIQUES.projets[cle.toLowerCase()] = texte(replique);
@@ -2630,6 +2891,11 @@ function appliquerPerso() {
 // Fenêtre Réglages : fournisseur, modèle et clés
 $("#reglages-voir-modeles").addEventListener("click", () => { $("#close-reglages").click(); document.querySelector('[data-page="modeles"]')?.click(); });
 $("#open-reglages").onclick = ouvrirFournisseurs;
+// Terminal : catai (le CLI) s'ouvre dans une console, sur le dossier ouvert. Les commandes / viendront aussi dans le chat.
+$("#ouvrir-terminal").onclick = async () => {
+    const r = await window.api.ouvrirTerminal();
+    if (!r.ok) addMessage("error", r.erreur);
+};
 window.api.lireAdresseMcp().then((adresse) => { if (!$("#mcp-adresse").value) $("#mcp-adresse").value = adresse; });
 $("#mcp-form").onsubmit = async (e) => {
     e.preventDefault();
@@ -2667,6 +2933,7 @@ for (const nom of ["reglages", "memory"]) {
     const modal = $(`#${nom}-modal`);
     const fermer = () => {
         modal.hidden = true;
+        if (nom === "memory") $("#reglages-modal").hidden = false; // la mémoire vit dans les Réglages
         $(`#open-${nom}`).focus();
     };
     $(`#close-${nom}`).onclick = fermer;

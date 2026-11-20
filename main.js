@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog, shell, nativeImage, Menu, powerSaveBlocker } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const { spawn, execFileSync } = require('child_process');
 const { adresseMcp } = require('./principal/connecteur-mcp');
 const { discuter, MAX_STEPS } = require('./principal/agent');
@@ -16,6 +17,8 @@ const { ajouterFait, nettoyerPrenom, nettoyerMemoire, demandeMemoire } = require
 const { configurerMiseAJour } = require('./principal/miseajour');
 const { urlsDans } = require('./principal/web');
 const { integrerMenu } = require('./principal/menu-linux');
+const { ouvrirTerminal } = require('./principal/terminal');
+const { consigneTitre, nettoyerTitre } = require('./principal/titre');
 const { conseilMateriel, catalogueMateriel } = require('./principal/materiel');
 const { TYPES, equipeDepuis, equipeParDefaut, ajoutsPossibles, ajouterAgent, retirerAgent, modifierAgent } = require('./principal/equipe');
 const { LANGUES_CORRECTION, lignesMenu } = require('./principal/menu-saisie');
@@ -387,6 +390,31 @@ ${texte}`;
   }
 });
 
+// Titre d'une discussion, après sa première réponse : seulement avec Ollama (gratuit, sans quota).
+// Si Ollama est déjà occupé (une réponse part), on passe son tour : un titre ne doit jamais retarder un message.
+// { occupe: true } dit à l'interface qu'elle pourra réessayer après la réponse suivante.
+ipcMain.handle('titre-discussion', async (_e, { model, premierMessage } = {}) => {
+  if (!model || !premierMessage) return null;
+  if (fileOllama.occupee) return { occupe: true };
+  let libererOllama;
+  try {
+    const signal = AbortSignal.timeout(20000);
+    libererOllama = await fileOllama.prendre({ signal });
+    const res = await fetch(`${OLLAMA}/api/chat`, {
+      method: 'POST',
+      signal,
+      body: JSON.stringify({ model, messages: [{ role: 'user', content: consigneTitre(premierMessage) }], stream: false, think: false, keep_alive: GARDER_CHARGE, options: { ...optionsOllama(model), num_predict: 24, temperature: 0.3 } }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return nettoyerTitre(data.message?.content);
+  } catch {
+    return null; // le titre est facultatif : la discussion garde le sien
+  } finally {
+    libererOllama?.();
+  }
+});
+
 // Fichier glissé dans la fenêtre : on lit son texte (le chemin vient de preload.js)
 // Fichier glissé : une image (pour un modèle qui voit), un PDF ou un long texte (rangé, lu par morceaux),
 // ou un petit fichier texte joint en entier
@@ -413,6 +441,20 @@ function surFondBlanc(image) {
 
 // Sélecteur de fichier pour le bouton + du chat : renvoie seulement un chemin, la lecture passe ensuite par
 // read-dropped (mêmes vérifications que le glisser-déposer : fichier sensible, format, taille, document).
+// Bouton Terminal : catai dans une vraie console, sur le dossier ouvert (ou le dossier personnel)
+ipcMain.handle('ouvrir-terminal', () => {
+  try {
+    return ouvrirTerminal({
+      moteur: process.execPath,
+      script: path.join(app.getAppPath(), 'cli', 'catai.js'),
+      dossier: projectDir && fs.existsSync(projectDir) ? projectDir : os.homedir(),
+      dossierLanceur: app.getPath('userData'),
+    });
+  } catch (err) {
+    return { ok: false, erreur: "Impossible d'ouvrir le terminal : " + err.message };
+  }
+});
+
 ipcMain.handle('choisir-fichier', async (_e, options = {}) => {
   const { canceled, filePaths } = await dialog.showOpenDialog(win, {
     title: options.image ? 'Choisir une image' : 'Choisir un fichier',

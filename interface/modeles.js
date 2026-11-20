@@ -90,10 +90,10 @@ function quotaDuJour(fournisseurId, modele) {
 // Les dessins sont dans icones.js (icone(nom))
 
 const FOURNISSEURS_AFFICHAGE = {
-    ollama: { icone: "pc", couleur: "vert", conseil: "Sur ton PC · sans limite · PC puissant conseillé" },
-    gemini: { icone: "etincelle", couleur: "bleu", conseil: "En ligne, chez Google · le plus simple" },
-    groq: { icone: "eclair", couleur: "jaune", conseil: "En ligne · très rapide" },
-    openrouter: { icone: "route", couleur: "rose", conseil: "En ligne · plein de modèles, petit quota" },
+    ollama: { icone: "logoOllama", couleur: "blanc", conseil: "Sur ton PC · sans limite · PC puissant conseillé" },
+    gemini: { icone: "logoGemini", couleur: "bleu", conseil: "En ligne, chez Google · le plus simple" },
+    groq: { icone: "logoGroq", couleur: "orange", conseil: "En ligne · très rapide" },
+    openrouter: { icone: "logoOpenRouter", couleur: "blanc", conseil: "En ligne · plein de modèles, petit quota" },
     perso: { icone: "serveur", couleur: "gris", conseil: "Ton propre serveur" }
 };
 

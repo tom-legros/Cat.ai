@@ -154,7 +154,7 @@ async function verifierDiscussionsEnParallele(js, fenetre) {
   assert.ok(await js(`document.querySelectorAll('#menu-modeles .menu-modeles__choix').length >= 1`));
   await js(`{ const r = document.querySelector('#menu-modeles .menu-modeles__recherche');
     r.value = 'qwen3.5'; r.dispatchEvent(new Event('input')); }`);
-  assert.deepEqual(await js(`[...document.querySelectorAll('#menu-modeles .menu-modeles__liste .menu-modeles__choix .menu-textes span:first-child')].map(e => e.textContent)`), ['qwen3.5:9b']);
+  assert.deepEqual(await js(`[...document.querySelectorAll('#menu-modeles .menu-modeles__liste .menu-modele .menu-modele__nom')].map(e => e.textContent)`), ['qwen3.5:9b']);
   await js(`document.querySelector('#menu-modeles .menu-modeles__recherche')
     .dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));`);
   assert.equal(await js('document.querySelector("#menu-modeles").hidden'), true);

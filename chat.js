@@ -75,6 +75,13 @@ class ChatNoir {
         this.humeur = "normal";   // normal, content (yeux ^ ^), fache (yeux plissés)
         this.finHumeur = Infinity;
         this.etatDessine = "";
+        // Petites vies : une oreille qui frémit, un coup d'œil quand la souris ne bouge plus
+        this.prochaineOreille = performance.now() + 4000 + Math.random() * 5000;
+        this.finOreille = 0;
+        this.oreille = 3;         // colonne de la pointe qui frémit : 3 (gauche) ou 13 (droite)
+        this.prochainCoupDOeil = performance.now() + 5000;
+        this.finCoupDOeil = 0;
+        this.coupDOeil = 0;
         ChatNoir.tous.add(this);
     }
 
@@ -110,14 +117,26 @@ class ChatNoir {
             }
             if (t > this.prochaineQueue) {
                 this.debutQueue = t;
-                this.prochaineQueue = t + (this.reflechit ? 700 : 3200 + Math.random() * 4200);
+                this.prochaineQueue = t + (this.reflechit ? 700 : 2400 + Math.random() * 3200);
+            }
+            if (t > this.prochaineOreille) {
+                this.oreille = Math.random() < 0.5 ? 3 : 13;
+                this.finOreille = t + 160;
+                this.prochaineOreille = t + 5000 + Math.random() * 7000;
+            }
+            // Souris immobile depuis un moment : il jette un coup d'œil d'un côté, puis revient
+            if (t - ChatNoir.derniereSouris > 4000 && t > this.prochainCoupDOeil) {
+                this.coupDOeil = Math.random() < 0.5 ? -1 : 1;
+                this.finCoupDOeil = t + 900 + Math.random() * 700;
+                this.prochainCoupDOeil = t + 3500 + Math.random() * 4000;
             }
         }
         if (t > this.finHumeur) { this.humeur = "normal"; this.finHumeur = Infinity; }
         const etat = {
             yeuxFermes: this.endormi || t < this.finClignement,
             queue: this.endormi ? "A" : "BACA"[Math.floor((t - this.debutQueue) / 170)] || "A",
-            regard: this.regard,
+            regard: t < this.finCoupDOeil ? this.coupDOeil : this.regard,
+            oreille: !this.endormi && t < this.finOreille ? this.oreille : 0,
             saut: this.sauts.some(([debut, fin]) => t >= debut && t < fin),
             humeur: this.endormi ? "normal" : this.humeur,
             lunettes: ChatNoir.lunettes
@@ -144,7 +163,7 @@ class ChatNoir {
         if (!etat.yeuxFermes && etat.humeur === "normal") REFLETS.forEach((p) => pixel(p, ChatNoir.couleurs.reflet));
     }
 
-    dessinerCorps({ yeuxFermes, queue, regard, saut, humeur }) {
+    dessinerCorps({ yeuxFermes, queue, regard, saut, humeur, oreille }) {
         const { toile, pinceau } = this;
         const C = ChatNoir.couleurs;
         // Taille d'une case en pixels réels (nombre entier = pixels nets)
@@ -155,6 +174,8 @@ class ChatNoir {
 
         const grille = SPRITE.map((ligne) => ligne.split(""));
         QUEUES[queue].forEach(([l, c]) => { grille[l][c] = "k"; });
+        // L'oreille qui frémit : sa pointe se couche un instant
+        if (oreille) grille[0][oreille] = ".";
 
         const plein = (l, c) => (grille[l]?.[c] ?? ".") !== ".";
         const decalage = saut ? 0 : 1; // au clic, le chat monte d'une case
@@ -221,7 +242,9 @@ ChatNoir.rafraichirCouleurs = () => {
 };
 
 // Les yeux de chaque chat suivent la souris
+ChatNoir.derniereSouris = performance.now();
 window.addEventListener("pointermove", (e) => {
+    ChatNoir.derniereSouris = performance.now();
     ChatNoir.tous.forEach((chat) => {
         if (!chat.suitSouris) return;
         const zone = chat.toile.getBoundingClientRect();

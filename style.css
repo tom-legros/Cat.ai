@@ -160,9 +160,6 @@ optgroup, option { background: var(--surface); color: var(--texte); font-style: 
 
 /* Logo : les yeux du chat en pixels, qui clignent avec lui */
 .logo { display: flex; align-items: center; gap: 10px; padding: 6px 10px 12px; }
-.logo__yeux { display: flex; gap: 5px; }
-.logo__oeil { width: 9px; height: 6px; background: linear-gradient(90deg, var(--oeil) 0 33.3%, var(--pupille) 33.3% 66.6%, var(--oeil) 66.6%); transition: transform .12s ease; }
-.logo.is-closed .logo__oeil { transform: scaleY(.18); }
 .logo__nom { font: 400 24px/1 var(--police-titre); letter-spacing: .03em; color: var(--lumiere); }
 
 /* Toutes les lignes de la barre ont la même forme : une icône, un mot */
@@ -697,7 +694,6 @@ input[type=checkbox] { accent-color: var(--oeil); }
 
 /* Pixel nocturne — la capture de référence guide les titres, les couleurs et les surfaces. */
 .logo__nom { font: 500 19px var(--police-pixel); letter-spacing: .02em; }
-.logo__oeil { box-shadow: 0 0 6px var(--oeil-lueur); }
 .cote { padding: 22px 18px 16px; gap: 10px; }
 .logo { padding: 4px 2px 14px; }
 .bouton--nouveau { border: 1px solid var(--ligne-2); border-radius: 3px; padding: 12px; font-weight: 500; }
@@ -1061,3 +1057,158 @@ body.sans-animations *, body.sans-animations *::before, body.sans-animations *::
 /* La bulle de la mascotte : son nom en police lisible (en pixel, « Cat » se lisait « Oat ») */
 .bulle__nom { font: 600 11px var(--police-texte); letter-spacing: .06em; text-transform: uppercase; }
 .mascotte__bouton:focus:not(:focus-visible) { outline: none; }
+
+/* ---------- Coloration du code : de vraies couleurs, comme dans un éditeur ---------- */
+.hljs-keyword, .hljs-selector-tag, .hljs-meta .hljs-keyword, .hljs-doctag { color: #c678dd; }
+.hljs-built_in, .hljs-literal, .hljs-selector-pseudo { color: #56b6c2; }
+.hljs-type, .hljs-class .hljs-title, .hljs-title.class_ { color: #e5c07b; }
+.hljs-string, .hljs-regexp, .hljs-template-tag, .hljs-addition, .hljs-selector-attr { color: #98c379; }
+.hljs-number, .hljs-symbol, .hljs-attr, .hljs-attribute { color: #d19a66; }
+.hljs-title, .hljs-title.function_, .hljs-section { color: #61afef; font-weight: 400; }
+.hljs-variable, .hljs-template-variable, .hljs-property, .hljs-name, .hljs-tag, .hljs-selector-class, .hljs-selector-id, .hljs-deletion { color: #e06c75; }
+.hljs-params, .hljs-subst { color: #e8e8e8; }
+.hljs-meta, .hljs-meta .hljs-string { color: #61afef; }
+.hljs-comment, .hljs-quote { color: #7f848e; font-style: italic; }
+.hljs-operator, .hljs-punctuation { color: #c8c8cf; }
+.code pre code { color: #e8e8e8; }
+
+/* Le petit chat des réponses : sans boîte autour */
+.msg__chat { background: none; padding: 0; border-radius: 0; }
+
+/* Choix du modèle : un fournisseur par groupe, qu'on ouvre ou qu'on replie */
+button.menu-modeles__titre--fournisseur { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; font: 600 13px var(--police-texte); letter-spacing: 0; text-transform: none; color: var(--texte); text-align: left; background: none; border: 0; border-radius: var(--rayon-petit); cursor: pointer; }
+button.menu-modeles__titre--fournisseur:hover { background: var(--surface-2); }
+button.menu-modeles__titre--fournisseur[data-nombre]::after { content: attr(data-nombre); margin-left: auto; font: 12px var(--police-texte); color: var(--texte-2); }
+.menu-modeles__fleche { display: grid; place-items: center; color: var(--texte-2); transition: transform .2s ease; }
+.menu-modeles__fleche .icone { width: 12px; height: 12px; }
+button.menu-modeles__titre--fournisseur[aria-expanded="false"] .menu-modeles__fleche { transform: rotate(-90deg); }
+
+/* ---------- Page Modèles allégée : plus grand, plus clair, moins de traits ---------- */
+.ligne-modele { grid-template-columns: 32px minmax(0, 1fr) 96px 80px 150px 116px; min-height: 56px; border-bottom-color: rgba(255, 255, 255, .04); }
+.ligne-modele--entete { font: 600 11.5px var(--police-texte); color: var(--texte-2); background: none; border-bottom: 1px solid var(--ligne); }
+.ligne-modele__icone { width: 32px; height: 32px; background: none; border: 1px solid var(--ligne); }
+.ligne-modele__nom { font-size: 14.5px; }
+.ligne-modele__raison { font-size: 13px; color: var(--texte-2); }
+.ligne-modele__chiffre { font: 13px var(--police-texte); color: var(--texte); }
+.page .modeles { border-color: var(--ligne); }
+.selection__plus-loin { font-size: 13.5px; color: var(--texte-2); }
+.section__titre { font-size: 12.5px; color: var(--texte-2); }
+.selection__usage { font-size: 13px; }
+.selection__poids { font: 13px var(--police-texte); color: var(--texte-2); }
+#modeles-filtre-etat { font-size: 13px; color: var(--texte-2); }
+.info-pc { font: 13px var(--police-texte); color: var(--texte-2); }
+@media (max-width: 1100px) { .ligne-modele { grid-template-columns: 32px minmax(0, 1fr) 80px 70px 130px 108px; } .ligne-modele > :nth-child(3) { display: revert; } }
+@media (max-width: 860px) { .ligne-modele { grid-template-columns: 32px minmax(0, 1fr) 120px 100px; } .ligne-modele > :nth-child(3), .ligne-modele > :nth-child(4) { display: none; } .ligne-modele > :nth-child(5) { display: revert; } }
+
+/* ---------- Choix du modèle refait : logos des fournisseurs, une ligne par modèle ---------- */
+.menu-modeles--cerveau { min-width: 340px; max-width: min(420px, 92vw); }
+.menu-modeles, .menu-modeles * { box-sizing: border-box; }
+button.menu-modeles__titre--fournisseur { padding: 9px 10px; font-size: 13.5px; }
+button.menu-modeles__titre--fournisseur .menu-icone { width: 24px; height: 24px; background: var(--surface-2); border-radius: 6px; }
+.icone.icone-logo { fill: currentColor; stroke: none; image-rendering: auto; }
+.icone-logo text { font: 700 16px var(--police-texte); fill: var(--surface); }
+.menu-icone--blanc { color: #f2f2f2; }
+.menu-icone--bleu { color: #7aa7ff; }
+.menu-icone--orange { color: #f55036; }
+.menu-icone--gris { color: var(--texte-2); }
+.menu-modele { gap: 10px; min-height: 36px; padding: 7px 10px 7px 44px; font-size: 13.5px; color: var(--texte); }
+.menu-modele__nom { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.menu-modele.is-on .menu-modele__nom { color: var(--lumiere); font-weight: 500; }
+.menu-modele__tag { flex-shrink: 0; padding: 1px 7px; font-size: 11.5px; border-radius: 6px; color: var(--texte-2); background: var(--surface-2); }
+.menu-modele__tag--jaune { color: rgb(var(--jaune)); background: rgba(var(--jaune), .12); }
+.menu-modele__tag--rose { color: rgb(var(--rose)); background: rgba(var(--rose), .1); }
+.menu-modele .menu-choix__coche { margin-left: 4px; }
+
+/* ---------- Logo : une petite tête de chat en pixels, qui cligne avec la mascotte ---------- */
+.logo__marque { display: grid; place-items: center; }
+.logo__px--k { fill: #2e2e30; }
+.logo__px--i { fill: #4a4a4e; }
+.logo__px--n { fill: #5c5c60; }
+.logo__px--e { fill: var(--oeil); }
+/* L'accueil : un titre seul, le sous-titre n'apparaît que pour un fournisseur en ligne */
+.accueil__texte[hidden] { display: none; }
+
+/* Infos du PC avec leurs icônes ; crayon pour renommer dans l'historique */
+.info-pc { display: inline-flex; align-items: center; gap: 6px; }
+.info-pc .icone { width: 15px; height: 15px; color: var(--texte-2); }
+.discussions .conv__renommer { display: grid; place-items: center; width: 22px; height: 22px; padding: 0; }
+.discussions .conv__renommer .icone { width: 13px; height: 13px; }
+.discussions li:hover .conv__renommer, .discussions li:focus-within .conv__renommer { visibility: visible; }
+
+/* ---------- Statistiques d'une réponse : un résumé, des tuiles, le détail brut replié ---------- */
+.msg__stats { margin-top: 6px; font-size: 12.5px; color: var(--texte-2); }
+.msg__stats > summary { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 6px; cursor: pointer; list-style: none; }
+.msg__stats > summary::-webkit-details-marker { display: none; }
+.msg__stats > summary::before { content: "›"; transition: transform .15s ease; }
+.msg__stats[open] > summary::before { transform: rotate(90deg); }
+.msg__stats > summary:hover { color: var(--texte); background: var(--surface); }
+.stats { margin-top: 8px; padding: 12px; background: var(--surface); border: 1px solid var(--ligne); border-radius: var(--rayon); }
+.stats__grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+.stats__tuile { display: flex; flex-direction: column; gap: 2px; padding: 9px 11px; background: var(--bg); border-radius: var(--rayon-petit); }
+.stats__tuile strong { font: 600 15px var(--police-texte); color: var(--lumiere); }
+.stats__tuile span { font-size: 12px; color: var(--texte-2); }
+.stats__alerte { margin: 10px 0 0; color: rgb(var(--rose)); }
+.stats__brut { margin-top: 10px; }
+.stats__brut summary { cursor: pointer; font-size: 12px; color: var(--texte-2); }
+.stats__brut p { margin: 8px 0 0; white-space: pre-wrap; line-height: 1.5; font: 12px/1.55 var(--police-mono); color: var(--texte-2); }
+
+/* Titres de l'historique : « … » au lieu d'une coupe nette (l'ellipse ne marche pas sur un bouton en flex) */
+.discussions .conv__ouvrir { display: block; line-height: 40px; }
+/* Menu des modèles : jamais de barre de défilement horizontale */
+.menu-modeles__liste { overflow-x: hidden; }
+/* Le crayon de l'historique : même allure que la croix, mais sa propre classe (le code cherche « .suppr » pour supprimer) */
+.discussions .conv__renommer { flex-shrink: 0; color: var(--texte-3); background: none; border: 0; border-radius: var(--rayon-petit); cursor: pointer; visibility: hidden; }
+.discussions .conv__renommer:hover { color: var(--lumiere); }
+
+/* ---------- Menus qui se déroulent, choix du modèle léger (dans l'esprit d'OpenCode) ---------- */
+/* Les menus s'ouvrent vers le haut en se déroulant depuis leur bouton */
+@keyframes deroulement { from { opacity: 0; clip-path: inset(100% 0 0 0 round 14px); transform: translateY(4px); } to { opacity: 1; clip-path: inset(0 0 0 0 round 14px); transform: none; } }
+.menu-modeles { animation: deroulement .22s cubic-bezier(.2, .8, .2, 1) both; border-radius: 14px; }
+.menu-modeles--cerveau { width: min(420px, 92vw); min-width: 0; max-width: none; max-height: min(460px, 70vh); padding: 6px; display: flex; flex-direction: column; overflow: hidden; }
+.menu-modeles__tete { display: flex; align-items: center; gap: 8px; padding: 6px 6px 8px 10px; border-bottom: 1px solid var(--ligne); }
+.menu-modeles__loupe { display: grid; place-items: center; color: var(--texte-2); }
+.menu-modeles__loupe .icone { width: 15px; height: 15px; }
+.menu-modeles__tete .menu-modeles__recherche { flex: 1; min-width: 0; margin: 0; padding: 6px 2px; font-size: 14px; background: none; border: 0; outline: none; }
+.menu-modeles__ajouter { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; color: var(--texte-2); background: none; border: 0; border-radius: var(--rayon-petit); cursor: pointer; }
+.menu-modeles__ajouter:hover { color: var(--lumiere); background: var(--surface-2); }
+.menu-modeles__ajouter .icone { width: 14px; height: 14px; }
+.menu-modeles--cerveau .menu-modeles__liste { flex: 1; min-height: 0; overflow-y: auto; padding-top: 6px; }
+.menu-modeles__section { margin: 6px 10px 4px; font-size: 12px; color: var(--texte-2); }
+.menu-modeles__groupe--recents { padding-bottom: 6px; margin-bottom: 4px; border-bottom: 1px solid var(--ligne); }
+button.menu-modeles__titre--fournisseur { padding: 7px 10px; font: 500 12.5px var(--police-texte); color: var(--texte-2); }
+button.menu-modeles__titre--fournisseur:hover { color: var(--texte); }
+button.menu-modeles__titre--fournisseur .menu-icone { width: 20px; height: 20px; background: none; }
+button.menu-modeles__titre--fournisseur .menu-icone .icone { width: 14px; height: 14px; }
+.menu-modeles__fleche { margin-left: auto; }
+/* Un groupe se déroule en douceur : sa hauteur passe de 0 à son contenu */
+.menu-modeles__contenu { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .22s cubic-bezier(.2, .8, .2, 1); }
+.menu-modeles__groupe.is-ouvert > .menu-modeles__contenu { grid-template-rows: 1fr; }
+.menu-modeles__interieur { min-height: 0; overflow: hidden; }
+button.menu-modeles__titre--fournisseur[aria-expanded="false"] .menu-modeles__fleche { transform: rotate(-90deg); }
+.menu-modele { min-height: 32px; padding: 5px 10px 5px 40px; font-size: 13.5px; border-radius: 8px; }
+.menu-modeles__groupe--recents .menu-modele { padding-left: 14px; }
+.menu-modele.is-on { background: none; }
+.menu-modele:hover, .menu-modele:focus-visible { background: var(--surface-2); }
+.menu-modele__fournisseur { margin-left: 8px; font-size: 12.5px; font-weight: 400; color: var(--texte-2); }
+.menu-modele__tag { padding: 0 6px; font-size: 11px; }
+
+/* ---------- Accueil centré : le chat, la phrase et la saisie au milieu de l'écran ---------- */
+.principal.is-accueil #messages { flex: 0 0 auto; margin-top: auto; overflow: visible; padding-bottom: 8px; }
+.principal.is-accueil #composer { margin-bottom: auto; padding-bottom: 12vh; background: none; }
+.principal.is-accueil .accueil { margin-top: 0; }
+/* Le logo : le petit chat vivant, à côté du nom */
+.logo__chat { display: block; width: 28px; height: 28px; image-rendering: pixelated; }
+
+/* L'historique : la loupe à côté de « Discussions » montre ou cache la recherche */
+.discussions__entete { display: flex; align-items: center; justify-content: space-between; margin: 14px 4px 2px 10px; }
+.discussions__entete .etiquette { margin: 0; }
+.discussions__loupe-bouton { display: grid; place-items: center; width: 26px; height: 26px; padding: 0; color: var(--texte-2); background: none; border: 0; border-radius: var(--rayon-petit); cursor: pointer; }
+.discussions__loupe-bouton:hover, .discussions__loupe-bouton[aria-expanded="true"] { color: var(--lumiere); background: var(--surface); }
+.discussions__loupe-bouton .icone { width: 14px; height: 14px; }
+.discussions__recherche[hidden] { display: none; }
+/* Bouton + : un rond comme les autres pastilles ; bouton d'envoi plus sombre */
+#joindre { width: 34px; padding: 0; justify-content: center; border-radius: 50%; }
+#joindre .icone { width: 15px; height: 15px; }
+.bouton-envoi:not(.is-pret) { background: #141414; border: 1px solid var(--ligne-2); }
+.bouton-envoi:not(.is-pret):not(:disabled):hover { background: #1c1c1c; }
+.pastille { background: #121212; }

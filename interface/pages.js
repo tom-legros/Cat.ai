@@ -649,20 +649,30 @@ function actionModele(m) {
 // Toutes les fiches connues, avec leur avis pour ce PC : la sélection et la liste partent des mêmes données
 function fichesModeles() {
     const modelesConnus = new Map(catalogue.modeles.map(m => [m.modele, m]));
-    return MODELES_SELECTION.map(([modele, raison, pictogramme, ramCPU, budgetVRAM]) => {
+    // Un modèle absent du catalogue est ignoré au lieu de faire planter la page
+    return MODELES_SELECTION.filter(([modele]) => modelesConnus.has(modele)).map(([modele, raison, pictogramme, ramCPU, budgetVRAM]) => {
         const fiche = modelesConnus.get(modele);
         const m = { ...fiche, modele, raison, pictogramme, ramCPU, vram: budgetVRAM ?? fiche.vram };
         return { ...m, evaluation: evaluerModele(m, catalogue) };
     });
 }
 
+// Une info du PC avec sa petite icône (carte graphique, RAM, disque)
+function infoPc(dessin, texte, aide) {
+    const el = creer("span", "info-pc");
+    el.title = aide;
+    el.innerHTML = icone(dessin);
+    el.append(texte);
+    return el;
+}
+
 function dessinerModeles() {
     if (!catalogue) return;
     const { vramGo, ramGo, disqueGo, modeles } = catalogue;
     $("#infos-pc").replaceChildren(
-        creer("span", "info-pc", vramGo ? vramGo + " Go de VRAM" : "VRAM inconnue"),
-        creer("span", "info-pc", ramGo + " Go de RAM"),
-        ...(disqueGo === null ? [] : [creer("span", "info-pc", disqueGo + " Go libres")])
+        infoPc("puce", vramGo ? vramGo + " Go de VRAM" : "VRAM inconnue", "Mémoire de la carte graphique"),
+        infoPc("ram", ramGo + " Go de RAM", "Mémoire vive du PC"),
+        ...(disqueGo === null ? [] : [infoPc("disque", disqueGo + " Go libres", "Place libre sur le disque")])
     );
     $("#modeles-etat").textContent = ollamaLa ? "" : "Lance Ollama pour utiliser ou télécharger un modèle.";
     const modelesConnus = new Map(modeles.map(m => [m.modele, m]));
@@ -681,11 +691,13 @@ function dessinerModeles() {
         && (usageChoisi === "tous" || (usageChoisi === "installes" ? installes.includes(m.modele) : m.usage === usageChoisi))
         && (!cherche || `${m.modele} ${m.raison}`.toLowerCase().includes(cherche)));
     const actifs = [filtre && "adaptés à ton PC", usageChoisi !== "tous" && USAGES[usageChoisi].toLowerCase(), cherche && `« ${cherche} »`].filter(Boolean);
-    $("#modeles-filtre-etat").textContent = actifs.length ? `${visibles.length} sur ${selection.length} · ${actifs.join(", ")}` : "";
+    // Le compteur n'apparaît que si on filtre soi-même (« Adaptés à mon PC » est le réglage de départ)
+    const filtreChoisi = usageChoisi !== "tous" || !!cherche;
+    $("#modeles-filtre-etat").textContent = filtreChoisi ? `${visibles.length} sur ${selection.length} · ${actifs.join(", ")}` : "";
     const effacer = creer("button", "lien lien--petit", "Tout afficher");
     effacer.type = "button";
     effacer.addEventListener("click", () => { $("#modeles-recherche").value = ""; usageChoisi = "tous"; filtreAdaptes.setAttribute("aria-pressed", "false"); dessinerModeles(); });
-    if (actifs.length) $("#modeles-filtre-etat").append(" ", effacer);
+    if (filtreChoisi) $("#modeles-filtre-etat").append(" ", effacer);
     // Ce qu'on a d'abord (actif, puis installés), puis ce qui tient sur le PC, du plus léger au plus lourd
     const rang = (m) => (m.modele === modeleActif() ? 0 : installes.includes(m.modele) ? 1 : m.evaluation.adapte ? 2 : 3);
     visibles.sort((a, b) => rang(a) - rang(b) || (a.vram ?? 99) - (b.vram ?? 99));
@@ -700,7 +712,7 @@ const modeleActif = () => (reglages.actif === "ollama" ? modelSel.value : "");
 function enteteListe() {
     const li = creer("li", "ligne-modele ligne-modele--entete");
     li.setAttribute("aria-hidden", "true");
-    for (const texte of ["", "Modèle", "Usage", "Poids", "Mémoire", "Sur ton PC", ""]) li.append(creer("span", "", texte));
+    for (const texte of ["", "Modèle", "Poids", "Mémoire", "Sur ton PC", ""]) li.append(creer("span", "", texte));
     return li;
 }
 
@@ -712,15 +724,15 @@ function carteCatalogue(m) {
     const identite = creer("div", "ligne-modele__identite");
     const nom = creer("h4", "ligne-modele__nom");
     nom.append(lienExterne(m.modele, "https://ollama.com/library/" + m.modele, "carte-modele__lien"));
-    identite.append(nom, creer("p", "ligne-modele__raison", m.raison));
-    const usage = creer("span", "ligne-modele__usage", USAGES[m.usage] || "Général");
+    identite.append(nom);
+    ligne.title = m.raison || ""; // la description reste dans l'infobulle : moins de texte à l'écran
     const poids = creer("span", "ligne-modele__chiffre", poidsModele(m) || "—");
     poids.title = "À télécharger";
     const memoire = creer("span", "ligne-modele__chiffre", m.vram ? `${m.vram} Go` : "—");
     memoire.title = m.ramCPU ? `Carte graphique, ou ≈ ${m.ramCPU} Go de RAM sur le processeur` : "Mémoire de la carte graphique pour tourner";
     const action = creer("div", "ligne-modele__action");
     action.append(boutonModele(m));
-    ligne.append(pictogramme, identite, usage, poids, memoire, badgeModele(m), action);
+    ligne.append(pictogramme, identite, poids, memoire, badgeModele(m), action);
     return ligne;
 }
 
@@ -856,9 +868,10 @@ function dessinerSelection(fiches) {
     }));
     // Une seule ligne pour ce qu'une plus grosse carte apporterait
     const plusLoin = resultats.filter((r) => r.plusFort).map((r) => `${r.plusFort.modele} pour ${r.s.pour} (${r.plusFort.vram} Go)`);
-    const ligne = $("#selection-plus-loin");
-    ligne.hidden = !plusLoin.length;
-    ligne.textContent = plusLoin.length ? "Avec une plus grosse carte : " + plusLoin.join(" · ") : "";
+    // Ce qu'une plus grosse carte apporterait : dans l'infobulle de la carte principale, pas en texte de plus
+    $("#selection-plus-loin").hidden = true;
+    const principale = $("#selection-principal .selection__principal");
+    if (principale && plusLoin.length) principale.title = "Avec une plus grosse carte : " + plusLoin.join(" · ");
 }
 
 async function telechargerDepuisPage(modele) {

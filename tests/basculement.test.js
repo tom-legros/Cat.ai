@@ -118,3 +118,24 @@ test('bascule : les identités et contrôles traversent la préparation', () => 
   assert.deepEqual(codeurs.map(c => c.id), ['codeur-1', 'codeur-2']);
   assert.equal(codeurs[0].controles[0].id, codeurs[1].controles[0].id);
 });
+test('chantier : une erreur d outil ordinaire (fichier absent) ne fait pas planter l étape, le modèle se corrige', async (t) => {
+  const a = { id: 'a', nom: 'a', modele: 'faux', controles: [], appels: 0 };
+  a.envoyer = async (messages) => {
+    a.appels++;
+    const outils = messages.filter((m) => m.role === 'tool').length;
+    if (outils === 0) return { content: '', toolCalls: [{ function: { name: 'lire_fichier', arguments: { chemin: 'absent.js' } } }] };
+    if (outils === 1) return { content: '', toolCalls: [{ function: { name: 'ecrire_fichier', arguments: { chemin: 'a.js', contenu: '// fait\n' } } }] };
+    return { content: 'Fini', toolCalls: [] };
+  };
+  const r = await lancerChantier({ ...cadre(t), codeurs: [a] });
+  assert.equal(r.etapes[0].ok, true); assert.equal(r.etapes[0].essais, 1);
+});
+test('chantier : limite de tours atteinte avec un diff, le travail est vérifié au lieu d être jeté', async (t) => {
+  const a = { id: 'a', nom: 'a', modele: 'faux', controles: [], appels: 0 };
+  // Il écrit le même fichier sans jamais dire qu'il a fini : la boucle s'arrête d'elle-même
+  a.envoyer = async () => { a.appels++; return { content: '', toolCalls: [{ function: { name: 'ecrire_fichier', arguments: { chemin: 'a.js', contenu: '// fait\n' } } }] }; };
+  const infos = [];
+  const r = await lancerChantier({ ...cadre(t), codeurs: [a], ev: { info: (x) => infos.push(x) } });
+  assert.equal(r.etapes[0].ok, true); assert.equal(r.etapes[0].essais, 1);
+  assert.ok(infos.some((x) => /Limite de tours atteinte/.test(x)), infos.join('\n'));
+});

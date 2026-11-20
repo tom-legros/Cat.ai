@@ -140,6 +140,7 @@ function cadreOnDone({ interrompu = false, statistiquesOllama = null, statistiqu
     fluxParId: (id) => id === 7 ? flux : null, current: conv, performance,
     texteDuFlux: () => 'Réponse', afficherFlux() {}, document: { createElement: () => ({}) },
     ajouterActionsMessage() {}, finirFlux() {}, renderConv() {}, save: () => sauvegardes++,
+    proposerTitre() {}, // titre par le modèle après la 1re réponse : testé à part (titre.test.js)
   };
   vm.runInNewContext(extrait, contexte);
   handler({ id: 7, interrompu, statistiquesOllama, nombreOutils: statistiquesOllama ? 0 : undefined });

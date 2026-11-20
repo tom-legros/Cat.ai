@@ -21,6 +21,8 @@ contextBridge.exposeInMainWorld('api', {
   onDone: (cb) => ipcRenderer.on('chat-done', (_e, d) => cb(d)),
   onError: (cb) => ipcRenderer.on('chat-error', (_e, d) => cb(d)),
   summarize: (payload) => ipcRenderer.invoke('summarize', payload),
+  // Titre court proposé par le modèle après la première réponse (Ollama seulement)
+  titreDiscussion: (payload) => ipcRenderer.invoke('titre-discussion', payload),
   onConfirmWrite: (cb) => ipcRenderer.on('confirm-write', (_e, d) => cb(d)),
   onConfirmCancel: (cb) => ipcRenderer.on('confirm-write-cancel', (_e, d) => cb(d)),
   replyConfirmWrite: (id, ok) => ipcRenderer.send('confirm-write-reply', { id, ok }),
@@ -37,6 +39,8 @@ contextBridge.exposeInMainWorld('api', {
   dirExists: (dir) => ipcRenderer.invoke('dir-exists', dir),
   knownProjects: () => ipcRenderer.invoke('known-projects'),
   getProject: () => ipcRenderer.invoke('get-project'),
+  // Bouton Terminal : ouvre catai (le CLI) dans une console
+  ouvrirTerminal: () => ipcRenderer.invoke('ouvrir-terminal'),
   onProjectChanged: (cb) => ipcRenderer.on('project-changed', (_e, p) => cb(p)),
   // Prénom de l'utilisateur, vide tant qu'il ne l'a pas donné
   getPrenom: () => ipcRenderer.invoke('get-prenom'),

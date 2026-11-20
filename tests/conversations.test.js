@@ -18,6 +18,7 @@ function cadre() {
     compterMessage() {}, renderList() {}, afficherFlux() {}, budgetConsignes: () => '',
     majBoutonEnvoi() {}, majVeille() {}, majSaisie() {}, ligneAttente() {},
     rendrePiecesA: (conv, liste) => { (c.piecesRendues ??= []).push({ conv, liste }); },
+    retenirRecent() {},
     addMessage: (...args) => { c.ajout = args; return { bulle, chat: { reflechit: false } }; },
     systemPrompt: ({ modele }) => 'Consignes ' + modele,
     fournisseurActif: () => ({ type: c.reglages.actif }),

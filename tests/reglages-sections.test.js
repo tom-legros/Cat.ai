@@ -8,10 +8,10 @@ const html = lire('index.html');
 const barre = lire('interface/barre-laterale.js');
 const css = lire('style.css');
 
-test('réglages : quatre sections, et chaque lien du menu pointe vers une section qui existe', () => {
+test('réglages : cinq sections (la Mémoire y vit maintenant), et chaque lien du menu pointe vers une section qui existe', () => {
   const fenetre = html.slice(html.indexOf('id="reglages-modal"'), html.indexOf('id="maj-modal"'));
   const liens = [...fenetre.matchAll(/class="reglages__lien[^"]*" type="button" data-section="([\w-]+)"/g)].map((m) => m[1]);
-  assert.deepEqual(liens, ['reglages-section-cerveau', 'reglages-section-cles', 'reglages-section-apparence', 'reglages-section-avance']);
+  assert.deepEqual(liens, ['reglages-section-cerveau', 'reglages-section-memoire', 'reglages-section-cles', 'reglages-section-apparence', 'reglages-section-avance']);
   for (const id of liens) assert.match(fenetre, new RegExp(`<section class="reglages__section" id="${id}"`));
   // Rien n'est caché derrière un onglet : la clé et son bouton restent atteignables (le vérificateur Electron s'en sert)
   assert.doesNotMatch(fenetre, /<section class="reglages__section"[^>]*hidden/);
@@ -23,4 +23,12 @@ test('apparence : largeur normale, replier, et « Réduire les animations » ret
   assert.match(barre, /retenir\("sansAnimations", caseAnimations\.checked \? "1" : "0"\)/);
   assert.match(barre, /poignee\.dispatchEvent\(new MouseEvent\("dblclick"\)\)/);
   assert.match(css, /body\.sans-animations \*, body\.sans-animations \*::before, body\.sans-animations \*::after \{ animation: none !important; transition: none !important; \}/);
+});
+
+test('mémoire : ouverte depuis les Réglages, on y revient en la fermant ; plus de bouton dans le menu latéral', () => {
+  const cote = html.slice(html.indexOf('<aside class="cote">'), html.indexOf('</aside>'));
+  assert.doesNotMatch(cote, /id="open-memory"/);
+  assert.match(html, /<section class="reglages__section" id="reglages-section-memoire"[\s\S]*?id="open-memory"/);
+  const renderer = lire('renderer.js');
+  assert.match(renderer, /if \(nom === "memory"\) \$\("#reglages-modal"\)\.hidden = false;/);
 });
