@@ -556,6 +556,7 @@ let enTelechargement = "";
 let ouvertureCatalogue = 0;
 
 const MODELES_SELECTION = [
+    ["qwen3:1.7b", "Discussion en français sur un petit PC sans carte graphique", "modeleQwen", 4],
     ["qwen3:0.6b", "Texte simple sur un PC peu puissant", "modeleQwen", 4],
     ["qwen3.5:0.8b", "Texte et images simples avec peu de mémoire", "modeleQwen", 6],
     ["qwen3.5:2b", "Discussion légère et images simples", "modeleQwen", 8, 4],
@@ -615,6 +616,10 @@ function evaluerModele({ vram, ramCPU, avis, conseille, integre, teste }, { vram
         return conseille
             ? { label: "Conseillé", classe: "avis--conseille", detail: "Bon choix pour ton GPU", adapte: true }
             : { label: "Rapide", classe: "avis--ok", detail: "Tient dans ta VRAM", adapte: true };
+    }
+    // Sans carte graphique, le modèle conseillé pour ce PC tourne sur le processeur : c'est quand même le bon choix
+    if (conseille && !vramGo && ramCPU && ramGo >= ramCPU) {
+        return { label: "Conseillé", classe: "avis--conseille", detail: "Le meilleur choix pour ce PC sans carte graphique (il tourne sur le processeur)", adapte: true };
     }
     if (ramCPU && ramGo >= ramCPU) {
         return { label: "Lent (CPU)", classe: "avis--lent", detail: "Peut tourner sur le processeur", adapte: !vramGo };

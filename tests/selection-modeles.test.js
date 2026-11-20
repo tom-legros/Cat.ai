@@ -42,9 +42,12 @@ test('carte de 24 Go : des spécialistes plus forts que le modèle conseillé', 
 test('sans carte graphique : le petit modèle conseillé, aucun spécialiste trop lourd proposé', () => {
   const { principal, pour } = cadre({ vramGo: null, ramGo: 8, disqueGo: 50 });
   assert.equal(principal.modele, 'qwen3.5:2b');
+  assert.equal(principal.evaluation.label, 'Conseillé');
   for (const usage of ['code', 'images', 'reflexion']) {
-    assert.equal(pour(usage).choix, null, usage); // rien de rapide : pas de bouton pour un modèle qui ramerait
-    assert.ok(pour(usage).plusFort, usage); // mais la ligne « Avec une plus grosse carte » le dit
+    // Aucun autre modèle proposé : pas de bouton pour un modèle qui ramerait (le conseillé peut couvrir l'usage lui-même)
+    const r = pour(usage);
+    assert.ok(r.choix === null || r.deja, usage);
+    assert.ok(r.plusFort, usage); // mais la ligne « Avec une plus grosse carte » le dit
   }
 });
 
@@ -88,4 +91,14 @@ test('« Utiliser » un modèle trop gros pour la carte : le premier clic prévi
   assert.match(source, /const tropGros = !!\(m\.vram && catalogue\?\.vramGo && m\.vram > catalogue\.vramGo\);/);
   assert.match(source, /if \(tropGros && !prevenu\) \{\s*prevenu = true;\s*action\.textContent = 'Utiliser quand même';/);
   assert.match(source, /il peut faire planter le pilote de la carte graphique/);
+});
+
+test('petit portable sans carte (6 Go de RAM) : qwen3:1.7b est la carte « Pour ton PC », marqué Conseillé', () => {
+  const { principal, fiches } = cadre({ vramGo: 0, ramGo: 6, disqueGo: 100 });
+  assert.ok(principal, 'une carte « Pour ton PC » existe');
+  assert.equal(principal.modele, 'qwen3:1.7b');
+  assert.equal(principal.evaluation.label, 'Conseillé');
+  assert.equal(principal.evaluation.adapte, true);
+  // Les autres petits modèles restent « Lent (CPU) »
+  assert.equal(fiches.find((f) => f.modele === 'qwen3:0.6b').evaluation.label, 'Lent (CPU)');
 });
