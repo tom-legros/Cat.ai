@@ -10,9 +10,10 @@ const OLLAMA = 'http://127.0.0.1:11434';
 // - keep_alive : le modèle reste chargé 30 min (5 par défaut), sinon chaque reprise coûte ~20 s de chargement ;
 // - pour Qwen 3 qui répond sans phase de réflexion (think: false), les réglages conseillés par l'équipe Qwen :
 //   temperature 0.7, top_p 0.8, top_k 20 (ceux d'Ollama par défaut sont prévus pour le mode réflexion).
-// Sur une petite machine (peu de RAM), 5 min seulement : un modèle oublié ne garde pas la mémoire pendant une demi-heure.
+// 30 min : un seul modèle reste chargé (les autres sont déchargés avant chaque réponse, voir machine-legere.js),
+// et le garder évite de tout relire (et de recharger) si l'on prend son temps entre deux messages.
 const LEGERE = machineLegere();
-const GARDER_CHARGE = LEGERE ? '5m' : '30m';
+const GARDER_CHARGE = '30m';
 const optionsOllama = (modele) => ({ num_ctx: 8192, ...(String(modele).startsWith('qwen3') ? { temperature: 0.7, top_p: 0.8, top_k: 20 } : {}) });
 // Pas de phase de réflexion, pour tous les modèles : sans ce réglage, un modèle qui sait réfléchir (qwen3, deepseek-r1,
 // gpt-oss…) écrit d'abord des centaines de mots invisibles dans Cat Ai (plus de 4 fois plus de texte mesuré avec

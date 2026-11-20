@@ -7,7 +7,8 @@
 const os = require('os');
 
 const SEUIL_RAM = 7 * 1024 ** 3; // une machine de 8 Go annonce ~7,7 Gio : elle reste « normale »
-const machineLegere = (totale = os.totalmem()) => totale < SEUIL_RAM;
+// CATAI_PETITE_MACHINE=1 force ce mode (pour l'essayer sur un PC puissant)
+const machineLegere = (totale = os.totalmem(), env = process.env) => env.CATAI_PETITE_MACHINE === '1' || totale < SEUIL_RAM;
 
 // Les paragraphes des consignes qui ne servent qu'aux outils du web ou aux images, retirés sur une petite machine.
 // Les autres (identité, ton, code, dossier, mémoire, mode prof) restent tels quels : le cache d'Ollama les réutilise.
@@ -19,6 +20,9 @@ function allegerConsignes(texte, { documents = false } = {}) {
     if (typeof texte !== 'string') return texte;
     return texte.split('\n').flatMap((ligne) => {
         if (RETIRES.some((r) => r.test(ligne))) return [];
+        // La dernière ligne change après le premier échange (saluer ou non) : tout ce qui la suit devrait être relu.
+        // Une seule ligne, la même à chaque tour, garde les consignes identiques et réutilisables par le cache.
+        if (/^(Au premier échange, tu peux saluer|Cette discussion est déjà entamée)/.test(ligne)) return [SALUT_STABLE];
         if (/^Tu ne sais écrire que du texte/.test(ligne)) return ["Tu ne sais écrire que du texte : tu ne peux ni créer ni modifier d'image, de vidéo ou de son."];
         if (/^Quand un document est joint/.test(ligne)) return documents ? [ligne] : [];
         // Chaque mot coûte ~0,1 s sur le processeur : des réponses courtes par défaut
@@ -31,6 +35,7 @@ function allegerConsignes(texte, { documents = false } = {}) {
 }
 
 // Réponses courtes par défaut sur une petite machine
+const SALUT_STABLE = "Salue seulement si la personne te salue, sans resaluer ensuite.";
 const BREF = "Ce PC est lent : réponds en quelques phrases, sans introduction ni récapitulatif, sauf si on te demande plus de détails.";
 
 // Les messages envoyés à Ollama, avec les consignes système allégées

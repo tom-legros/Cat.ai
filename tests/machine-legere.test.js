@@ -77,7 +77,7 @@ test('dechargerAutres : décharge les autres modèles, jamais celui qu on va uti
 
 test('envoi et préchauffage appliquent les mêmes allègements', () => {
   const envoi = lire('principal/envoi.js');
-  assert.match(envoi, /const GARDER_CHARGE = LEGERE \? '5m' : '30m';/);
+  assert.match(envoi, /const GARDER_CHARGE = '30m';/); // un seul modèle chargé : on peut le garder
   assert.match(envoi, /if \(legere\) await dechargerAutres\(OLLAMA, modele, \{ signal \}\);/);
   assert.match(envoi, /messages: rappelsPourOllama\(legere \? allegerMessages\(messages, options\) : messages\), tools: outilsPour\(legere \? \{ \.\.\.options, legere \} : options\)/);
   const main = lire('main.js');
@@ -141,4 +141,15 @@ test('cacheReutilisable : qwen3.5 (ssm/recurrent) et gemma4 (sliding_window) non
   assert.equal(await cacheReutilisable('http://x', 'autre', { requete: async () => { throw new Error('éteint'); } }), true);
   assert.equal(cacheConnu('autre'), undefined);
   assert.match(lire('main.js'), /if \(LEGERE && cacheConnu\(modele\) === false\) return false;/);
+});
+
+test('les consignes allégées sont identiques au premier message et aux suivants (le cache reste valable)', () => {
+  const contexte = (entamee) => {
+    const c = vm.createContext({ prenom: 'Alex', perso: {}, project: '', knownProjects: [], memory: [], prof: false, modelSel: { value: 'qwen3:1.7b' }, fournisseurActif: () => ({ nom: 'Ollama' }), fournisseurLocal: () => true });
+    vm.runInContext(lire('interface/personnalite.js'), c);
+    return vm.runInContext(`systemPrompt({ discussionEntamee: ${entamee} })`, c);
+  };
+  assert.notEqual(contexte(false), contexte(true)); // les consignes complètes changent
+  assert.equal(allegerConsignes(contexte(false)), allegerConsignes(contexte(true)));
+  assert.match(allegerConsignes(contexte(true)), /Salue seulement si la personne te salue/);
 });
