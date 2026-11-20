@@ -10,6 +10,8 @@ const COMMANDES = [
     { nom: "joindre", alias: ["fichier"], texte: "Ajouter des fichiers ou des photos", icone: "trombone" },
     { nom: "dossier", alias: ["projet"], texte: "Ouvrir un dossier", icone: "dossier" },
     { nom: "renommer", alias: ["titre"], texte: "Renommer la discussion", icone: "stylo", argument: "titre" },
+    { nom: "garder", alias: ["keep"], texte: "Garder les changements de l'agent", icone: "coche" },
+    { nom: "jeter", alias: ["annuler"], texte: "Jeter les changements de l'agent", icone: "corbeille" },
     { nom: "exporter", alias: ["export"], texte: "Exporter la discussion en Markdown", icone: "fleche" },
     { nom: "recherche", alias: ["chercher"], texte: "Chercher dans l'historique", icone: "loupe", argument: "mots" },
     { nom: "memoire", alias: ["mémoire"], texte: "Ce que le chat retient de toi", icone: "coeur" },

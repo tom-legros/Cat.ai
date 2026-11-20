@@ -89,6 +89,14 @@
     </div>
 
     <form id="composer" class="saisie">
+      <!-- Mode Auto : ce que l'agent a changé sur sa copie, à garder ou à jeter -->
+      <div id="agent-barre" class="agent-barre" role="status" hidden>
+        <span class="agent-barre__icone" data-icone="route"></span>
+        <span id="agent-resume" class="agent-barre__texte"></span>
+        <button id="agent-voir" class="bouton-calme agent-barre__bouton" type="button">Voir</button>
+        <button id="agent-jeter" class="bouton-calme agent-barre__bouton" type="button">Jeter</button>
+        <button id="agent-garder" class="bouton agent-barre__bouton agent-barre__bouton--garder" type="button">Garder</button>
+      </div>
       <div class="saisie__boite">
         <ul id="pieces" class="pieces" hidden></ul>
         <div id="menu-commandes" class="menu-modeles menu-commandes" role="listbox" aria-label="Commandes" hidden></div>
@@ -123,6 +131,13 @@
                 <span data-icone="eclair"></span><span class="pastille__etiquette">Rapide</span><span data-icone="chevron" data-classe="icone--chevron"></span>
               </button>
               <div id="menu-reflexion" class="menu-modeles menu-modeles--gauche" role="menu" aria-label="Niveau de réflexion" hidden></div>
+            </span>
+            <!-- Avec un dossier ouvert : demander avant chaque modification, ou Auto (sur une copie du projet) -->
+            <span class="raccourci">
+              <button id="mode-agent" class="pastille pastille--mode" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Modifications des fichiers : Demander ou Auto" title="Modifications des fichiers" hidden>
+                <span data-icone="stylo"></span><span class="pastille__etiquette">Demander</span><span data-icone="chevron" data-classe="icone--chevron"></span>
+              </button>
+              <div id="menu-agent" class="menu-modeles menu-modeles--gauche" role="menu" aria-label="Modifications des fichiers" hidden></div>
             </span>
           </div>
           <!-- À droite : qui répond, dans un seul contrôle fournisseur + modèle ; le petit rond = quota du jour -->
@@ -345,6 +360,18 @@
       <div class="rangee rangee--fin">
         <button id="diff-refuser" class="lien">Refuser</button>
         <button id="diff-accepter" class="bouton">Autoriser</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mode Auto : tous les changements de la copie de l'agent, fichier par fichier -->
+  <div id="agent-diff-modal" class="fenetre" role="dialog" aria-modal="true" aria-labelledby="agent-diff-titre" hidden>
+    <div class="fenetre__boite fenetre__boite--large">
+      <h2 class="fenetre__titre" id="agent-diff-titre">Changements de l'agent</h2>
+      <p class="discret" id="agent-diff-stats"></p>
+      <div class="diff" id="agent-diff-contenu"></div>
+      <div class="rangee rangee--fin">
+        <button id="agent-diff-fermer" class="bouton">Fermer</button>
       </div>
     </div>
   </div>

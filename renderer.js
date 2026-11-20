@@ -417,6 +417,7 @@ const enBas = () => messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.
 
 function renderConv() {
     changerBrouillon();
+    void renderBarreCopie();
     // Une autre discussion : la colonne arrive en fondu, d'un bloc (les nouveaux messages gardent leur arrivée)
     if (current !== convAffichee) {
         convAffichee = current;
@@ -926,6 +927,18 @@ const preparations = new Map();  // discussion → envoi en préparation (mémoi
 const fluxParId = (id) => { for (const flux of fluxParConv.values()) if (flux.id === id) return flux; return null; };
 const conversationOccupee = (conv) => fluxParConv.has(conv) || preparations.has(conv);
 const fluxLocalEnCours = () => [...fluxParConv.values()].some((flux) => flux.local);
+
+// Petite machine (peu de RAM, modèle sur le processeur) : l'interface laisse le processeur au modèle.
+// Le texte qui arrive est remis en forme 4 fois par seconde au lieu de 60, et les chats ralentissent,
+// puis s'immobilisent pendant qu'un modèle local écrit (chat.js).
+const RENDU_LEGER = 250;
+let machineLegere = false;
+window.api.machineLegere?.().then((legere) => {
+    machineLegere = legere === true;
+    if (!machineLegere) return;
+    ChatNoir.intervalle = 100;
+    ChatNoir.enPause = fluxLocalEnCours;
+}).catch(() => {});
 // La réponse vivante d'une discussion (préparation ou streaming) : sa bulle reste attachée à elle si on navigue
 const reponseVivante = (conv = current) => fluxParConv.get(conv) ?? preparations.get(conv) ?? null;
 // Erreur arrivée dans une discussion qu'on ne regardait pas : sa bulle attend qu'on y revienne
@@ -1094,10 +1107,14 @@ async function lancerReponse(conv, text, contexte = conv, remplace = null, confi
         majBoutonEnvoi();
         majVeille();
 
+        // Mode Auto : retenu sur la réponse, pour ses étiquettes (« Modifie a.js (copie) »)
+        flux.auto = !!(modeAuto && project && !choix.prof);
         window.api.chat({
             id,
             ...choix,
             documents: contexte.messages.filter((m) => m.role === "user").flatMap((m) => m.documents || []),
+            // Mode Auto : main.js crée ou reprend la copie de cette discussion (seulement avec un dossier, hors mode prof)
+            agent: flux.auto ? { auto: true, copie: conv.agentCopie || null } : null,
             messages: [{ role: "system", content: consignes }, { role: "system", name: "contexte_projet", content: contexteProjet }, ...messagesPourLeModele(contexte, choix.prof)]
         });
     } catch (err) {
@@ -1152,7 +1169,7 @@ function afficherFlux(flux, termine = false, force = false) {
     // setTimeout plutôt que requestAnimationFrame : celui-ci peut être suspendu si la fenêtre
     // n'est pas au premier plan (cas des tests et de certaines situations), ce qui retarderait
     // l'affichage sans rien gagner. Le rendu final reste synchrone.
-    flux.idRendu = setTimeout(rendre, 16);
+    flux.idRendu = setTimeout(rendre, machineLegere ? RENDU_LEGER : 16);
 }
 
 // Ollama n'affiche rien pendant qu'il charge le modèle ou qu'il écrit le contenu d'un fichier (l'appel d'outil
@@ -1241,11 +1258,16 @@ const ACTIONS = {
     pause: (a) => `Pause de ${a.secondes} s : limite par minute du fournisseur, je réessaie tout seul`,
     limite: (a) => `Arrêt après ${a.etapes} étapes d'outils pour ce message : dis-moi « continue » pour que je reprenne`
 };
+// En mode Auto, l'agent écrit tout de suite dans sa copie : il ne « veut » plus, il fait
+const ACTIONS_AUTO = {
+    ecrire_fichier: (a) => `Écrit ${a.chemin} (copie)`,
+    remplacer_texte: (a) => `Modifie ${a.chemin} (copie)`,
+};
 
 window.api.onTool(({ id, name, args }) => {
     const flux = fluxParId(id);
     if (!flux) return;
-    const texte = (ACTIONS[name] || (() => name))(args || {});
+    const texte = ((flux.auto && ACTIONS_AUTO[name]) || ACTIONS[name] || (() => name))(args || {});
     // Une ligne spéciale, affichée comme une petite étiquette
     flux.text += etiquetteAction(texte);
     afficherFlux(flux);
@@ -1601,6 +1623,10 @@ function executerCommande(c, argument) {
             save();
             renderList();
             break;
+        case "garder":
+        case "jeter":
+            agirSurCopie(c.nom);
+            break;
         case "exporter":
             if (!current?.messages?.length) { noteSaisie("Pas encore de discussion à exporter"); break; }
             exporterDiscussion(current);
@@ -1723,6 +1749,7 @@ function renderProject() {
     $("#open-project").title = project || "Ouvrir un dossier pour que le chat lise son contenu";
     $("#open-project").classList.toggle("is-on", !!project);
     $("#close-project").hidden = !project;
+    renderModeAgent();
 }
 
 async function choisirProjet() {
@@ -1754,6 +1781,7 @@ function renderProf() {
     ChatNoir.lunettes = prof;
     ChatNoir.rafraichirCouleurs();
     majSaisie();
+    renderModeAgent();
 }
 
 // La saisie n'est bloquée que si c'est la discussion affichée qui prépare ou génère :
@@ -1787,6 +1815,20 @@ function renderReflexion() {
     boutonReflexion.title = actif
         ? "Réflexion : le modèle raisonne avant de répondre, plus lent mais plus solide"
         : "Rapide : réponse directe. Clique pour choisir le niveau de réflexion";
+}
+
+// Modifications des fichiers avec un dossier ouvert : Demander ou Auto (voir « Mode Auto » plus bas).
+// var : renderProject et renderProf l'utilisent dès le démarrage.
+var modeAuto = (() => { try { return localStorage.getItem("modeAgent") === "auto"; } catch { return false; } })();
+function renderModeAgent() {
+    const bouton = $("#mode-agent");
+    bouton.hidden = !project || prof;
+    bouton.classList.toggle("is-on", !!modeAuto);
+    bouton.querySelector(".pastille__etiquette").textContent = modeAuto ? "Auto" : "Demander";
+    bouton.firstElementChild.innerHTML = icone(modeAuto ? "route" : "stylo");
+    bouton.title = modeAuto
+        ? "Auto : l'agent modifie une copie du projet sans demander ; à la fin, tu gardes ou tu jettes"
+        : "Demander : tu valides chaque modification de fichier";
 }
 
 // Le menu du bouton choisit le niveau ; le choix est retenu pour les prochaines fois
@@ -2768,7 +2810,134 @@ const basculer = (id, ouvrir) => (e) => {
 $("#modele-raccourci").onclick = basculer("menu-modeles", ouvrirMenuModeles);
 $("#joindre").onclick = basculer("menu-joindre", ouvrirMenuJoindre);
 boutonReflexion.onclick = basculer("menu-reflexion", ouvrirMenuReflexion);
-["menu-modeles", "menu-joindre", "menu-reflexion"].forEach((id) => $(`#${id}`).addEventListener("keydown", naviguerMenu));
+["menu-modeles", "menu-joindre", "menu-reflexion", "menu-agent"].forEach((id) => $(`#${id}`).addEventListener("keydown", naviguerMenu));
+
+/* ---------- Mode Auto : l'agent écrit sur une copie git du projet (main.js, principal/copie-agent.js) ---------- */
+// Demander (par défaut) : une fenêtre avant / après pour chaque fichier. Auto : l'agent écrit sans demander dans sa
+// copie ; la barre au-dessus de la saisie montre ce qui a changé, avec Voir, Garder et Jeter.
+$("#mode-agent").onclick = basculer("menu-agent", ouvrirMenuAgent);
+renderModeAgent();
+
+function choisirModeAgent(auto) {
+    modeAuto = auto;
+    try { localStorage.setItem("modeAgent", auto ? "auto" : "demander"); } catch {}
+    renderModeAgent();
+}
+
+function ouvrirMenuAgent() {
+    const menu = $("#menu-agent");
+    menu.replaceChildren();
+    choixSimple(menu, "Demander avant de modifier", "stylo", () => choisirModeAgent(false), { actif: !modeAuto, aide: "Une fenêtre avant / après pour chaque fichier" });
+    choixSimple(menu, "Auto, sur une copie", "route", () => choisirModeAgent(true), { actif: modeAuto, aide: "L'agent écrit sans demander dans une copie git du projet ; à la fin, tu gardes ou tu jettes" });
+    menu.hidden = false;
+}
+
+// var : renderConv peut appeler renderBarreCopie au démarrage, avant cette ligne
+var etatsCopie = new Map(); // discussion → { fichiers, ajouts, retraits } (null : inconnu ou en erreur)
+const resumeCopie = (e) => `${e.fichiers} fichier${e.fichiers > 1 ? "s" : ""} modifié${e.fichiers > 1 ? "s" : ""} · +${e.ajouts} −${e.retraits}`;
+
+window.api.onAgent(({ id, erreur, nom, base, fichiers, ajouts, retraits }) => {
+    const flux = fluxParId(id);
+    if (!flux) return;
+    const conv = flux.conv;
+    // Le dossier ne peut pas avoir de copie (pas de git…) : la réponse continue en mode Demander
+    if (!nom) { if (erreur && conv === current) alerteCopie(erreur); return; }
+    conv.agentCopie = { nom, base };
+    etatsCopie.set(conv, erreur ? null : { fichiers: fichiers.length, ajouts, retraits });
+    save();
+    if (conv === current) renderBarreCopie();
+});
+
+var minuterieAlerteCopie = null;
+async function renderBarreCopie() {
+    if (!etatsCopie) return;
+    const barre = $("#agent-barre");
+    const conv = current;
+    if (minuterieAlerteCopie) return; // une alerte est affichée pour quelques secondes
+    barre.classList.remove("is-alerte");
+    if (!conv?.agentCopie) { barre.hidden = true; return; }
+    let etat = etatsCopie.get(conv);
+    if (etat === undefined) {
+        const r = await window.api.agentChangements(conv.agentCopie);
+        if (conv !== current) return;
+        if (r.perdue) { delete conv.agentCopie; save(); barre.hidden = true; return; }
+        etat = r.ok ? { fichiers: r.fichiers.length, ajouts: r.ajouts, retraits: r.retraits } : null;
+        etatsCopie.set(conv, etat);
+    }
+    barre.hidden = !etat?.fichiers;
+    if (etat?.fichiers) $("#agent-resume").textContent = resumeCopie(etat);
+}
+
+// Un message court dans la barre, puis elle revient à son état
+function alerteCopie(texte) {
+    const barre = $("#agent-barre");
+    clearTimeout(minuterieAlerteCopie);
+    $("#agent-resume").textContent = texte;
+    barre.classList.add("is-alerte");
+    barre.hidden = false;
+    minuterieAlerteCopie = setTimeout(() => { minuterieAlerteCopie = null; renderBarreCopie(); }, 7000);
+}
+
+async function agirSurCopie(action) {
+    const conv = current;
+    if (!conv?.agentCopie) { noteSaisie("L'agent n'a pas de changements en attente"); return; }
+    const r = await (action === "garder" ? window.api.agentGarder(conv.agentCopie) : window.api.agentJeter(conv.agentCopie));
+    if (r.annule) return;
+    if (r.ok || r.perdue) {
+        delete conv.agentCopie;
+        etatsCopie.delete(conv);
+        save();
+        clearTimeout(minuterieAlerteCopie);
+        minuterieAlerteCopie = null;
+        if (conv === current) renderBarreCopie();
+        noteSaisie(action === "garder" ? "Changements gardés dans ton projet" : "Changements jetés");
+        return;
+    }
+    alerteCopie(r.erreur || "Impossible pour le moment.");
+}
+
+// Le patch de la copie, fichier par fichier, avec les mêmes couleurs que la fenêtre avant / après
+function lignesPatch(patch) {
+    const lignes = [];
+    const bloc = (classe, texte) => { const el = document.createElement("div"); el.className = classe; el.textContent = texte; lignes.push(el); };
+    for (const ligne of String(patch || "").split("\n")) {
+        if (ligne.startsWith("diff --git ")) { bloc("diff__saut diff__fichier", ligne.replace(/^diff --git a\/(.+?) b\/.*$/, "$1")); continue; }
+        if (ligne.startsWith("Binary files")) { bloc("diff__saut", "Fichier binaire modifié"); continue; }
+        if (ligne.startsWith("@@") || ligne.startsWith("…")) { bloc("diff__saut", ligne); continue; }
+        if (!ligne || /^(index |--- |\+\+\+ |new file mode|deleted file mode|similarity|rename |old mode|new mode|\\ )/.test(ligne)) continue;
+        const el = document.createElement("div");
+        el.className = "diff__ligne" + (ligne[0] === "+" ? " is-ajout" : ligne[0] === "-" ? " is-retrait" : "");
+        for (const [classe, texte] of [["diff__num", ""], ["diff__num", ""], ["diff__signe", ligne[0] === " " ? "" : ligne[0]], ["diff__texte", ligne.slice(1)]]) {
+            const s = document.createElement("span");
+            s.className = classe;
+            s.textContent = texte;
+            el.append(s);
+        }
+        lignes.push(el);
+    }
+    return lignes;
+}
+
+async function voirChangementsCopie() {
+    const conv = current;
+    if (!conv?.agentCopie) return;
+    const r = await window.api.agentChangements({ ...conv.agentCopie, patch: true });
+    if (!r.ok) { alerteCopie(r.erreur || "Cette copie n'existe plus."); return; }
+    $("#agent-diff-stats").textContent = resumeCopie({ fichiers: r.fichiers.length, ajouts: r.ajouts, retraits: r.retraits });
+    $("#agent-diff-contenu").replaceChildren(...lignesPatch(r.patch));
+    $("#agent-diff-modal").hidden = false;
+    $("#agent-diff-fermer").focus();
+}
+const fermerChangementsCopie = () => { $("#agent-diff-modal").hidden = true; $("#agent-voir").focus(); };
+$("#agent-voir").onclick = voirChangementsCopie;
+$("#agent-garder").onclick = () => agirSurCopie("garder");
+$("#agent-jeter").onclick = () => agirSurCopie("jeter");
+$("#agent-diff-fermer").onclick = fermerChangementsCopie;
+$("#agent-diff-modal").addEventListener("keydown", (e) => {
+    if (e.key === "Escape") { e.preventDefault(); fermerChangementsCopie(); return; }
+    bouclerFocus($("#agent-diff-modal"), e);
+});
+renderBarreCopie();
 document.addEventListener("click", (e) => { if (!e.target.closest(".raccourci")) fermerMenus(); });
 
 // Ctrl+U (Cmd+U sur Mac) : ajouter des fichiers ou des photos, comme dans le menu +

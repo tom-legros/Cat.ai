@@ -20,6 +20,11 @@ contextBridge.exposeInMainWorld('api', {
   onAction: (cb) => ipcRenderer.on('chat-action', (_e, d) => cb(d)),
   onDone: (cb) => ipcRenderer.on('chat-done', (_e, d) => cb(d)),
   onError: (cb) => ipcRenderer.on('chat-error', (_e, d) => cb(d)),
+  // Mode Auto : la copie de travail de l'agent (créée, ou ses changements à la fin d'une réponse)
+  onAgent: (cb) => ipcRenderer.on('chat-agent', (_e, d) => cb(d)),
+  agentChangements: (copie) => ipcRenderer.invoke('agent-changements', copie),
+  agentGarder: (copie) => ipcRenderer.invoke('agent-garder', copie),
+  agentJeter: (copie) => ipcRenderer.invoke('agent-jeter', copie),
   summarize: (payload) => ipcRenderer.invoke('summarize', payload),
   // Titre court proposé par le modèle après la première réponse (Ollama seulement)
   titreDiscussion: (payload) => ipcRenderer.invoke('titre-discussion', payload),
@@ -41,6 +46,7 @@ contextBridge.exposeInMainWorld('api', {
   getProject: () => ipcRenderer.invoke('get-project'),
   // Bouton Terminal : ouvre catai (le CLI) dans une console
   ouvrirTerminal: () => ipcRenderer.invoke('ouvrir-terminal'),
+  machineLegere: () => ipcRenderer.invoke('machine-legere'),
   onProjectChanged: (cb) => ipcRenderer.on('project-changed', (_e, p) => cb(p)),
   // Prénom de l'utilisateur, vide tant qu'il ne l'a pas donné
   getPrenom: () => ipcRenderer.invoke('get-prenom'),

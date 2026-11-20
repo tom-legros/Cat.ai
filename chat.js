@@ -253,7 +253,15 @@ window.addEventListener("pointermove", (e) => {
     });
 }, { passive: true });
 
+// Petite machine : 10 images par seconde au lieu de 60, et les chats s'immobilisent pendant qu'un modèle local
+// écrit (renderer.js règle ChatNoir.intervalle et ChatNoir.enPause) : chaque calcul pris à Ollama ralentit la réponse
+ChatNoir.intervalle = 0;
+ChatNoir.enPause = null;
+let derniereImage = -Infinity;
 (function boucle(t) {
-    ChatNoir.tous.forEach((chat) => chat.animer(t));
+    if (t - derniereImage >= ChatNoir.intervalle && !ChatNoir.enPause?.()) {
+        derniereImage = t;
+        ChatNoir.tous.forEach((chat) => chat.animer(t));
+    }
     requestAnimationFrame(boucle);
 })(performance.now());

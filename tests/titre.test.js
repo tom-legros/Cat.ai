@@ -30,9 +30,9 @@ test('consigneTitre : courte, en français, avec le premier message raccourci', 
   assert.ok(consigne.length < 900, String(consigne.length));
 });
 
-test('main : seulement Ollama, abandon si Ollama est occupé, réponse courte sans réflexion', () => {
+test('main : seulement Ollama, jamais sur une petite machine, abandon si Ollama est occupé, réponse courte sans réflexion', () => {
   const main = lire('main.js');
-  assert.match(main, /ipcMain\.handle\('titre-discussion', async \(_e, \{ model, premierMessage \} = \{\}\) => \{\s*if \(!model \|\| !premierMessage\) return null;\s*if \(fileOllama\.occupee\) return \{ occupe: true \};/);
+  assert.match(main, /ipcMain\.handle\('titre-discussion', async \(_e, \{ model, premierMessage \} = \{\}\) => \{(?:\s*\/\/.*)*\s*if \(!model \|\| !premierMessage \|\| LEGERE\) return null;\s*if \(fileOllama\.occupee\) return \{ occupe: true \};/);
   assert.match(main, /think: false, keep_alive: GARDER_CHARGE, options: \{ \.\.\.optionsOllama\(model\), num_predict: 24/);
   assert.match(lire('preload.js'), /titreDiscussion: \(payload\) => ipcRenderer\.invoke\('titre-discussion', payload\)/);
 });

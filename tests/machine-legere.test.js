@@ -85,3 +85,38 @@ test('envoi et préchauffage appliquent les mêmes allègements', () => {
   assert.match(main, /if \(LEGERE\) messages = allegerMessages\(messages\);/);
   assert.match(main, /if \(LEGERE\) await dechargerAutres\(OLLAMA, modele, \{ signal \}\);/);
 });
+
+test('petite machine : l envoi attend le préchauffage au lieu de l arrêter, un préchauffage n en remplace pas un autre', () => {
+  const main = lire('main.js');
+  assert.match(main, /if \(!LEGERE\) prechauffage\?\.arret\.abort\(\);\s*libererOllama = await fileOllama\.prendre\(\{ signal: controller\.signal,/);
+  assert.match(main, /if \(LEGERE && prechauffage\) return false;\s*prechauffage\?\.arret\.abort\(\);/);
+});
+
+test('petite machine : réponses courtes demandées, l interface laisse le processeur au modèle', () => {
+  const { BREF } = require('../principal/machine-legere');
+  const leger = allegerConsignes(vraiesConsignes());
+  assert.ok(leger.includes(BREF));
+  assert.ok(leger.indexOf(BREF) > leger.indexOf('Tu adaptes ta réponse'));
+  assert.match(lire('main.js'), /ipcMain\.handle\('machine-legere', \(\) => LEGERE\);/);
+  assert.match(lire('preload.js'), /machineLegere: \(\) => ipcRenderer\.invoke\('machine-legere'\)/);
+  const r = lire('renderer.js');
+  assert.match(r, /flux\.idRendu = setTimeout\(rendre, machineLegere \? RENDU_LEGER : 16\);/);
+  assert.match(r, /ChatNoir\.intervalle = 100;\s*ChatNoir\.enPause = fluxLocalEnCours;/);
+  assert.match(lire('interface/barre-laterale.js'), /if \(legere !== true \|\| lireRetenu\("sansAnimations"\) !== null\) return;/);
+});
+
+test('chat.js : la boucle saute les images selon la cadence et s arrête pendant la pause', () => {
+  const source = lire('chat.js');
+  const debut = source.indexOf('ChatNoir.intervalle = 0;');
+  const boucle = source.slice(debut, source.indexOf('})(performance.now());', debut) + 22);
+  const images = [];
+  let suivante;
+  const ChatNoir = { tous: new Set([{ animer: (t) => images.push(t) }]) };
+  vm.runInNewContext(boucle.replace('})(performance.now());', '})(0);'), { ChatNoir, performance: { now: () => 0 }, requestAnimationFrame: (f) => (suivante = f) });
+  ChatNoir.intervalle = 100;
+  for (const t of [16, 50, 101, 150, 202]) suivante(t);
+  assert.deepEqual(images, [0, 101, 202]);
+  ChatNoir.enPause = () => true;
+  suivante(400);
+  assert.deepEqual(images, [0, 101, 202]);
+});

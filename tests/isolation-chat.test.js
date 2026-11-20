@@ -74,7 +74,7 @@ test('annulation pendant une fenêtre native : son accord tardif est refusé', a
 test('gestionnaire chat (IPC simulé) : Gemini démarre pendant Ollama, second Ollama attend et annulation ciblée libère la place', async () => {
   const { c, handlers } = cadre(); const evenements = []; const departs = []; const fins = new Map();
   Object.assign(c, {
-    fileOllama: require('../principal/file-ollama').creerFileOllama(), prechauffage: null,
+    fileOllama: require('../principal/file-ollama').creerFileOllama(), prechauffage: null, LEGERE: false,
     idValide: () => true, urlsDans: () => [], verifierGratuit() {}, envoyeurPour: async () => () => {},
     infosFournisseur: id => ({ type: id }), limitesTaille: () => null, LIMITES_OLLAMA: { resultatOutil: 8000 }, MAX_STEPS: 10,
     discuter: ({ modele, ctx }) => new Promise((resolve, reject) => {

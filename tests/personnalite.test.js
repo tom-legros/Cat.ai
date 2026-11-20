@@ -105,10 +105,10 @@ test('trois tours de Discussion conservent l’historique envoyé à Ollama et f
     prenom: 'Alex', perso: {}, project: '', knownProjects: [], memory: [], prof: false,
     modelSel: { value: 'qwen3.5:9b' }, fournisseurActif: () => ({ nom: 'Ollama', type: 'ollama' }),
     fournisseurLocal: () => true, reglages: { actif: 'ollama' },
-    reflexion: false, reflexionPossible: false, // mode de génération (Réflexion) : hors périmètre de ce test
+    reflexion: false, reflexionPossible: false, modeAuto: false, project: null, // mode de génération (Réflexion) : hors périmètre de ce test
     fluxParConv: new Map(), preparations: new Map(), current: null, performance, crypto: require('node:crypto').webcrypto,
     fluxParId(id) { for (const flux of contexte.fluxParConv.values()) if (flux.id === id) return flux; return null; },
-    setTimeout, clearTimeout,
+    setTimeout, clearTimeout, machineLegere: false, RENDU_LEGER: 250,
     bulle: { closest: () => ({}), classList: { add() {}, remove() {} } },
     chat: { sautiller() {}, expression() {} }, renderMarkdown: (s) => s,
     renderList() {}, compterMessage() {}, resumerSiBesoin() {}, projectInfo: () => '',

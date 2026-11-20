@@ -117,7 +117,7 @@ test('sélecteur unique fournisseur + modèle : recherche, groupes et choix dire
   assert.match(renderer, /function naviguerMenu/);
   assert.match(renderer, /ArrowDown/);
   assert.match(renderer, /Escape/);
-  assert.match(renderer, /\["menu-modeles", "menu-joindre", "menu-reflexion"\]\.forEach/);
+  assert.match(renderer, /\["menu-modeles", "menu-joindre", "menu-reflexion", "menu-agent"\]\.forEach/);
   assert.match(renderer, /setAttribute\("role", "menuitem"\)/);
   // Un choix referme le menu même quand il est placé dans un groupe
   assert.match(renderer, /b\.onclick = \(\) => \{ fermerMenus\(\); action\(\); \}/);

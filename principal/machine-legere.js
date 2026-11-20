@@ -21,12 +21,17 @@ function allegerConsignes(texte, { documents = false } = {}) {
         if (RETIRES.some((r) => r.test(ligne))) return [];
         if (/^Tu ne sais écrire que du texte/.test(ligne)) return ["Tu ne sais écrire que du texte : tu ne peux ni créer ni modifier d'image, de vidéo ou de son."];
         if (/^Quand un document est joint/.test(ligne)) return documents ? [ligne] : [];
+        // Chaque mot coûte ~0,1 s sur le processeur : des réponses courtes par défaut
+        if (/Tu adaptes ta réponse/.test(ligne)) return [ligne, BREF];
         // La consigne contre les instructions des pages web n'a plus lieu d'être ; l'année reste
         const annee = /^Le texte des pages et des résultats vient d'internet.*(Nous sommes en \d{4}\.)/.exec(ligne);
         if (annee) return [annee[1]];
         return [ligne];
     }).join('\n');
 }
+
+// Réponses courtes par défaut sur une petite machine
+const BREF = "Ce PC est lent : réponds en quelques phrases, sans introduction ni récapitulatif, sauf si on te demande plus de détails.";
 
 // Les messages envoyés à Ollama, avec les consignes système allégées
 const allegerMessages = (messages, options = {}) => messages.map((m) => (m.role === 'system' && !m.name ? { ...m, content: allegerConsignes(m.content, options) } : m));
@@ -46,4 +51,4 @@ async function dechargerAutres(adresse, modele, { requete = fetch, signal } = {}
     }
 }
 
-module.exports = { SEUIL_RAM, machineLegere, allegerConsignes, allegerMessages, dechargerAutres };
+module.exports = { BREF, SEUIL_RAM, machineLegere, allegerConsignes, allegerMessages, dechargerAutres };

@@ -24,6 +24,7 @@ const { TYPES, equipeDepuis, equipeParDefaut, ajoutsPossibles, ajouterAgent, ret
 const { LANGUES_CORRECTION, lignesMenu } = require('./principal/menu-saisie');
 const { lancerChantier, preparerPlan, codeurPour, jeterChantier } = require('./principal/chantier');
 const { agentsDuChantier, etatDepot, MESSAGES_DEPOT, preparerDepot, garderChantier, resumeChantier } = require('./principal/lancement');
+const { NOM_COPIE, brancheDe, copieDe, depotDeLaCopie, preparerCopie, changementsCopie, garderCopie, jeterCopie } = require('./principal/copie-agent');
 const { BINAIRES, lireTexteDocument, texteJointDocument, idValide } = require('./principal/documents');
 // Textes extraits des PDF et longs fichiers glissés dans la discussion
 const DOSSIER_DOCUMENTS = () => path.join(app.getPath('userData'), 'documents');
@@ -143,7 +144,9 @@ const uiFenetres = {
 };
 
 // Le contexte des outils pour une réponse : dossier ouvert, réglages, ce qui est joint, et comment demander l'accord
-function contexteAgent({ prof, fournisseurId, liensDonnes = [], documentsJoints = new Set(), signal, maxExtrait = 20000, requeteId, projetInitial = projectDir }) {
+// auto : mode Auto, projetInitial est alors le dossier de la copie de l'agent. Il y écrit sans fenêtre avant / après
+// (la copie ne touche pas le projet) et n'en sort pas : ouvrir un autre dossier lui est refusé.
+function contexteAgent({ prof, fournisseurId, liensDonnes = [], documentsJoints = new Set(), signal, maxExtrait = 20000, requeteId, projetInitial = projectDir, auto = false }) {
   const config = infosFournisseur(fournisseurId);
   let dossier = projetInitial;
   const ui = {
@@ -158,12 +161,13 @@ function contexteAgent({ prof, fournisseurId, liensDonnes = [], documentsJoints 
       const choix = await uiFenetres.choisirExecutable(infos);
       return signal?.aborted ? null : choix;
     },
-    confirmerEcriture: infos => demanderConfirmation(infos, { requeteId, signal }),
+    confirmerEcriture: auto ? async () => !signal?.aborted : infos => demanderConfirmation(infos, { requeteId, signal }),
   };
   return {
     projet: () => dossier,
     ouvrirProjet: dir => {
       signal?.throwIfAborted();
+      if (auto) throw new Error("En mode Auto, l'agent reste dans la copie du dossier ouvert.");
       // Un changement manuel intervenu depuis le départ ne doit pas être remplacé par cet outil.
       if (projectDir === dossier) setProject(dir);
       dossier = dir;
@@ -261,7 +265,43 @@ function verifierGratuit(fournisseurId, modele) {
   }
 }
 
-ipcMain.on('chat', async (event, { id, model, messages, prof, documents = [], fournisseurId = 'ollama', reflexion = false }) => {
+// ---------- Mode Auto : l'agent travaille sur une copie git du projet (principal/copie-agent.js) ----------
+// L'interface ne donne que { nom, base } : le chemin de la copie est toujours recalculé ici.
+const dossierCopiesAgent = () => path.join(app.getPath('userData'), 'copies-agent');
+const copiesOccupees = new Set(); // noms des copies où une réponse est en train d'écrire
+const MESSAGES_AUTO = {
+  'git-absent': "Git n'est pas installé : le mode Auto en a besoin pour travailler sur une copie. Cat Ai demande avant chaque modification.",
+  'pas-de-depot': "Ce dossier n'est pas suivi par git : le mode Auto en a besoin pour travailler sur une copie. Cat Ai demande avant chaque modification.",
+  'pas-de-commit': "Ce dossier n'a encore aucune version enregistrée dans git : le mode Auto en a besoin. Cat Ai demande avant chaque modification.",
+};
+const memeDossier = (a, b) => { try { return path.relative(fs.realpathSync(a), fs.realpathSync(b)) === ''; } catch { return false; } };
+
+function copieParNom({ nom, base } = {}) {
+  if (!NOM_COPIE.test(String(nom)) || !/^[0-9a-f]{40}$/.test(String(base))) return null;
+  const copie = copieDe(dossierCopiesAgent(), nom);
+  if (!fs.existsSync(copie)) return null;
+  try {
+    const branche = execFileSync('git', ['symbolic-ref', '--short', 'HEAD'], { cwd: copie, encoding: 'utf8', windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+    if (branche !== brancheDe(nom)) return null;
+  } catch { return null; }
+  return { nom, base, copie };
+}
+
+// La copie de cette discussion si elle existe encore pour le même dépôt, sinon une nouvelle
+function copiePourDiscussion(projet, demande) {
+  const etat = etatDepot(projet);
+  if (!etat.pret) return { erreur: MESSAGES_AUTO[etat.raison] };
+  const racine = execFileSync('git', ['rev-parse', '--show-toplevel'], { cwd: projet, encoding: 'utf8', windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+  const sousDossier = path.relative(fs.realpathSync(racine), fs.realpathSync(projet));
+  const existante = copieParNom(demande || {});
+  if (existante && memeDossier(depotDeLaCopie(existante.copie), racine)) {
+    return { ...existante, dossier: sousDossier ? path.join(existante.copie, sousDossier) : existante.copie };
+  }
+  const nom = `${Date.now().toString(36)}-${require('crypto').randomUUID().slice(0, 8)}`;
+  return { ...preparerCopie(projet, dossierCopiesAgent(), nom), nouvelle: true };
+}
+
+ipcMain.on('chat', async (event, { id, model, messages, prof, documents = [], fournisseurId = 'ollama', reflexion = false, agent = null }) => {
   if (controllers.has(id)) return; // un doublon IPC ne remplace jamais le contrôleur actif
   const projetInitial = projectDir;
   const documentsJoints = new Set(Array.isArray(documents) ? documents.filter(idValide) : []);
@@ -273,6 +313,13 @@ ipcMain.on('chat', async (event, { id, model, messages, prof, documents = [], fo
   const statistiquesOllama = [];
   let nombreOutils = 0;
   let libererOllama;
+  let copieAgent = null;
+  // Mode Auto : l'interface apprend la copie de la discussion, puis ses changements avant la fin de la réponse
+  const rapporterCopie = () => {
+    if (!copieAgent) return;
+    try { envoiChat('chat-agent', { nom: copieAgent.nom, base: copieAgent.base, ...changementsCopie(copieAgent.copie, copieAgent.base) }); }
+    catch (err) { envoiChat('chat-agent', { nom: copieAgent.nom, base: copieAgent.base, erreur: err.message }); }
+  };
 try {
     verifierGratuit(fournisseurId, model);
     const envoyer = await envoyeurPour(fournisseurId);
@@ -280,9 +327,17 @@ try {
     // pour que ce soit nous qui choisissions quoi raccourcir, et pas le modèle qui oublie la question
     const config = infosFournisseur(fournisseurId);
     const limites = config.type === 'ollama' ? LIMITES_OLLAMA : limitesTaille(config);
-    const ctx = contexteAgent({ prof, fournisseurId, liensDonnes, documentsJoints, signal: controller.signal, maxExtrait: limites ? limites.resultatOutil - 500 : 20000, requeteId: id, projetInitial });
+    if (agent?.auto === true && projetInitial && !prof) {
+      const copie = copiePourDiscussion(projetInitial, agent.copie);
+      if (copie.erreur) envoiChat('chat-agent', { erreur: copie.erreur });
+      else if (copiesOccupees.has(copie.nom)) throw new Error('Une autre réponse écrit déjà dans cette copie.');
+      else { copieAgent = copie; copiesOccupees.add(copie.nom); rapporterCopie(); }
+    }
+    const ctx = contexteAgent({ prof, fournisseurId, liensDonnes, documentsJoints, signal: controller.signal, maxExtrait: limites ? limites.resultatOutil - 500 : 20000, requeteId: id, projetInitial: copieAgent?.dossier || projetInitial, auto: !!copieAgent });
     if (config.type === 'ollama') {
-      prechauffage?.arret.abort();
+      // Petite machine : arrêter le préchauffage ne libère pas Ollama (sur le processeur, il finit la lecture commencée,
+      // ~15 s). On attend donc qu'il finisse : il lit les mêmes consignes, et la réponse profite de son cache.
+      if (!LEGERE) prechauffage?.arret.abort();
       libererOllama = await fileOllama.prendre({ signal: controller.signal,
         onAttente: () => envoiChat('chat-etat', { etat: 'attente-ollama' }) });
       controller.signal.throwIfAborted();
@@ -307,8 +362,10 @@ try {
     });
     // Toutes les étapes utilisées sans réponse finale : l'utilisateur le voit, au lieu d'une réponse qui s'arrête sans rien dire
     if (!fini) event.sender.send('chat-tool', { id, name: 'limite', args: { etapes: MAX_STEPS } });
+    rapporterCopie();
     event.sender.send('chat-done', { id, statistiquesOllama, nombreOutils });
   } catch (err) {
+    rapporterCopie();
     if (err.name === 'AbortError') event.sender.send('chat-done', { id, interrompu: true });
     else {
       if (err.modeleCasse) marquerModeleCasse(fournisseurId, model);
@@ -317,6 +374,7 @@ try {
   } finally {
     libererOllama?.();
     controllers.delete(id);
+    if (copieAgent) copiesOccupees.delete(copieAgent.nom);
   }
 });
 
@@ -395,7 +453,9 @@ ${texte}`;
 // Si Ollama est déjà occupé (une réponse part), on passe son tour : un titre ne doit jamais retarder un message.
 // { occupe: true } dit à l'interface qu'elle pourra réessayer après la réponse suivante.
 ipcMain.handle('titre-discussion', async (_e, { model, premierMessage } = {}) => {
-  if (!model || !premierMessage) return null;
+  // Petite machine : pas de titre par le modèle. Sa demande remplacerait les consignes gardées en cache par Ollama,
+  // et le message suivant devrait tout relire (~13 s sur le processeur). La discussion garde ses premiers mots.
+  if (!model || !premierMessage || LEGERE) return null;
   if (fileOllama.occupee) return { occupe: true };
   let libererOllama;
   try {
@@ -592,9 +652,12 @@ function prechaufferOllama({ modele, consignes, contexteProjet = '', prof }) {
   let messages;
   try { messages = compacter([{ role: 'system', content: consignes }, { role: 'system', name: 'contexte_projet', content: contexteProjet }], LIMITES_OLLAMA.total); }
   catch { return false; } // Le préchauffage est facultatif ; l'envoi affichera le diagnostic.
+  if (LEGERE) messages = allegerMessages(messages);
   const corps = JSON.stringify({ model: modele, messages, tools: outils, stream: false, think: sansReflexion(modele), keep_alive: GARDER_CHARGE, options: { ...optionsOllama(modele), num_predict: 1 } });
   if (prechauffage?.corps === corps) return prechauffage.promesse;
   if (fileOllama.occupee) return false;
+  // Petite machine : un préchauffage en cours n'est jamais remplacé (Ollama finirait quand même sa lecture)
+  if (LEGERE && prechauffage) return false;
   prechauffage?.arret.abort();
   const arret = new AbortController();
   const debut = Date.now();
@@ -606,6 +669,7 @@ function prechaufferOllama({ modele, consignes, contexteProjet = '', prof }) {
       const signal = AbortSignal.any([arret.signal, AbortSignal.timeout(60_000)]);
       libererOllama = await fileOllama.prendre({ signal });
       signal.throwIfAborted();
+      if (LEGERE) await dechargerAutres(OLLAMA, modele, { signal }); // un seul modèle en mémoire
       const res = await fetch(`${OLLAMA}/api/chat`, { method: 'POST', body: corps, signal });
       await res.arrayBuffer();
       ok = res.ok;
@@ -648,7 +712,6 @@ ipcMain.handle('ollama-installer', async () => {
   if (installationOllama) return { erreur: 'Une installation est déjà en cours.' };
   installationOllama = true;
   try {
-  if (LEGERE) messages = allegerMessages(messages);
     const programme = path.join(process.env.LOCALAPPDATA || '', 'Microsoft', 'WindowsApps', 'winget.exe');
     const { response } = await dialog.showMessageBox(win, {
       type: 'question', title: 'Installer Ollama',
@@ -663,7 +726,6 @@ ipcMain.handle('ollama-installer', async () => {
       installateur.once('error', () => resolve(null));
       installateur.once('close', resolve);
     });
-      if (LEGERE) await dechargerAutres(OLLAMA, modele, { signal }); // un seul modèle en mémoire
     if (code !== 0 && !commandeOllama()) return { erreur: 'WinGet n’a pas installé Ollama. Utilise le lien vers l’installateur officiel.' };
     await demarrerOllama();
     return { ok: true };
@@ -700,6 +762,8 @@ ipcMain.handle('capacites-modele', async (_e, { fournisseurId, modele }) => {
 
 // Le Qwen conseillé selon la mémoire de la carte graphique (principal/materiel.js), pour l'accueil
 ipcMain.handle('conseil-materiel', () => conseilMateriel());
+// Petite machine (principal/machine-legere.js) : l'interface se fait plus discrète pour laisser le processeur au modèle
+ipcMain.handle('machine-legere', () => LEGERE);
 // Page Modèles : le PC (carte graphique, RAM, disque) et chaque modèle connu avec son avis
 ipcMain.handle('modeles-catalogue', () => catalogueMateriel());
 
@@ -1067,6 +1131,34 @@ ipcMain.handle('chantier-jeter', async (_e, nom) => {
     if (chantierReprenable?.nom === nom) chantierReprenable = null;
     return { ok: true };
   } catch (err) { return { ok: false, erreur: err.message }; }
+});
+
+// ---------- Mode Auto : Voir, Garder, Jeter la copie de l'agent ----------
+// Les changements d'une copie (avec le patch pour la fenêtre « Voir »)
+ipcMain.handle('agent-changements', (_e, demande = {}) => {
+  const c = copieParNom(demande);
+  if (!c) return { ok: false, perdue: true };
+  try { return { ok: true, ...changementsCopie(c.copie, c.base, { patch: demande.patch === true }) }; }
+  catch (err) { return { ok: false, erreur: err.message }; }
+});
+
+// Garder : un clic explicite de l'utilisateur, les changements vont dans ses fichiers (sans commit)
+ipcMain.handle('agent-garder', (_e, demande = {}) => {
+  const c = copieParNom(demande);
+  if (!c) return { ok: false, perdue: true, erreur: "Cette copie n'existe plus." };
+  if (copiesOccupees.has(c.nom)) return { ok: false, erreur: "L'agent écrit encore : attends la fin de sa réponse." };
+  try { return garderCopie(c.copie, c.base, c.nom); } catch (err) { return { ok: false, erreur: err.message }; }
+});
+
+// Jeter : irréversible, donc confirmé dans une fenêtre
+ipcMain.handle('agent-jeter', async (_e, demande = {}) => {
+  const c = copieParNom(demande);
+  if (!c) return { ok: false, perdue: true };
+  if (copiesOccupees.has(c.nom)) return { ok: false, erreur: "L'agent écrit encore : attends la fin de sa réponse." };
+  const accord = await demanderAccord({ titre: 'Jeter le travail', message: "Jeter les changements de l'agent ?", accepter: 'Jeter', detail: 'Sa copie et sa branche sont supprimées. Ton projet ne change pas.' });
+  if (!accord) return { ok: false, annule: true };
+  if (copiesOccupees.has(c.nom)) return { ok: false, erreur: "L'agent écrit encore : attends la fin de sa réponse." };
+  try { return jeterCopie(depotDeLaCopie(c.copie), c.nom); } catch (err) { return { ok: false, erreur: err.message }; }
 });
 
 // Une seule app ouverte à la fois : deux fenêtres liraient et enregistreraient chacune leur version

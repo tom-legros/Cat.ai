@@ -1224,3 +1224,14 @@ button.menu-modeles__titre--fournisseur[aria-expanded="false"] .menu-modeles__fl
 .menu-commande__nom { font-family: var(--police-mono); font-size: 13px; color: var(--texte); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .menu-commande .menu-choix__nom { color: var(--texte-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .menu-commande.is-actif { background: rgba(255, 255, 255, .07); }
+
+/* Mode Auto : la barre des changements de l'agent, posée au-dessus de la saisie */
+.agent-barre { display: flex; align-items: center; gap: 10px; margin: 0 auto 8px; padding: 6px 6px 6px 12px; font-size: 13px; color: var(--texte-2); background: #121212; border: 1px solid var(--ligne-2); border-radius: 12px; animation: deroulement .22s cubic-bezier(.2, .8, .2, 1) both; }
+.agent-barre[hidden] { display: none; }
+.agent-barre__icone { display: inline-flex; color: var(--oeil); }
+.agent-barre__texte { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--texte); }
+.agent-barre__bouton { padding: 5px 12px; font-size: 13px; }
+.agent-barre.is-alerte .agent-barre__bouton { display: none; }
+.agent-barre.is-alerte .agent-barre__texte { white-space: normal; color: var(--texte-2); }
+.diff__fichier { color: var(--texte); font-weight: 600; }
+.diff__texte { white-space: pre; }

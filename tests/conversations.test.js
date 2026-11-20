@@ -14,7 +14,7 @@ function cadre() {
     performance, crypto: require('node:crypto').webcrypto, Date, clearInterval, veilleSilence: null,
     current: { id: 'origine', messages: [{ role: 'user', content: 'Question' }] },
     fluxParConv: new Map(), preparations: new Map(), erreursEnAttente: new Map(),
-    prof: false, reflexion: false, reflexionPossible: true, modelSel: { value: 'qwen3.5:9b' }, reglages: { actif: 'ollama' },
+    prof: false, reflexion: false, reflexionPossible: true, modeAuto: false, project: null, modelSel: { value: 'qwen3.5:9b' }, reglages: { actif: 'ollama' },
     compterMessage() {}, renderList() {}, afficherFlux() {}, budgetConsignes: () => '',
     majBoutonEnvoi() {}, majVeille() {}, majSaisie() {}, ligneAttente() {},
     rendrePiecesA: (conv, liste) => { (c.piecesRendues ??= []).push({ conv, liste }); },

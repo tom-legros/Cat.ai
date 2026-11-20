@@ -159,6 +159,11 @@ majBoutonReplier();
 const caseAnimations = document.querySelector("#reglages-sans-animations");
 caseAnimations.checked = lireRetenu("sansAnimations") === "1";
 document.body.classList.toggle("sans-animations", caseAnimations.checked);
+window.api.machineLegere?.().then((legere) => {
+    if (legere !== true || lireRetenu("sansAnimations") !== null) return;
+    caseAnimations.checked = true;
+    document.body.classList.add("sans-animations");
+}).catch(() => {});
 caseAnimations.addEventListener("change", () => {
     document.body.classList.toggle("sans-animations", caseAnimations.checked);
     retenir("sansAnimations", caseAnimations.checked ? "1" : "0");
