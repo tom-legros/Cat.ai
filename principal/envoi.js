@@ -3,6 +3,7 @@
 const { outilsPour } = require('./outils');
 const { limitesTaille } = require('./taille');
 const { machineLegere, allegerMessages, dechargerAutres } = require('./machine-legere');
+const { ARRETS, promptBrutPossible, promptQwen, sansNotesDeSuivi } = require('./prompt-brut');
 
 const OLLAMA = 'http://127.0.0.1:11434';
 
@@ -143,12 +144,20 @@ async function lireFluxOllama(messages, modele, onMorceau, signal, options, refl
     corps.options.temperature = 0.2;
     corps.options.num_predict = 2048;
   }
+  // Petite machine, Qwen 3 classique, simple discussion : Cat Ai écrit le prompt lui-même (principal/prompt-brut.js),
+  // pour que chaque message ne relise que la nouvelle question
+  const brut = legere && promptBrutPossible({ modele, outils: corps.tools, reflexion, messages: corps.messages });
+  const adresse = brut ? `${OLLAMA}/api/generate` : `${OLLAMA}/api/chat`;
+  const aEnvoyer = brut
+    ? { model: modele, prompt: promptQwen(rappelsPourOllama(sansNotesDeSuivi(allegerMessages(messages, options)))), raw: true, stream: true, keep_alive: corps.keep_alive, options: { ...corps.options, stop: ARRETS } }
+    : corps;
+  if (mesure && brut) mesure.promptBrut = true;
   const envoyer = () => {
     if (mesure) mesure.requetes++;
-    return fetch(`${OLLAMA}/api/chat`, {
+    return fetch(adresse, {
       method: 'POST',
       // think: false : qwen3 répond direct au lieu d'écrire une longue réflexion avant
-      body: JSON.stringify(corps),
+      body: JSON.stringify(aEnvoyer),
       signal,
     });
   };
@@ -178,6 +187,8 @@ async function lireFluxOllama(messages, modele, onMorceau, signal, options, refl
     if (!ligne.trim()) return false;
     const data = JSON.parse(ligne);
     if (data.error) throw new Error(`Ollama : ${data.error}`);
+    // Prompt brut (/api/generate) : le texte arrive dans « response »
+    if (typeof data.response === 'string') data.message = { content: data.response };
     if (data.done === true) {
       termine = true;
       if (mesure) {

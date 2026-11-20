@@ -158,7 +158,7 @@ function texteStatistiquesOllama(appels) {
     const nombre = (n) => n.toLocaleString("fr-FR", { maximumFractionDigits: 2 });
     const secondes = (n, unite = 1e9) => Number.isFinite(n) && n >= 0 ? nombre(n / unite) + " s" : "non fourni";
     return appels.map((m, i) => [
-        `Appel ${i + 1} · ${m.requetes} requête(s) HTTP · réflexion ${m.reflexion ? "activée" : "désactivée"}${m.termine ? "" : " · flux incomplet ou abandonné"}`,
+        `Appel ${i + 1} · ${m.requetes} requête(s) HTTP · réflexion ${m.reflexion ? "activée" : "désactivée"}${m.promptBrut ? " · prompt écrit par Cat Ai (petite machine)" : ""}${m.termine ? "" : " · flux incomplet ou abandonné"}`,
         "Chargement : " + secondes(m.load_duration),
         "Traitement du prompt : " + secondes(m.prompt_eval_duration),
         "Génération : " + secondes(m.eval_duration),

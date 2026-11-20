@@ -30,6 +30,7 @@ const { BINAIRES, lireTexteDocument, texteJointDocument, idValide } = require('.
 const DOSSIER_DOCUMENTS = () => path.join(app.getPath('userData'), 'documents');
 const { OLLAMA, GARDER_CHARGE, LEGERE, optionsOllama, sansReflexion, REFLEXION, envoyerOllama, envoyerOpenAI, vulkanUtile } = require('./principal/envoi');
 const { allegerMessages, dechargerAutres, cacheConnu, cacheReutilisable } = require('./principal/machine-legere');
+const { ARRETS, promptBrutPossible, promptQwen } = require('./principal/prompt-brut');
 const {
   FOURNISSEURS_DE_BASE, lireReglagesFournisseurs, infosFournisseur, configFournisseur, versInterface,
   etatChiffrement, chiffrer, messageCleIllisible, formatDouteux, avertissementFormat, marquerModeleCasse, listerModeles,
@@ -653,7 +654,12 @@ function prechaufferOllama({ modele, consignes, contexteProjet = '', prof }) {
   try { messages = compacter([{ role: 'system', content: consignes }, { role: 'system', name: 'contexte_projet', content: contexteProjet }], LIMITES_OLLAMA.total); }
   catch { return false; } // Le préchauffage est facultatif ; l'envoi affichera le diagnostic.
   if (LEGERE) messages = allegerMessages(messages);
-  const corps = JSON.stringify({ model: modele, messages, tools: outils, stream: false, think: sansReflexion(modele), keep_alive: GARDER_CHARGE, options: { ...optionsOllama(modele), num_predict: 1 } });
+  // Petite machine et Qwen 3 classique sans outils : même prompt brut que l'envoi (principal/prompt-brut.js), consignes seules
+  const brut = LEGERE && promptBrutPossible({ modele, outils, messages });
+  const adressePrechauffage = brut ? `${OLLAMA}/api/generate` : `${OLLAMA}/api/chat`;
+  const corps = JSON.stringify(brut
+    ? { model: modele, prompt: promptQwen(messages, { generation: false }), raw: true, stream: false, keep_alive: GARDER_CHARGE, options: { ...optionsOllama(modele), num_predict: 1, stop: ARRETS } }
+    : { model: modele, messages, tools: outils, stream: false, think: sansReflexion(modele), keep_alive: GARDER_CHARGE, options: { ...optionsOllama(modele), num_predict: 1 } });
   if (prechauffage?.corps === corps) return prechauffage.promesse;
   if (fileOllama.occupee) return false;
   // Petite machine : un préchauffage en cours n'est jamais remplacé (Ollama finirait quand même sa lecture)
@@ -677,7 +683,7 @@ function prechaufferOllama({ modele, consignes, contexteProjet = '', prof }) {
       libererOllama = await fileOllama.prendre({ signal });
       signal.throwIfAborted();
       if (LEGERE) await dechargerAutres(OLLAMA, modele, { signal }); // un seul modèle en mémoire
-      const res = await fetch(`${OLLAMA}/api/chat`, { method: 'POST', body: corps, signal });
+      const res = await fetch(adressePrechauffage, { method: 'POST', body: corps, signal });
       await res.arrayBuffer();
       ok = res.ok;
     } catch {
