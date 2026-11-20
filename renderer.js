@@ -217,6 +217,24 @@ function syntheseOllama(appels) {
     };
 }
 
+// Vitesse habituelle de chaque modèle local (la meilleure vue) : une réponse bien plus lente est signalée.
+// Assez de tokens pour que la mesure compte ; moins d'un tiers de l'habitude = la carte ne travaille plus
+// (pilote graphique planté, Ollama lancé sans la carte…).
+const SEUIL_LENTEUR = 0.35;
+function comparerVitesse(vitesses, modele, s) {
+    if (!modele || !s?.debit || !(s.tokens >= 40)) return { vitesses, lent: null };
+    const habituelle = vitesses[modele] || 0;
+    const lent = habituelle >= 8 && s.debit < habituelle * SEUIL_LENTEUR ? { debit: Math.round(s.debit * 10) / 10, habituelle: Math.round(habituelle) } : null;
+    return { vitesses: s.debit > habituelle ? { ...vitesses, [modele]: s.debit } : vitesses, lent };
+}
+function noterVitesse(modele, s) {
+    let vitesses = {};
+    try { vitesses = JSON.parse(localStorage.getItem("vitessesModeles") || "{}") || {}; } catch {}
+    const r = comparerVitesse(vitesses, modele, s);
+    if (r.vitesses !== vitesses) try { localStorage.setItem("vitessesModeles", JSON.stringify(r.vitesses)); } catch {}
+    return r.lent;
+}
+
 // Les statistiques sous une réponse : une ligne de résumé, puis des tuiles lisibles, puis le détail brut
 function blocStatistiques(message) {
     const details = document.createElement("details");
@@ -245,6 +263,14 @@ function blocStatistiques(message) {
             s.debit && `${nombre(s.debit, 0)} tokens/s`,
             s.premierMot !== null && `premier mot en ${nombre(s.premierMot)} s`,
         ].filter(Boolean).join(" · ") || "Statistiques";
+        if (message.lenteur) {
+            details.classList.add("msg__stats--lent");
+            const note = document.createElement("span");
+            note.className = "stats__lent";
+            note.textContent = "plus lent que d'habitude";
+            note.title = `${nombre(message.lenteur.debit)} tokens/s au lieu d'environ ${message.lenteur.habituelle}. La carte graphique ne semble plus travailler : redémarre le PC si ça continue.`;
+            resume.append(" · ", note);
+        }
         tuile("Vitesse", s.debit && `${nombre(s.debit, 0)} tokens/s`, "Vitesse d'écriture du modèle sur ton PC");
         tuile("Premier mot", s.premierMot !== null ? `${nombre(s.premierMot)} s` : null, "Temps avant que la réponse commence à s'afficher");
         tuile("Lecture de la question", s.lecture && `${nombre(s.lecture)} s`, s.lectureTokens ? `${nombre(s.lectureTokens, 0)} tokens lus (consignes, historique, fichiers)` : "");
@@ -1254,6 +1280,8 @@ window.api.onDone(({ id, interrompu, statistiquesOllama, nombreOutils }) => {
         if (!interrompu && statistiquesOllama?.length) {
             message.statistiquesOllama = statistiquesOllama;
             message.nombreOutils = nombreOutils;
+            const lent = noterVitesse(flux.modele, syntheseOllama(statistiquesOllama));
+            if (lent) message.lenteur = lent;
         }
         if (!interrompu && flux.statistiquesResume?.length) message.statistiquesResume = flux.statistiquesResume;
         if (flux.actions.length) message.actions = flux.actions;
@@ -1407,6 +1435,9 @@ $("#composer").addEventListener("submit", (e) => {
     if (reponseVivante(current)) return; // envoi en préparation (résumé, projet) : on garde le texte tapé
     const texte = input.value;
     if (!texte.trim() && !pieces.length) return;
+    // Une commande « / » s'exécute au lieu de partir au chat ; les pièces jointes restent en place
+    const commande = trouverCommande(texte);
+    if (commande) { viderSaisie(); executerCommande(commande.commande, commande.argument); return; }
     const destination = current;
     const configuration = configurationDuTour();
     // Les pièces partent avec ce message : changer de discussion pendant la vérification ne les mélange pas
@@ -1460,6 +1491,150 @@ input.addEventListener("input", () => {
 });
 
 document.querySelectorAll(".suggestions button").forEach((b) => (b.onclick = () => send(b.dataset.prompt)));
+
+/* ---------- Commandes « / » (interface/commandes.js) ---------- */
+// On tape /, un menu propose les commandes ; flèches pour choisir, Entrée ou Tab pour valider, Échap pour fermer.
+// Le focus reste dans la saisie : le menu suit le texte tapé.
+const menuCommandes = $("#menu-commandes");
+let commandeActive = 0;
+
+function majMenuCommandes() {
+    const liste = filtrerCommandes(input.value);
+    if (!liste.length) { fermerCommandes(); return; }
+    commandeActive = Math.min(commandeActive, liste.length - 1);
+    menuCommandes.replaceChildren(...liste.map((c, i) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.tabIndex = -1;
+        b.id = "commande-" + c.nom;
+        b.className = "menu-modeles__choix menu-choix menu-commande" + (i === commandeActive ? " is-actif" : "");
+        b.setAttribute("role", "option");
+        b.setAttribute("aria-selected", String(i === commandeActive));
+        const pictogramme = document.createElement("span");
+        pictogramme.className = "menu-choix__icone";
+        pictogramme.innerHTML = icone(c.icone);
+        const nom = document.createElement("span");
+        nom.className = "menu-commande__nom";
+        nom.textContent = "/" + c.nom + (c.argument ? ` [${c.argument}]` : "");
+        const texte = document.createElement("span");
+        texte.className = "menu-choix__nom";
+        texte.textContent = c.texte;
+        b.append(pictogramme, nom, texte);
+        b.onmousedown = (e) => e.preventDefault(); // la saisie garde le focus
+        b.onclick = () => choisirCommande(c);
+        return b;
+    }));
+    menuCommandes.hidden = false;
+    input.setAttribute("aria-expanded", "true");
+    input.setAttribute("aria-activedescendant", "commande-" + liste[commandeActive].nom);
+    menuCommandes.querySelector(".is-actif")?.scrollIntoView({ block: "nearest" });
+}
+
+function fermerCommandes() {
+    menuCommandes.hidden = true;
+    commandeActive = 0;
+    input.setAttribute("aria-expanded", "false");
+    input.removeAttribute("aria-activedescendant");
+}
+
+function viderSaisie() {
+    input.value = "";
+    input.dispatchEvent(new Event("input"));
+    majEnvoi();
+}
+
+// Une commande qui attend un texte (/renommer, /modele…) se complète dans la saisie ; les autres partent tout de suite
+function choisirCommande(c) {
+    if (c.argument) {
+        input.value = "/" + c.nom + " ";
+        input.dispatchEvent(new Event("input"));
+        input.focus();
+        return;
+    }
+    viderSaisie();
+    executerCommande(c, "");
+}
+
+// Une petite réponse à une commande, dans le champ vide, quelques secondes
+let minuterieNote = null;
+function noteSaisie(texte) {
+    clearTimeout(minuterieNote);
+    input.placeholder = texte;
+    minuterieNote = setTimeout(majSaisie, 3500);
+}
+
+function exporterDiscussion(conv) {
+    const lien = document.createElement("a");
+    lien.href = URL.createObjectURL(new Blob([discussionEnMarkdown(conv, NOM_DU_CHAT)], { type: "text/markdown;charset=utf-8" }));
+    lien.download = nomDeFichier(conv.title);
+    lien.click();
+    setTimeout(() => URL.revokeObjectURL(lien.href), 1000);
+}
+
+function executerCommande(c, argument) {
+    fermerCommandes();
+    input.focus();
+    switch (c.nom) {
+        case "nouveau": $("#new-chat").click(); break;
+        case "modele": {
+            $("#modele-raccourci").click();
+            const recherche = $("#menu-modeles .menu-modeles__recherche");
+            if (recherche && argument) { recherche.value = argument; recherche.dispatchEvent(new Event("input")); }
+            recherche?.focus();
+            break;
+        }
+        case "rapide":
+        case "reflexion":
+            if (!reflexionPossible) { noteSaisie("Ce modèle répond toujours sans réfléchir"); break; }
+            choisirReflexion(c.nom === "reflexion");
+            noteSaisie(c.nom === "reflexion" ? "Réflexion : il réfléchit avant de répondre" : "Rapide : il répond tout de suite");
+            break;
+        case "prof": boutonProf.click(); break;
+        case "joindre": ajouterFichiers(); break;
+        case "dossier": choisirProjet(); break;
+        case "renommer":
+            if (!current) { noteSaisie("Pas encore de discussion à renommer"); break; }
+            if (!argument) { renommerDiscussion(); break; }
+            current.title = argument.slice(0, 80);
+            current.titreChoisi = true;
+            $("#titre-conv").textContent = current.title;
+            save();
+            renderList();
+            break;
+        case "exporter":
+            if (!current?.messages?.length) { noteSaisie("Pas encore de discussion à exporter"); break; }
+            exporterDiscussion(current);
+            break;
+        case "recherche":
+            montrerRecherche(true);
+            if (argument) { $("#conv-recherche").value = argument; $("#conv-recherche").dispatchEvent(new Event("input")); }
+            break;
+        case "memoire": $("#open-memory").click(); break;
+        case "modeles": document.querySelector('[data-page="modeles"]')?.click(); break;
+        case "reglages": ouvrirFournisseurs(); break;
+        case "terminal": $("#ouvrir-terminal").click(); break;
+    }
+}
+
+input.setAttribute("aria-controls", "menu-commandes");
+input.setAttribute("aria-expanded", "false");
+input.addEventListener("input", majMenuCommandes);
+input.addEventListener("blur", () => setTimeout(() => { if (document.activeElement !== input) fermerCommandes(); }, 0));
+// En capture : passe avant Entrée = envoyer et avant les flèches = anciens messages
+input.addEventListener("keydown", (e) => {
+    if (menuCommandes.hidden) return;
+    const boutons = [...menuCommandes.querySelectorAll(".menu-commande")];
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        commandeActive = (commandeActive + (e.key === "ArrowDown" ? 1 : boutons.length - 1)) % boutons.length;
+        majMenuCommandes();
+    } else if ((e.key === "Enter" && !e.shiftKey) || e.key === "Tab") {
+        boutons[commandeActive]?.click();
+    } else if (e.key === "Escape") {
+        fermerCommandes();
+    } else return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+}, true);
 
 messagesEl.addEventListener("animationend", (e) => { if (e.target === messagesEl) messagesEl.classList.remove("is-change"); });
 $("#renommer-conv").innerHTML = icone("stylo");

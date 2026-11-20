@@ -1212,3 +1212,15 @@ button.menu-modeles__titre--fournisseur[aria-expanded="false"] .menu-modeles__fl
 .bouton-envoi:not(.is-pret) { background: #141414; border: 1px solid var(--ligne-2); }
 .bouton-envoi:not(.is-pret):not(:disabled):hover { background: #1c1c1c; }
 .pastille { background: #121212; }
+
+/* Réponse bien plus lente que d'habitude : les statistiques restent visibles, avec une note discrète */
+.msg .msg__stats--lent { opacity: 1; }
+.stats__lent { color: #e0b252; }
+
+/* Commandes « / » : le menu s'ouvre au-dessus de la saisie, sur toute sa largeur */
+.saisie__boite { position: relative; }
+.menu-commandes { left: 0; right: 0; min-width: 0; max-height: 340px; transform-origin: bottom left; }
+.menu-commande.menu-choix { min-width: 0; display: grid; grid-template-columns: 22px 150px minmax(0, 1fr); align-items: center; gap: 10px; }
+.menu-commande__nom { font-family: var(--police-mono); font-size: 13px; color: var(--texte); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.menu-commande .menu-choix__nom { color: var(--texte-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.menu-commande.is-actif { background: rgba(255, 255, 255, .07); }

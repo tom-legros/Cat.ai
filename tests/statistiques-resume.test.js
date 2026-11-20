@@ -141,6 +141,7 @@ function cadreOnDone({ interrompu = false, statistiquesOllama = null, statistiqu
     texteDuFlux: () => 'Réponse', afficherFlux() {}, document: { createElement: () => ({}) },
     ajouterActionsMessage() {}, finirFlux() {}, renderConv() {}, save: () => sauvegardes++,
     proposerTitre() {}, // titre par le modèle après la 1re réponse : testé à part (titre.test.js)
+    noterVitesse() { return null; }, syntheseOllama() { return {}; }, // alerte de lenteur : testée à part (vitesse.test.js)
   };
   vm.runInNewContext(extrait, contexte);
   handler({ id: 7, interrompu, statistiquesOllama, nombreOutils: statistiquesOllama ? 0 : undefined });
