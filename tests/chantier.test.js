@@ -206,3 +206,36 @@ test('sans diff : des tests échoués empêchent la validation et la relecture',
   assert.match(r.etapes[0].raison,/tests échouent/);
   assert.equal(relu,false);
 });
+
+test('chef : un JSON abîmé (guillemet fermé trop tôt, réponse coupée) garde ses étapes bien formées', () => {
+  const { etapesDepuis } = require('../principal/chantier');
+  const abime = '[{"titre": "Renommer", "consigne": "retourne \'a\' + nom.toUpperCase()".}, {"titre": "Import", "consigne": "Dans accueil.js, remplace l\'import."}, {"titre": "Coupé", "consig';
+  assert.deepEqual(etapesDepuis(abime).map((e) => e.titre), ['Renommer', 'Import']);
+});
+
+test('chef : les étapes qui ne changent pas le code sont retirées, les tests seulement si le plan n en parle pas', () => {
+  const { etapesUtiles } = require('../principal/chantier');
+  const etapes = ['Ajouter la fonction somme', 'Vérifier la syntaxe', 'Ajouter un test pour somme', 'Finaliser la structure', 'Lancer les tests'].map((titre) => ({ titre, consigne: 'x' }));
+  assert.deepEqual(etapesUtiles(etapes, 'Ajoute somme').map((e) => e.titre), ['Ajouter la fonction somme']);
+  assert.deepEqual(etapesUtiles(etapes, 'Ajoute somme et son test').map((e) => e.titre), ['Ajouter la fonction somme', 'Ajouter un test pour somme']);
+  // Si tout serait retiré, on garde tout plutôt que rien
+  assert.equal(etapesUtiles([{ titre: 'Vérifier', consigne: 'x' }], 'p').length, 1);
+});
+
+test('chef : sans aucune étape lisible, le plan entier devient une seule étape au lieu d arrêter le chantier', async () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const { execFileSync } = require('node:child_process');
+  const { preparerPlan } = require('../principal/chantier');
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), 'catai-chef-'));
+  try {
+    fs.writeFileSync(path.join(d, 'a.js'), 'x\n');
+    for (const args of [['init', '-q'], ['add', '-A'], ['-c', 'user.name=T', '-c', 'user.email=t@e.invalid', 'commit', '-qm', 'depart']]) execFileSync('git', args, { cwd: d });
+    const chef = { modele: 'm', envoyer: async () => ({ content: 'Je ne sais pas.' }) };
+    const etapes = await preparerPlan({ projet: d, plan: 'Renomme nomComplet en nomAffiche.\nPartout.', chef, codeurs: [{ nom: 'Codeur' }] });
+    assert.equal(etapes.length, 1);
+    assert.equal(etapes[0].titre, 'Renomme nomComplet en nomAffiche.');
+    assert.match(etapes[0].consigne, /Partout\./);
+  } finally { fs.rmSync(d, { recursive: true, force: true }); }
+});

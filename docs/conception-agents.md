@@ -1,5 +1,100 @@
 # Conception du système d'agents de Cat Ai (2.0)
 
+## Le but : des tâches de fond
+
+On donne du travail à Cat Ai, on s'en va (20 minutes, une heure de cours, une nuit), et en revenant on trouve un
+résultat propre à regarder : ce qui a été fait, le diff, les tests, les questions, et un bouton Garder ou Jeter.
+
+Tout le reste de cette conception en découle :
+
+- **personne ne surveille** : un agent ne doit jamais rester bloqué sur une question ou une fenêtre ;
+- **une erreur ne gâche pas le reste** : une tâche ratée n'empêche pas les suivantes, et une étape ratée n'arrête pas
+  une tâche si la suite ne dépend pas d'elle ;
+- **ce qui compte, c'est ce qu'on retrouve** : le rapport de retour est l'écran le plus important.
+
+### Comment ça se passe
+
+1. **Avant de partir**, on ajoute des tâches à une file : « corrige le bug du menu », « ajoute les tests de la page
+   Modèles », « traduis le README ». Chaque tâche vise un projet (un dossier git) ; on peut fixer un budget (temps,
+   essais) ou garder celui par défaut.
+2. **Pendant l'absence**, Cat Ai les fait une par une, chacune sur **sa propre branche** dans une copie du projet. Le PC
+   ne se met pas en veille. Quand une tâche a besoin d'une décision, l'agent prend l'option la plus prudente, note la
+   question dans le rapport et continue.
+3. **Au retour**, l'écran des tâches montre, pour chacune : réussie, en partie ou ratée ; le résumé ; le diff ; les
+   tests ; les questions. On garde ou on jette tâche par tâche (une fusion dans le projet, comme le chantier aujourd'hui).
+
+```mermaid
+sequenceDiagram
+    actor Moi
+    participant File as File de tâches
+    participant Cat as Cat Ai (agents)
+    participant Copie as Copies git (une branche par tâche)
+    Moi->>File: ajoute 3 tâches, puis part 20 min
+    loop pour chaque tâche
+        File->>Cat: tâche suivante
+        Cat->>Copie: étapes, tests, corrections
+        Cat-->>File: résultat, diff, questions notées
+    end
+    Moi->>File: revient, ouvre le rapport
+    File-->>Moi: tâche 1 réussie, tâche 2 en partie, tâche 3 ratée (pourquoi)
+    Moi->>Copie: Garder la 1, Jeter la 3
+```
+
+### Ce qui change par rapport au chantier d'aujourd'hui
+
+| Aujourd'hui | Tâches de fond |
+|---|---|
+| un plan à la fois | une file de tâches, chacune sur sa branche |
+| s'arrête à la première étape ratée | note l'échec, continue avec ce qui n'en dépend pas, puis la tâche suivante |
+| peut ouvrir une fenêtre et attendre | ne demande jamais rien pendant l'absence : questions dans le rapport |
+| si le chef ne découpe pas, rien ne se fait | sans découpage, la tâche est tentée en une seule étape, puis par un plus gros modèle |
+| rapport en texte à la fin | écran de retour : statut, diff, tests et questions par tâche, Garder / Jeter |
+
+Plus tard, la même file tourne sur le homelab : le PC peut rester éteint.
+
+## La décision : un agent seul d'abord, l'équipe pour les gros chantiers
+
+| Mode | Fonctionnement | Quand |
+|---|---|---|
+| **Rapide** (par défaut) | un **agent seul**, polyvalent, fait la mission de A à Z | la grande majorité des tâches |
+| **Équipe** | chef, codeurs, testeur, lecteur de logs, relecteurs (le chantier actuel) | les gros chantiers en plusieurs parties |
+| **Automatique** | Cat Ai propose le mode adapté, avec confirmation si besoin | quand on ne sait pas |
+
+Tout part de la conversation : on explique le problème, Cat Ai récupère le contexte du projet et lance une mission
+(`/agent`, `/chantier` ou en langage naturel). On suit l'avancement, on regarde les modifications avant de les garder,
+et on retrouve un bilan à la fin.
+
+**La priorité est de rendre l'agent seul autonome et fiable**, en gardant l'infrastructure des équipes. Le banc d'essai
+l'a montré : avec un petit modèle, la plupart des échecs venaient des échanges entre agents (un chef qui découpe mal,
+un relecteur qui refuse à tort), pas du code. Un agent seul évite ces malentendus et consomme moins de tokens.
+
+### L'agent seul
+
+1. Il lit la demande et les fichiers concernés, puis fait les changements dans une copie git du projet.
+2. Il lance lui-même les tests du projet, et corrige.
+3. Un programme vérifie ensuite : a-t-il vraiment changé quelque chose ? les tests passent-ils ? Sinon, il recommence
+   avec la raison, dans la limite de ses essais.
+4. Il ne pose jamais de question pendant une tâche de fond : il prend le sens le plus raisonnable et le dit dans son bilan.
+5. Il rend un rapport : ce qui a été changé, les tests, ce qui reste douteux. On garde ou on jette.
+
+Il est mesuré avec le même banc d'essai que l'équipe (`node outils/banc-agents.cjs <modèle> seul`), sur les mêmes
+projets et les mêmes tests cachés.
+
+```mermaid
+flowchart TD
+    Demande[Demande dans la conversation] --> Mode{Mode}
+    Mode -- Rapide --> Seul[Agent seul : lit, modifie, lance les tests]
+    Mode -- Équipe --> Chantier[Chef, codeurs, testeur, relecteur]
+    Mode -- Automatique --> Choix[Cat Ai propose le mode]
+    Choix --> Seul
+    Choix --> Chantier
+    Seul --> Verif{Vérification par programme : changement fait, tests réussis ?}
+    Verif -- non, essais restants --> Seul
+    Verif -- oui --> Bilan[Bilan, diff, Garder ou Jeter]
+    Verif -- non, plus d'essai --> Bilan
+    Chantier --> Bilan
+```
+
 ## Le constat
 
 Cat Ai a déjà trois façons de faire travailler un modèle sur un projet :
@@ -180,14 +275,15 @@ La conception a été relue par un autre modèle (Gemini). Trois remarques sont 
 - **Des notes de projet courtes.** Une page de conventions mange le contexte d'un petit modèle. Les notes se limitent aux commandes (tests, build), aux dossiers importants et à ignorer : 800 caractères au plus.
 - **Des garde-fous globaux.** Avant chaque montée en gamme, la copie revient au dernier commit valide (le chantier le fait déjà au 3e essai, il faut le garantir aussi au changement de modèle). Et un plafond de temps et de tours pour tout le chantier, pas seulement par étape.
 
-Le chef reste le point fragile : un découpage raté fait échouer tout le reste. D'où le meilleur modèle disponible pour lui, un JSON vérifié (le chantier le valide déjà) et, surtout, des étapes que l'utilisateur voit et corrige avant de lancer.
+Le chef reste le point fragile : un découpage raté fait échouer tout le reste. D'où le meilleur modèle disponible pour lui, un JSON vérifié (le chantier le valide déjà), des étapes que l'utilisateur peut relire quand il est là, et, pour les tâches de fond, un repli : sans découpage, la tâche est tentée en une seule étape. Le banc d'essai l'a confirmé dès la première mesure (le chef de qwen3.5:9b n'a pas su découper le projet « renommer »).
 
 ## Le plan de travail
 
-1. **Banc d'essai minimal** : 3 à 5 petits dépôts avec tests cachés dans `tests/agents/`, une commande, un premier tableau avec le chantier actuel (la mesure de départ).
-2. **Fiches** : `principal/fiches.js` (fiches de base, validation, fusion avec celles de l'utilisateur) ; le chantier et l'équipe lisent les fiches au lieu de consignes en dur. Mesure avec le banc.
-3. **Garde-fous** : copie remise au dernier commit valide avant chaque montée en gamme, plafond global de temps et de tours.
-4. **Explorateur ciblé** : détection du type de projet et de la commande de tests (npm, Codeception, PHPUnit, pytest, Godot), `.catai/notes.md` court, avec accord. Mesure avec le banc.
-5. **Échelle de modèles** : montée en gamme après échec vérifié, rapport qui dit quel modèle a fait quoi.
-6. **Page Agents** : tableau de bord, édition simple des fiches, remise de `PAGE_AGENTS = true`.
-7. Plus tard : chantiers lancés depuis le terminal et le homelab (le même moteur, sans fenêtre), agents planifiés.
+1. **Banc d'essai minimal** (fait) : 4 petits projets avec tests cachés dans `tests/agents/`, `node outils/banc-agents.cjs <modèle>`, première mesure du chantier actuel.
+2. **Un chantier qui ne s'arrête plus** : repli quand le chef ne découpe pas (une seule étape), une étape ratée n'arrête que ce qui en dépend, un plafond global de temps et d'essais. Mesure avec le banc.
+3. **Tâches de fond** : une file de tâches (une branche chacune), aucune fenêtre pendant l'absence (décision prudente + question notée), PC qui ne dort pas, rapport de retour par tâche avec Garder / Jeter.
+4. **Fiches** : `principal/fiches.js` (fiches de base, validation, fusion avec celles de l'utilisateur) ; le chantier lit les fiches au lieu de consignes en dur. Mesure avec le banc.
+5. **Explorateur ciblé** : type de projet et commande de tests (npm, Codeception, PHPUnit, pytest, Godot), `.catai/notes.md` court, avec accord. Mesure avec le banc.
+6. **Échelle de modèles** : copie remise au dernier commit valide, puis modèle suivant ; le rapport dit quel modèle a fait quoi.
+7. **Page Agents** : l'écran des tâches (file, en cours, retour), édition simple des fiches, remise de `PAGE_AGENTS = true`.
+8. Plus tard : la même file sur le homelab (PC éteint), lancée aussi depuis le terminal (`/tache`).

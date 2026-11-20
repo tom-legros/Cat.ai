@@ -139,3 +139,20 @@ test('chantier : limite de tours atteinte avec un diff, le travail est vérifié
   assert.equal(r.etapes[0].ok, true); assert.equal(r.etapes[0].essais, 1);
   assert.ok(infos.some((x) => /Limite de tours atteinte/.test(x)), infos.join('\n'));
 });
+test('chantier : tests réussis mais relecteur qui refuse jusqu au bout → étape gardée, marquée à vérifier ; sans test, abandonnée', async (t) => {
+  const refus = { id: 'relecteur', type: 'relecture', nom: 'Relecteur', envoyer: async () => ({ content: '{"ok":false,"remarque":"export mal nommé"}' }) };
+  // Avec un test du projet qui passe
+  const options = cadre(t);
+  fs.mkdirSync(path.join(options.projet, 'tests'));
+  fs.writeFileSync(path.join(options.projet, 'tests', 'ok.test.js'), "require('node:test')('ok', () => {});\n");
+  git(options.projet, 'add', '.');
+  git(options.projet, '-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '-qm', 'tests');
+  const avec = await lancerChantier({ ...options, codeurs: [codeur('a', true, [{ id: 'tests', type: 'tests' }, refus])] });
+  assert.equal(avec.etapes[0].ok, true);
+  assert.equal(avec.etapes[0].aVerifier, 'export mal nommé');
+  assert.equal(avec.etapes[0].essais, 3);
+  assert.match(avec.rapport, /\[fait, à vérifier\][\s\S]*Le relecteur doutait : export mal nommé/);
+  // Sans aucun test : le relecteur reste seul juge
+  const sans = await lancerChantier({ ...cadre(t), codeurs: [codeur('a', true, [{ id: 'tests', type: 'tests' }, refus])] });
+  assert.equal(sans.etapes[0].ok, false);
+});
