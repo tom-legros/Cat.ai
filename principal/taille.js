@@ -87,6 +87,23 @@ function compacter(messages, total) {
       if (m.role === 'user' && m.content.length > total / 3) m.content = raccourcir(m.content, total / 3);
     }
   }
+  // Une longue suite d'outils pour un seul message (un petit modèle qui relit les mêmes fichiers) : on retire les plus
+  // vieilles étapes (un appel et ses résultats), jamais la dernière, et on le dit au modèle au lieu d'abandonner.
+  let retirees = 0;
+  const dernierUtilisateur = liste.map((m) => m.role).lastIndexOf('user');
+  while (somme() > total) {
+    let i = dernierUtilisateur + 1;
+    while (i < liste.length && !(liste[i].role === 'assistant' && liste[i].tool_calls?.length)) i++;
+    let j = i + 1;
+    while (j < liste.length && liste[j].role === 'tool') j++;
+    if (i >= liste.length || j >= liste.length) break; // c'est la dernière étape : on la garde
+    liste.splice(i, j - i);
+    retirees++;
+  }
+  if (retirees && dernierUtilisateur >= 0) {
+    const m = liste[dernierUtilisateur];
+    m.content = `${m.content}\n\n(Note de l'app : ${retirees} étape(s) d'outils plus anciennes ont été retirées faute de place. Ne refais pas les mêmes lectures : réponds avec ce que tu as déjà trouvé.)`;
+  }
   if (somme() > total) throw new Error('Contexte trop volumineux : les consignes sont conservées. Réduis la mémoire ou les pièces jointes avant de réessayer.');
   return liste;
 }

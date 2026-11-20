@@ -7,14 +7,25 @@ const path = require('path');
 const { configurerStockage } = require('../principal/stockage');
 const { lireOptions, consignes, infosProjet } = require('../cli/catai');
 
-test('lireOptions : question, mode prof, modèle et dossier', () => {
-  const o = lireOptions(['--prof', '-m', 'qwen3:4b', 'explique', 'main.js']);
-  assert.equal(o.prof, true);
-  assert.equal(o.modele, 'qwen3:4b');
+test('lireOptions : plus d options à retenir, seulement la question (et --aide)', () => {
+  const o = lireOptions(['explique', 'main.js']);
   assert.equal(o.question, 'explique main.js');
   assert.equal(o.dossier, process.cwd());
-  assert.equal(lireOptions(['-d', '..']).dossier, path.resolve('..'));
   assert.equal(lireOptions(['--aide']).aide, true);
+});
+
+test('affichage : « ● » au début, lignes suivantes décalées, actions sous « ⎿ », Tab complète les commandes', () => {
+  const { creerSortie, completer } = require('../cli/catai');
+  let texte = '';
+  const sortie = creerSortie((t) => { texte += t; });
+  sortie.action('lit main.js');
+  sortie.texte('\nBonjour');
+  sortie.texte(' toi.\nDeuxième ligne');
+  sortie.fin();
+  assert.equal(texte.replace(/\x1b\[[0-9;]*m/g, ''), '  ⎿  lit main.js\n● Bonjour toi.\n  Deuxième ligne\n');
+  assert.deepEqual(completer('/mo')[0], ['/modele', '/modeles']);
+  assert.ok(completer('/')[0].includes('/chantier'));
+  assert.deepEqual(completer('bonjour')[0], []);
 });
 
 test('consignes : les mêmes que dans l app, avec le prénom, le dossier et le mode prof', () => {
@@ -65,4 +76,27 @@ test('commande : les commandes de la discussion changent les réglages, une inco
   assert.equal(await commande('/nimporte', { o, conversation }), true);
   assert.equal(await commande('/q', { o, conversation }), 'quitter');
   assert.equal(await commande('une vraie question', { o, conversation }), false);
+});
+
+test('filtre de réflexion : la réflexion en anglais avant « </think> » n est jamais écrite ; une vraie réponse passe', () => {
+  const { creerFiltrePensee } = require('../cli/catai');
+  const { langueProbable } = require('../principal/envoi');
+  let ecrit = '';
+  let f = creerFiltrePensee((t) => { ecrit += t; }, { langue: langueProbable });
+  for (const m of ["Okay, let's see. The user wants the capital of Australia. ", 'I know it is Canberra, but people often think of Sydney, so I should be careful here.', '</think>\n\nCanberra']) f.texte(m);
+  f.fin();
+  assert.equal(ecrit, 'Canberra');
+  // Une réponse en français passe telle quelle, dès que le début est vu
+  ecrit = '';
+  f = creerFiltrePensee((t) => { ecrit += t; }, { langue: langueProbable });
+  f.texte('La photosynthèse est le processus par lequel les plantes utilisent la lumière du soleil pour fabriquer leur nourriture. ');
+  f.texte('Suite.');
+  f.fin();
+  assert.equal(ecrit, 'La photosynthèse est le processus par lequel les plantes utilisent la lumière du soleil pour fabriquer leur nourriture. Suite.');
+  // Une réponse courte, finie avant la vérification, est écrite à la fin
+  ecrit = '';
+  f = creerFiltrePensee((t) => { ecrit += t; }, { langue: langueProbable });
+  f.texte('391');
+  f.fin();
+  assert.equal(ecrit, '391');
 });

@@ -71,9 +71,9 @@ Les clés gratuites (Gemini, Groq, OpenRouter) se collent dans **Réglages**, en
 Le même chat, sans fenêtre. Sous Windows, l'installateur ajoute la commande tout seul.
 
 ```bash
-catai                      # le chat s'ouvre dans le dossier courant, /aide pour ses commandes
+catai                      # le chat s'ouvre dans le dossier courant ; tape / pour ses commandes (/modele, /dossier, /prof, /chantier…)
 catai "explique main.js"   # une question, puis il rend la main
-catai chantier plan.md     # l'équipe d'agents code le plan dans une copie du projet
+# dans la discussion : /chantier plan.md fait coder le plan par l'équipe d'agents, dans une copie du projet
 ```
 
 Comme dans l'app, chaque modification de fichier est montrée avant d'être écrite et attend ton accord.

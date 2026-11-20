@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 // catai : Cat Ai dans le terminal, sur le dossier d'où on la lance.
 //
-//   catai                      discussion dans le terminal (/aide pour les commandes)
+//   catai                      discussion dans le terminal (/ pour les commandes : modèle, dossier, prof…)
 //   catai "explique main.js"   une seule question, puis on rend la main
-//   catai --prof               mode prof : pas de code donné, rien d'écrit ni de lancé
-//   catai -m qwen3:8b          un autre modèle
-//   catai -f gemini            un autre fournisseur (celui choisi dans l'app par défaut)
+//
+// Aucune option à retenir : tout se règle dans la discussion avec les commandes « / ». Sans fenêtre ni Chromium,
+// catai prend quelques dizaines de Mo de RAM : sur un petit PC, il laisse la place à un modèle plus gros.
 //
 // Même cerveau que l'app : les consignes (interface/personnalite.js), les outils et leurs garde-fous
 // (principal/agent.js). Seule l'interface change : les fenêtres de confirmation deviennent des questions o/n,
@@ -26,12 +26,18 @@ const racine = path.join(__dirname, '..');
 const { configurerStockage, readJson } = require(path.join(racine, 'principal/stockage'));
 const { listFiles, fichiersCites, contenuJoint } = require(path.join(racine, 'principal/fichiers'));
 const { LIMITES_OLLAMA, MAX_JOINT, raccourcir, listeCourte, limitesTaille } = require(path.join(racine, 'principal/taille'));
-const { OLLAMA, envoyerOllama } = require(path.join(racine, 'principal/envoi'));
+const { OLLAMA, envoyerOllama, langueProbable } = require(path.join(racine, 'principal/envoi'));
 const { discuter } = require(path.join(racine, 'principal/agent'));
 const { lireReglagesFournisseurs, infosFournisseur, listerModeles, FOURNISSEURS_DE_BASE } = require(path.join(racine, 'principal/fournisseurs'));
 const { equipeDepuis } = require(path.join(racine, 'principal/equipe'));
 const { agentsDuChantier, etatDepot, MESSAGES_DEPOT } = require(path.join(racine, 'principal/lancement'));
 const { hote, HOTES_LOCAUX } = require(path.join(racine, 'principal/gratuit'));
+const { creerEcran } = require('./ecran');
+
+// Plein écran (cli/ecran.js) : ouvert seulement pour une discussion dans un vrai terminal. Tout ce que catai écrit
+// passe par lui ; readline, lui, écrit directement la ligne de saisie.
+const ecran = creerEcran();
+const sortieEcran = (t) => ecran.ecrire(t);
 
 // ---------- Couleurs (seulement dans un vrai terminal, et jamais avec NO_COLOR) ----------
 const couleurs = process.stdout.isTTY && !process.env.NO_COLOR;
@@ -53,33 +59,17 @@ function dossierDonnees() {
 // ---------- Les options ----------
 const AIDE = `catai : Cat Ai dans le terminal, sur le dossier courant.
 
-  catai                      discuter : le chat reste ouvert dans le terminal (/aide pour ses commandes)
-  catai "ta question"        une seule question, puis on rend la main
-  catai --prof               mode prof : explications sans code, rien d'écrit ni de lancé
-  catai -m qwen3:8b          choisir le modèle
-  catai -f gemini            choisir le fournisseur (ollama, gemini, groq, openrouter…)
-  catai -d chemin/du/projet  travailler dans un autre dossier
+  catai                  discuter (tape / pour voir les commandes)
+  catai "ta question"    une seule question, puis on rend la main
 
-Chaque modification de fichier est montrée avant d'être écrite, et attend ton accord.
+Le modèle, le fournisseur, le dossier et le mode prof se changent dans la discussion (/modele, /fournisseur,
+/dossier, /prof). Chaque modification de fichier est montrée avant d'être écrite, et attend ton accord.`;
 
-Mode chantier (dans un projet git) : Cat Ai code seule, étape par étape, à partir d'un plan.
-  catai chantier plan.md             l'équipe de la page Agents : le chef découpe, les codeurs codent, les contrôles vérifient
-  catai chantier plan.md --chef gemini   le chef (sinon celui de la page Agents de l'app)
-  catai chantier plan.md -m qwen3:8b     le modèle du codeur sur ce PC (Ollama)
-  catai chantier plan.md --codeur gemini le codeur en ligne : plus fort, mais il prend sur le quota gratuit
-  catai chantier --jeter <nom>       supprime la copie et la branche d'un chantier
-Tout se passe dans une copie (une branche à part) : tes fichiers ne bougent pas. À la fin, un rapport
-dit ce qui a été fait, et tu gardes ce que tu veux (git merge).`;
-
+// Seulement la question : tout le reste se règle dans la discussion (commandes « / »)
 function lireOptions(argv) {
   const o = { prof: false, modele: null, fournisseur: null, dossier: process.cwd(), question: [] };
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
+  for (const a of argv) {
     if (a === '-h' || a === '--aide' || a === '--help') o.aide = true;
-    else if (a === '--prof') o.prof = true;
-    else if (a === '-m' || a === '--modele') o.modele = argv[++i];
-    else if (a === '-f' || a === '--fournisseur') o.fournisseur = argv[++i];
-    else if (a === '-d' || a === '--dossier') o.dossier = path.resolve(argv[++i] || '.');
     else o.question.push(a);
   }
   o.question = o.question.join(' ').trim();
@@ -177,14 +167,23 @@ function creerLecteur(rl, afficherReponses) {
   const enAttente = [];
   let fermee = false;
   // Sans vrai terminal, la réponse n'est pas affichée en la tapant : on l'écrit après l'invite, pour que ça se lise
-  const montrer = (l) => { if (afficherReponses) process.stdout.write(`${l}\n`); return l; };
+  const montrer = (l) => { if (afficherReponses) sortieEcran(`${l}\n`); return l; };
   rl.on('line', (l) => (enAttente.length ? enAttente.shift()(montrer(l)) : enAvance.push(l)));
   rl.on('close', () => { fermee = true; while (enAttente.length) enAttente.shift()(null); });
   return (invite) => {
     attenteActive?.();
-    process.stdout.write(invite);
-    if (enAvance.length) return Promise.resolve(montrer(enAvance.shift()));
-    if (fermee) return Promise.resolve(null);
+    const lignes = String(invite).split('\n');
+    const derniere = lignes.pop();
+    if (lignes.length) sortieEcran(`${lignes.join('\n')}\n`);
+    rl.setPrompt(derniere);
+    ecran.invite(derniere);
+    if (enAvance.length || fermee) {
+      sortieEcran(derniere);
+      return Promise.resolve(enAvance.length ? montrer(enAvance.shift()) : null);
+    }
+    rl.prompt(true);
+    // readline vient d'effacer le bas de l'écran (bas du cadre, aide) : on le remet
+    ecran.pied();
     return new Promise((resoudre) => enAttente.push(resoudre));
   };
 }
@@ -193,7 +192,7 @@ function creerUi(lire) {
   const oui = async (question) => /^(o|oui|y|yes)$/i.test(((await lire(`${question} ${gras('(o/N)')} `)) || '').trim());
   return {
     demander: async ({ titre, message, detail, accepter = 'Autoriser', attention }) => {
-      process.stdout.write(`\n${(attention ? jaune : gras)(`■ ${titre}`)}\n${message}\n${detail ? gris(detail) + '\n' : ''}`);
+      sortieEcran(`\n${(attention ? jaune : gras)(`■ ${titre}`)}\n${message}\n${detail ? gris(detail) + '\n' : ''}`);
       return oui(`${accepter} ?`);
     },
     // La fenêtre avant / après de l'app, en diff : - en rouge, + en vert, avec trois lignes autour de chaque changement
@@ -201,8 +200,8 @@ function creerUi(lire) {
       const { hunks } = structuredPatch(chemin, chemin, ancien, nouveau, '', '', { context: 3 });
       const lignes = hunks.flatMap((h) => [gris(`@@ ligne ${h.newStart} @@`), ...h.lines.map((l) => (l[0] === '+' ? vert(l) : l[0] === '-' ? rouge(l) : gris(l)))]);
       const MAX = 200;
-      process.stdout.write(`\n${gras(`■ ${existe ? 'Modifier' : 'Créer'} ${chemin}`)}\n${lignes.slice(0, MAX).join('\n')}\n`);
-      if (lignes.length > MAX) process.stdout.write(gris(`… et ${lignes.length - MAX} lignes de plus\n`));
+      sortieEcran(`\n${gras(`■ ${existe ? 'Modifier' : 'Créer'} ${chemin}`)}\n${lignes.slice(0, MAX).join('\n')}\n`);
+      if (lignes.length > MAX) sortieEcran(gris(`… et ${lignes.length - MAX} lignes de plus\n`));
       return oui(existe ? 'Appliquer cette modification ?' : 'Créer ce fichier ?');
     },
     choisirExecutable: async ({ titre }) => ((await lire(`${titre} (chemin complet, vide pour annuler) : `)) || '').trim().replace(/^"|"$/g, '') || null,
@@ -240,14 +239,14 @@ function creerAttente() {
     clearInterval(minuterie);
     minuterie = null;
     attenteActive = null;
-    process.stdout.write('\r\x1b[K');
+    sortieEcran('\r\x1b[K');
   };
   return {
     arreter,
     lancer() {
       if (minuterie || !process.stdout.isTTY) return;
       let n = 0;
-      const dessiner = () => process.stdout.write(`\r${gris(`  Miaou réfléchit ${IMAGES[n++ % IMAGES.length]}`)}`);
+      const dessiner = () => sortieEcran(`\r${gris(`  Miaou réfléchit ${IMAGES[n++ % IMAGES.length]}`)}`);
       dessiner();
       minuterie = setInterval(dessiner, 160);
       attenteActive = arreter;
@@ -256,13 +255,92 @@ function creerAttente() {
 }
 
 // ---------- Une réponse ----------
+// La sortie d'une réponse, comme dans Claude Code : « ● » devant le début, les lignes suivantes décalées de deux
+// espaces, les actions en gris sous « ⎿ ». Le texte arrive par morceaux : on suit où en est la ligne.
+function creerSortie(ecrireBrut = (t) => sortieEcran(t)) {
+  let etat = 'debut'; // debut : rien d'écrit ; milieu : au milieu d'une ligne ; nouvelle : au début d'une ligne
+  return {
+    texte(t) {
+      String(t || '').split('\n').forEach((morceau, i) => {
+        if (i > 0 && etat !== 'debut') { ecrireBrut('\n'); etat = 'nouvelle'; }
+        let m = morceau;
+        if (etat === 'debut') { m = m.replace(/^\s+/, ''); if (!m) return; ecrireBrut(`${jaune('●')} `); }
+        else if (!m) return;
+        else if (etat === 'nouvelle') ecrireBrut('  ');
+        ecrireBrut(m);
+        etat = 'milieu';
+      });
+    },
+    action(t) {
+      if (etat === 'milieu') ecrireBrut('\n');
+      ecrireBrut(`${gris(`  ⎿  ${t}`)}\n`);
+      if (etat !== 'debut') etat = 'nouvelle';
+    },
+    fin() { if (etat === 'milieu') ecrireBrut('\n'); },
+  };
+}
+
+// Certains modèles (qwen3:4b par exemple) réfléchissent même en mode Rapide, et n'écrivent que la fin de leur
+// réflexion (« </think> »). L'app efface alors ce qu'elle avait affiché ; un terminal ne peut pas effacer ce qui a
+// défilé. On garde donc de côté le début tant qu'il ressemble à une réflexion (balise <think>, ou un début en anglais),
+// et on n'écrit que ce qui suit « </think> ». Sans « </think> » à la fin, tout est écrit : rien n'est perdu.
+const AVANT_DE_DECIDER = 120;
+function creerFiltrePensee(ecrire, { langue = () => null } = {}) {
+  let etat = 'verif'; // verif : on regarde le début ; pensee : on attend </think> ; direct : on écrit tout
+  let tampon = '';
+  let ecrit = false;
+  const sortir = (t) => { if (t) { ecrit = true; ecrire(t); } };
+  return {
+    get ecrit() { return ecrit; },
+    texte(t) {
+      if (etat === 'direct') return sortir(t);
+      tampon += t;
+      const fin = tampon.indexOf('</think>');
+      if (fin >= 0) { etat = 'direct'; sortir(tampon.slice(fin + 8).replace(/^\s+/, '')); tampon = ''; return; }
+      if (etat === 'pensee') return;
+      if (/^\s*<think>/.test(tampon) || (tampon.length >= AVANT_DE_DECIDER && langue(tampon) === 'en')) { etat = 'pensee'; return; }
+      if (tampon.length >= AVANT_DE_DECIDER) { etat = 'direct'; sortir(tampon); tampon = ''; }
+    },
+    // Fin de la réponse : ce qui attend encore est écrit (sans la balise d'ouverture)
+    fin() { if (tampon) sortir(tampon.replace(/^\s*<think>/, '')); tampon = ''; etat = 'direct'; },
+    // L'agent a retiré la réflexion et renvoie la réponse propre : on l'écrit seulement si rien ne l'a déjà été
+    remplacer(t) { tampon = ''; etat = 'direct'; if (!ecrit) sortir(String(t || '').replace(/^\s+/, '')); },
+    enAttente: () => etat !== 'direct',
+  };
+}
+
+// La vitesse et la durée, en gris sous la réponse (Ollama seulement : il donne ses mesures)
+function ligneMesures(mesures, debut) {
+  const somme = (cle) => mesures.reduce((t, m) => t + (Number.isFinite(m[cle]) ? m[cle] : 0), 0);
+  const tokens = somme('eval_count');
+  const duree = somme('eval_duration');
+  const morceaux = [];
+  if (tokens && duree) morceaux.push(`${(tokens * 1e9 / duree).toFixed(1).replace('.', ',')} tokens/s`);
+  morceaux.push(`${((Date.now() - debut) / 1000).toFixed(1).replace('.', ',')} s`);
+  return gris(`  ${morceaux.join(' · ')}`);
+}
+
 async function repondre({ conversation, question, o, lire, signal }) {
   conversation.push({ role: 'user', content: question });
   const messages = [{ role: 'system', content: consignes(o) }, { role: 'system', name: 'contexte_projet', content: infosProjet(o.dossier, question) }, ...conversation];
-  let debutLigne = true;
+  const debut = Date.now();
+  const mesures = [];
   const attente = creerAttente();
-  const ecrire = (t) => { attente.arreter(); process.stdout.write(t); if (t) debutLigne = t.endsWith('\n'); };
-  const etiquette = (t) => { ecrire(`${debutLigne ? '' : '\n'}${gris(`  › ${t}`)}\n`); };
+  const sortie = creerSortie();
+  // La réflexion que certains modèles écrivent quand même est gardée de côté (voir creerFiltrePensee)
+  let filtre = creerFiltrePensee((t) => { attente.arreter(); sortie.texte(t); }, { langue: langueProbable });
+  // L'agent annonce qu'il retire ce qui a été affiché : soit la réflexion (la réponse propre suit aussitôt),
+  // soit un appel d'outil écrit en texte (rien ne suit)
+  let remplacement = false;
+  const ecrire = (t) => {
+    if (remplacement) { remplacement = false; filtre.remplacer(t); return; }
+    filtre.texte(t);
+  };
+  const annuler = () => {
+    remplacement = true;
+    queueMicrotask(() => { if (remplacement) { remplacement = false; etiquette("(c'était un appel d'outil)"); } });
+  };
+  const etiquette = (t) => { filtre.fin(); attente.arreter(); sortie.action(t); filtre = creerFiltrePensee((x) => { attente.arreter(); sortie.texte(x); }, { langue: langueProbable }); };
   const config = infosFournisseur(o.fournisseur);
   const ollama = config.type === 'ollama';
   const limites = ollama ? LIMITES_OLLAMA : limitesTaille(config);
@@ -270,7 +348,7 @@ async function repondre({ conversation, question, o, lire, signal }) {
   const envoyerVu = (envoyer) => (...args) => { attente.lancer(); return envoyer(...args); };
   const { fini, historique } = await discuter({
     messages, modele: o.modele, envoyer: envoyerVu(ollama ? envoyerOllama : envoyeurParApp(o.fournisseur)), limites,
-    options: { projet: true, documents: false, connecteur: !!readJson('settings.json', {}).adresseMcp },
+    options: { projet: true, documents: false, connecteur: !!readJson('settings.json', {}).adresseMcp, ...(ollama ? { onStatistiques: (m) => mesures.push(m) } : {}) },
     ctx: {
       projet: () => o.dossier, ouvrirProjet: (d) => { o.dossier = d; }, reglages: () => readJson('settings.json', {}),
       dossierDocuments: path.join(dossierDonnees(), 'documents'), ui: creerUi(lire), prof: o.prof, liensDonnes: [], documentsJoints: new Set(),
@@ -279,41 +357,18 @@ async function repondre({ conversation, question, o, lire, signal }) {
     ev: {
       morceau: ecrire,
       // Un appel d'outil écrit en texte a été affiché : dans un terminal on ne peut pas l'effacer, on le dit
-      annuler: () => etiquette("(c'était un appel d'outil)"),
+      annuler,
       outil: (nom, args) => { const f = ETIQUETTES[nom]; if (f) etiquette(f(args || {})); },
       pause: (s) => etiquette(`pause de ${s} s demandée par le fournisseur`),
     },
-  }).finally(() => attente.arreter());
-  if (!debutLigne) process.stdout.write('\n');
-  if (!fini) process.stdout.write(jaune('(trop d\'étapes : demande-lui de continuer)\n'));
+  }).finally(() => { filtre.fin(); attente.arreter(); sortie.fin(); });
+  if (!fini) sortieEcran(jaune('  (trop d\'étapes : demande-lui de continuer)\n'));
+  sortieEcran(`${ligneMesures(mesures, debut)}\n`);
   // On garde la réponse finale pour la suite de la discussion, sans les résultats d'outils (trop lourds)
   conversation.push({ role: 'assistant', content: historique.at(-1)?.content || '' });
 }
 
-// ---------- Le programme ----------
-// ---------- Mode chantier ----------
-async function chantier(argv) {
-  const { jeterChantier } = require(path.join(racine, 'principal/chantier'));
-  const o = { chef: null, modele: null, dossier: process.cwd(), plan: null, jeter: null };
-  for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === '--chef') o.chef = argv[++i];
-    else if (argv[i] === '--codeur') o.codeur = argv[++i];
-    else if (argv[i] === '-m' || argv[i] === '--modele') o.modele = argv[++i];
-    else if (argv[i] === '-d' || argv[i] === '--dossier') o.dossier = path.resolve(argv[++i] || '.');
-    else if (argv[i] === '--jeter') o.jeter = argv[++i];
-    else o.plan = argv[i];
-  }
-  if (o.jeter) {
-    const { branche, copie } = jeterChantier(o.dossier, o.jeter);
-    process.stdout.write(`Jeté : branche ${branche}${copie ? ` et copie ${copie}` : ''}.\n`);
-    return 0;
-  }
-  if (!o.plan || !fs.existsSync(o.plan)) { process.stderr.write(rouge('Donne le fichier du plan : catai chantier plan.md\n')); return 1; }
-  const arret = new AbortController();
-  process.on('SIGINT', () => { process.stdout.write(jaune('\nArrêt du chantier demandé…\n')); arret.abort(); });
-  return faireChantier({ dossier: o.dossier, plan: fs.readFileSync(o.plan, 'utf8'), chefForce: o.chef, modeleForce: o.modele, codeurForce: o.codeur, signal: arret.signal });
-}
-
+// ---------- Mode chantier (/chantier dans la discussion) ----------
 // Lance l'équipe de la page Agents sur un plan, dans une copie du dossier. Renvoie 0 si le chantier a tourné.
 async function faireChantier({ dossier, plan, chefForce, modeleForce, codeurForce, signal }) {
   const { lancerChantier } = require(path.join(racine, 'principal/chantier'));
@@ -324,53 +379,105 @@ async function faireChantier({ dossier, plan, chefForce, modeleForce, codeurForc
   const { chef, codeurs, resume } = agentsDuChantier({
     reglages: lireReglagesFournisseurs(), infos: infosFournisseur, envoyerLocal: envoyerOllama, envoyerEnLigne: envoyeurParApp,
     limitesLocales: LIMITES_OLLAMA, limitesEnLigne: (id) => limitesTaille(infosFournisseur(id)), chefForce, modeleForce, codeurForce,
-    dire: (texte) => process.stdout.write(jaune(`${texte}\n`)),
+    dire: (texte) => sortieEcran(jaune(`${texte}\n`)),
   });
-  if (depot.modifs) process.stdout.write(jaune(`Attention : ${depot.modifs} fichier(s) modifié(s) mais pas enregistré(s) dans git ne seront pas dans la copie.\n`));
-  process.stdout.write(`${gras('Chantier')} ${gris(`· ${resume}`)}\n`);
+  if (depot.modifs) sortieEcran(jaune(`Attention : ${depot.modifs} fichier(s) modifié(s) mais pas enregistré(s) dans git ne seront pas dans la copie.\n`));
+  sortieEcran(`${gras('Chantier')} ${gris(`· ${resume}`)}\n`);
   const debut = Date.now();
   const r = await lancerChantier({
     projet: dossier, plan, chef, codeurs,
     dossierCopies: path.join(dossierDonnees(), 'chantiers'), signal,
     ev: {
-      etape: (i, n, titre) => process.stdout.write(`\n${gras(`Étape ${i}/${n}`)} ${titre}\n`),
-      info: (t) => process.stdout.write(gris(`${t}\n`)),
+      etape: (i, n, titre) => sortieEcran(`\n${gras(`Étape ${i}/${n}`)} ${titre}\n`),
+      info: (t) => sortieEcran(gris(`${t}\n`)),
     },
   });
   const fichier = path.join(dossierDonnees(), 'chantiers', `${r.branche.replace('catai/', '')}.md`);
   fs.writeFileSync(fichier, `${r.rapport}\n\nDurée : ${Math.round((Date.now() - debut) / 60000)} min.\n`);
-  process.stdout.write(`\n${r.rapport}\n\n${gris(`Rapport enregistré : ${fichier}`)}\n`);
+  sortieEcran(`\n${r.rapport}\n\n${gris(`Rapport enregistré : ${fichier}`)}\n`);
   return 0;
 }
 
 // ---------- Les commandes de la discussion ----------
-const AIDE_DISCUSSION = `  /chantier plan.md   lance l'équipe sur un plan (un fichier, ou le plan écrit à la suite)
-  /equipe             qui fait quoi pendant un chantier
-  /modeles            les modèles installés sur ce PC
-  /modele <nom>       changer de modèle        /fournisseur <nom>   changer de fournisseur
-  /dossier <chemin>   changer de dossier       /prof                mode prof oui / non
-  /oublier            nouvelle discussion      /quitter             sortir
-  Ctrl+C arrête la réponse en cours ; une seconde fois, on quitte.`;
+// [nom, ce qu'on peut écrire après, à quoi elle sert] : sert à /aide et à la complétion par Tab
+const COMMANDES_CLI = [
+  ['/modele', '<nom>', 'changer de modèle'],
+  ['/modeles', '', 'les modèles installés sur ce PC'],
+  ['/fournisseur', '<nom>', 'changer de fournisseur (ollama, gemini, groq…)'],
+  ['/dossier', '<chemin>', 'travailler dans un autre dossier'],
+  ['/prof', '', 'mode prof oui / non'],
+  ['/oublier', '', 'nouvelle discussion'],
+  ['/chantier', '<plan.md>', "l'équipe code un plan dans une copie git"],
+  ['/jeter', '<nom>', "supprime la copie et la branche d'un chantier"],
+  ['/equipe', '', 'qui fait quoi pendant un chantier'],
+  ['/aide', '', 'cette liste'],
+  ['/quitter', '', 'sortir'],
+];
+const AIDE_DISCUSSION = [
+  ...COMMANDES_CLI.map(([nom, suite, texte]) => `  ${jaune(nom.padEnd(13))}${gris(suite.padEnd(12))}${texte}`),
+  '',
+  gris('  Tab complète une commande · Ctrl+C arrête la réponse, deux fois pour quitter'),
+].join('\n');
 
-// Le chat, en pixels, pour l'accueil
-const CHAT = ['  /\\_/\\ ', ' ( o.o )', '  > ^ < '];
+// Tab : les commandes qui commencent par ce qu'on a tapé (toutes si on n'a tapé que « / »)
+function completer(ligne) {
+  if (!ligne.startsWith('/') || /\s/.test(ligne)) return [[], ligne];
+  const noms = COMMANDES_CLI.map(([nom]) => nom);
+  const trouvees = noms.filter((nom) => nom.startsWith(ligne.toLowerCase()));
+  return [trouvees.length ? trouvees : noms, ligne];
+}
 
+// Largeur visible d'un texte (sans les codes de couleur)
+const largeur = (t) => [...String(t).replace(/\x1b\[[0-9;]*m/g, '')].length;
+const colonnes = () => Math.max(40, Math.min(process.stdout.columns || 80, 100));
+const dossierCourt = (d) => {
+  const maison = os.homedir();
+  return d === maison || d.startsWith(maison + path.sep) ? '~' + d.slice(maison.length) : d;
+};
+const etat = (o) => `${o.modele} · ${infosFournisseur(o.fournisseur)?.nom || o.fournisseur}${o.prof ? ' · mode prof' : ''}`;
+
+// Le chat, en caractères, pour l'accueil
+const CHAT = [' /\\_/\\ ', '( o.o )', ' > ^ < '];
+
+// L'accueil : un cadre arrondi avec le chat, le modèle et le dossier, comme Claude Code
 function accueil(o) {
-  const infos = [gras('Cat Ai'), gris(`${o.fournisseur} · ${o.modele}${o.prof ? ' · mode prof' : ''}`), gris(o.dossier)];
-  process.stdout.write(`\n${CHAT.map((l, i) => `${jaune(l)}  ${infos[i]}`).join('\n')}\n\n${gris('Écris ta demande. /aide pour les commandes.')}\n`);
+  const lignes = [gras('Cat Ai'), gris(etat(o)), gris(dossierCourt(o.dossier))];
+  const interieur = Math.min(colonnes() - 4, Math.max(...lignes.map((l, i) => largeur(CHAT[i]) + 3 + largeur(l))) + 2);
+  const bord = (g, d) => gris(`${g}${'─'.repeat(interieur + 2)}${d}`);
+  const corps = lignes.map((l, i) => {
+    const contenu = `${jaune(CHAT[i])}   ${l}`;
+    return `${gris('│')} ${contenu}${' '.repeat(Math.max(0, interieur - largeur(contenu)))} ${gris('│')}`;
+  });
+  sortieEcran(`\n${bord('╭', '╮')}\n${corps.join('\n')}\n${bord('╰', '╯')}\n`);
+  if (ecran.ouvert) ecran.aide('/ pour les commandes · Tab pour compléter · Ctrl+C pour arrêter');
+  else sortieEcran(`${gris('  / pour les commandes · Tab pour compléter · Ctrl+C pour arrêter')}\n`);
+}
+
+// Avant chaque question : une ligne avec le modèle et le dossier, puis l'invite « ❯ »
+function invite(o) {
+  if (ecran.ouvert) { ecran.statut(`${etat(o)} · ${dossierCourt(o.dossier)}`); return ` ${jaune('❯')} `; }
+  const titre = ` ${etat(o)} · ${dossierCourt(o.dossier)} `;
+  const reste = Math.max(2, colonnes() - largeur(titre) - 2);
+  return `\n${gris(`──${titre}${'─'.repeat(reste)}`)}\n${jaune('❯')} `;
 }
 
 // Une commande « /… » de la discussion. Renvoie 'quitter', ou true si la ligne était une commande.
 async function commande(ligne, { o, conversation, lancer }) {
-  const [nom, ...reste] = ligne.split(/\s+/);
-  const suite = ligne.slice(nom.length).trim();
-  const dire = (texte) => process.stdout.write(`${gris(texte)}\n`);
+  const [brut, ...reste] = ligne.split(/\s+/);
+  const nom = brut.toLowerCase();
+  const suite = ligne.slice(brut.length).trim();
+  const dire = (texte) => sortieEcran(`${gris(texte)}\n`);
   switch (nom) {
     case '/quitter': case '/q': case '/exit': return 'quitter';
-    case '/aide': case '/help': dire(AIDE_DISCUSSION); return true;
+    case '/': case '/aide': case '/help': sortieEcran(`${AIDE_DISCUSSION}\n`); return true;
     case '/prof': o.prof = !o.prof; dire(`mode prof ${o.prof ? 'activé' : 'désactivé'}`); return true;
-    case '/oublier': conversation.length = 0; dire('nouvelle discussion'); return true;
-    case '/modele': o.modele = reste[0] || o.modele; dire(`modèle : ${o.modele}`); return true;
+    case '/oublier': case '/nouveau': conversation.length = 0; dire('nouvelle discussion'); return true;
+    case '/modele': case '/modèle': {
+      if (!reste[0]) { dire(`modèle : ${o.modele} (/modeles pour la liste)`); return true; }
+      o.modele = reste[0];
+      dire(`modèle : ${o.modele}`);
+      return true;
+    }
     case '/fournisseur': {
       if (!reste[0] || !infosFournisseur(reste[0])) { dire(`fournisseurs : ${FOURNISSEURS_DE_BASE.map((f) => f.id).join(', ')}`); return true; }
       o.fournisseur = reste[0];
@@ -393,7 +500,7 @@ async function commande(ligne, { o, conversation, lancer }) {
       const equipe = equipeDepuis(lireReglagesFournisseurs(), infosFournisseur).agents;
       const ligneDe = (a, niveau) => `${'  '.repeat(niveau + 1)}${a.nom}${a.modele ? gris(` · ${a.fournisseur === 'ollama' ? '' : `${a.fournisseur} `}${a.modele}`) : ''}`;
       const dessiner = (parent, niveau) => equipe.filter((a) => a.parent === parent).flatMap((a) => [ligneDe(a, niveau), ...dessiner(a.id, niveau + 1)]);
-      process.stdout.write(`${dessiner(null, 0).join('\n')}\n${gris("  (l'équipe se compose dans la page Agents de l'app)")}\n`);
+      sortieEcran(`${dessiner(null, 0).join('\n')}\n${gris("  (l'équipe se compose dans la page Agents de l'app)")}\n`);
       return true;
     }
     case '/chantier': {
@@ -403,17 +510,22 @@ async function commande(ligne, { o, conversation, lancer }) {
       await lancer((signal) => faireChantier({ dossier: o.dossier, plan, signal }));
       return true;
     }
+    case '/jeter': {
+      if (!reste[0]) { dire('Donne le nom du chantier : /jeter <nom> (il est dans le rapport du chantier).'); return true; }
+      const { branche, copie } = require(path.join(racine, 'principal/chantier')).jeterChantier(o.dossier, reste[0]);
+      dire(`jeté : branche ${branche}${copie ? ` et copie ${copie}` : ''}`);
+      return true;
+    }
     default:
-      if (nom.startsWith('/')) { dire(`commande inconnue : ${nom} (/aide pour la liste)`); return true; }
+      if (nom.startsWith('/')) { dire(`commande inconnue : ${nom} (tape / pour la liste)`); return true; }
       return false;
   }
 }
 
 async function principal() {
   configurerStockage({ dossier: dossierDonnees() });
-  if (process.argv[2] === 'chantier') return chantier(process.argv.slice(3));
   const o = lireOptions(process.argv.slice(2));
-  if (o.aide) { process.stdout.write(`${AIDE}\n`); return 0; }
+  if (o.aide) { sortieEcran(`${AIDE}\n`); return 0; }
   // Par défaut, le fournisseur et le modèle choisis dans l'app
   const reglages = lireReglagesFournisseurs();
   o.fournisseur ||= reglages.actif;
@@ -426,7 +538,7 @@ async function principal() {
     return 1;
   }
   const entree = entreeClavier();
-  const rl = readline.createInterface({ input: entree, output: process.stdout, terminal: entree === process.stdin ? undefined : !!entree.isTTY });
+  const rl = readline.createInterface({ input: entree, output: process.stdout, completer, terminal: entree === process.stdin ? undefined : !!entree.isTTY });
   // Une entrée redirigée ne s'affiche pas : on écrit la réponse après la question (la console, elle, l'affiche déjà)
   const lire = creerLecteur(rl, entree === process.stdin && !process.stdin.isTTY);
   const conversation = [];
@@ -434,7 +546,7 @@ async function principal() {
   // directement, Ctrl+C arrive comme un signal du processus, pas par readline : on écoute les deux.
   let enCours = null;
   const surCtrlC = () => {
-    if (enCours && !enCours.signal.aborted) { enCours.abort(); process.stdout.write(gris('\n(arrêté)\n')); } else { rl.close(); process.exit(0); }
+    if (enCours && !enCours.signal.aborted) { enCours.abort(); sortieEcran(gris('\n(arrêté)\n')); } else { ecran.fermer(); rl.close(); process.exit(0); }
   };
   rl.on('SIGINT', surCtrlC);
   process.on('SIGINT', surCtrlC);
@@ -444,30 +556,36 @@ async function principal() {
     try {
       await travail(enCours.signal);
     } catch (err) {
-      if (err.name !== 'AbortError') process.stdout.write(rouge(`\nErreur : ${err.message}\n`));
+      if (err.name !== 'AbortError') sortieEcran(rouge(`\nErreur : ${err.message}\n`));
       siErreur();
     } finally { enCours = null; }
   };
   const unTour = (question) => lancer((signal) => repondre({ conversation, question, o, lire, signal }), () => conversation.pop());
   try {
     if (o.question) { await unTour(o.question); return 0; }
+    // Une vraie discussion : plein écran, comme « claude » (on retrouve le terminal d'avant en sortant)
+    ecran.attacher(rl);
+    ecran.ouvrir();
     accueil(o);
     for (;;) {
-      let ligne = await lire(`\n${vert('toi ›')} `);
+      let ligne = await lire(invite(o));
       if (ligne === null) return 0; // entrée fermée
       ligne = ligne.trim();
       if (!ligne) continue;
+      // Ce qu'on vient d'écrire monte dans la conversation, et le champ se vide
+      if (ecran.ouvert) { ecran.invite(''); sortieEcran(`\n${jaune('❯')} ${gras(ligne)}\n`); }
       const fait = await commande(ligne, { o, conversation, lancer });
       if (fait === 'quitter') return 0;
       if (fait) continue;
-      process.stdout.write('\n');
+      sortieEcran('\n');
       await unTour(ligne);
     }
   } finally {
+    ecran.fermer();
     rl.close();
   }
 }
 
-if (require.main === module) principal().then((code) => process.exit(code), (err) => { process.stderr.write(`${err.stack || err}\n`); process.exit(1); });
+if (require.main === module) principal().then((code) => { ecran.fermer(); process.exit(code); }, (err) => { ecran.fermer(); process.stderr.write(`${err.stack || err}\n`); process.exit(1); });
 
-module.exports = { lireOptions, dossierDonnees, consignes, infosProjet, commande };
+module.exports = { lireOptions, dossierDonnees, consignes, infosProjet, commande, creerSortie, creerFiltrePensee, ligneMesures, completer, COMMANDES_CLI };

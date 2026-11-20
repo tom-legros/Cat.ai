@@ -189,3 +189,21 @@ test('compacter : garde résumé, rappel Prof et liens des appels multiples', ()
   assert.deepEqual(r.find(m => m.tool_calls).tool_calls, messages[4].tool_calls);
   assert.ok(total(r) <= 16000);
 });
+
+test('compacter : une longue suite d outils pour un seul message retire les plus vieilles étapes au lieu d abandonner', () => {
+  const { compacter } = require('../principal/taille');
+  const messages = [{ role: 'system', content: 'C'.repeat(500) }, { role: 'user', content: 'regarde le projet' }];
+  for (let i = 0; i < 20; i++) {
+    messages.push({ role: 'assistant', content: 'Je regarde encore un fichier, puis un autre, pour bien comprendre la structure. '.repeat(3), tool_calls: [{ function: { name: 'lire_fichier', arguments: { chemin: `f${i}.js` } } }] });
+    messages.push({ role: 'tool', content: 'x'.repeat(2000) });
+  }
+  const r = compacter(messages, 6000);
+  const taille = r.reduce((n, m) => n + JSON.stringify(m).length, 0);
+  assert.ok(taille <= 6500, String(taille));
+  assert.equal(r[0].content, 'C'.repeat(500)); // les consignes restent
+  assert.match(r[1].content, /étape\(s\) d'outils plus anciennes ont été retirées/);
+  // La dernière étape (appel + résultat) est toujours là, et chaque résultat suit son appel
+  assert.equal(r.at(-1).role, 'tool');
+  assert.ok(r.at(-2).tool_calls?.[0].function.arguments.chemin === 'f19.js');
+  r.forEach((m, i) => { if (m.role === 'tool') assert.ok(r[i - 1].role === 'tool' || r[i - 1].tool_calls); });
+});

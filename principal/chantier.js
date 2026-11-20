@@ -397,7 +397,7 @@ function rapportChantier({ branche, copie, etapes, resultats, racine }) {
     const r = resultats[i];
     lignes.push(`${i + 1}. ${r ? (r.ok ? '[fait]' : '[bloqué]') : '[pas commencé]'} ${e.titre}${r && !r.ok && r.raison ? `\n   Raison : ${r.raison.split('\nSortie complète')[0].replace(/\n+/g, ' / ').slice(0, 400)}` : ''}`);
   });
-  lignes.push('', `Le travail est sur la branche ${branche}, dans ${copie}.`, '', 'Pour voir les changements :', `  git -C "${racine}" diff HEAD...${branche}`, 'Pour les garder :', `  git -C "${racine}" merge ${branche}`, 'Pour tout jeter (la copie et la branche) :', `  catai chantier --jeter ${branche.replace('catai/chantier-', '')}`);
+  lignes.push('', `Le travail est sur la branche ${branche}, dans ${copie}.`, '', 'Pour voir les changements :', `  git -C "${racine}" diff HEAD...${branche}`, 'Pour les garder :', `  git -C "${racine}" merge ${branche}`, 'Pour tout jeter (la copie et la branche), dans catai :', `  /jeter ${branche.replace('catai/chantier-', '')}`);
   return lignes.join('\n');
 }
 
