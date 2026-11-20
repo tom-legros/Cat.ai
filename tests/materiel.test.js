@@ -10,6 +10,9 @@ test('modeleConseille : le modèle intégré par Cat Ai dès qu’il tient, sino
   assert.equal(modeleConseille({ vramGo: 8, ramGo: 16 }).modele, 'qwen3.5:9b'); // une carte de 8 Go
   assert.equal(modeleConseille({ vramGo: 6, ramGo: 16 }).modele, 'qwen3.5:4b');
   assert.equal(modeleConseille({ vramGo: null, ramGo: 8 }).modele, 'qwen3.5:2b');
+  // Petit portable sans carte (5,7 Go) : un modèle classique léger, qui garde ses consignes en cache
+  assert.equal(modeleConseille({ vramGo: 0, ramGo: 6 }).modele, 'qwen3:1.7b');
+  assert.equal(modeleConseille({ vramGo: 6, ramGo: 6 }).modele, 'qwen3.5:4b');
 });
 
 test('modeleConseille : sans vraie carte graphique et avec peu de RAM, Gemini est conseillé à côté', () => {

@@ -22,6 +22,9 @@ const MODELES_QWEN = [
 // est réglé pour Qwen). Tous savent se servir des outils du chat. Tailles lues sur ollama.com (novembre 2026).
 // usage : ce pour quoi on le prend, affiché en filtre.
 const AUTRES_MODELES = [
+  // Petit PC sans carte graphique (mesuré avec Ollama le 20 novembre 2026, processeur seul, 2 cœurs, pas encore dans l'app) : 19 mots/s, français juste,
+  // et, modèle classique, il réutilise sa lecture des consignes (qwen3.5 « hybride » doit tout relire à chaque message)
+  { modele: 'qwen3:1.7b', taille: 1.4, vram: 2, usage: 'general', raison: 'petit PC sans carte graphique' },
   { modele: 'qwen3:0.6b', taille: 0.523, vram: 2, usage: 'general', raison: 'texte simple avec très peu de mémoire' },
   { modele: 'qwen3.6:35b', taille: 23, vram: 28, usage: 'code', raison: 'code et outils sur une grosse carte' },
   { modele: 'qwen3.5:0.8b', taille: 1.2, tailleMax: 1.3, vram: 3, usage: 'general', raison: 'petites tâches de texte et d’image' },
@@ -50,8 +53,11 @@ const USAGE_QWEN = { 'qwen3.6:27b': 'code', 'qwen3:14b': 'general', 'qwen3.5:9b'
 // teste : passé dans la vraie app (19 novembre 2026, carte de 8 Go) : réponse en français, tableau Markdown rendu,
 // bloc de code juste. Les autres restent « Conseillé » ou « Rapide » tant qu'on ne les a pas essayés.
 const MODELE_INTEGRE = MODELES_QWEN.find((m) => m.integre);
+// Sans carte graphique et avec moins de 8 Go de RAM, qwen3.5:2b (2,7 Go, hybride) est trop lourd et relit tout à chaque message
+const MODELE_PETIT_PC = AUTRES_MODELES.find((m) => m.modele === 'qwen3:1.7b');
 function modeleConseille({ vramGo, ramGo }) {
-  const choix = (vramGo || 0) >= MODELE_INTEGRE.vram ? MODELE_INTEGRE : MODELES_QWEN.find((m) => (vramGo || 0) >= m.vram);
+  let choix = (vramGo || 0) >= MODELE_INTEGRE.vram ? MODELE_INTEGRE : MODELES_QWEN.find((m) => (vramGo || 0) >= m.vram);
+  if (choix.vram === 0 && (ramGo || 0) < 8) choix = MODELE_PETIT_PC;
   return { ...choix, vramGo: vramGo || 0, geminiMieux: (vramGo || 0) < 5 && (ramGo || 0) < 16 };
 }
 

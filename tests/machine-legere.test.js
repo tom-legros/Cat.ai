@@ -89,7 +89,7 @@ test('envoi et préchauffage appliquent les mêmes allègements', () => {
 test('petite machine : l envoi attend le préchauffage au lieu de l arrêter, un préchauffage n en remplace pas un autre', () => {
   const main = lire('main.js');
   assert.match(main, /if \(!LEGERE\) prechauffage\?\.arret\.abort\(\);\s*libererOllama = await fileOllama\.prendre\(\{ signal: controller\.signal,/);
-  assert.match(main, /if \(LEGERE && prechauffage\) return false;\s*prechauffage\?\.arret\.abort\(\);/);
+  assert.match(main, /if \(LEGERE && prechauffage\) return false;[\s\S]{0,700}?\n  prechauffage\?\.arret\.abort\(\);/);
 });
 
 test('petite machine : réponses courtes demandées, l interface laisse le processeur au modèle', () => {
@@ -119,4 +119,26 @@ test('chat.js : la boucle saute les images selon la cadence et s arrête pendant
   ChatNoir.enPause = () => true;
   suivante(400);
   assert.deepEqual(images, [0, 101, 202]);
+});
+
+test('cacheReutilisable : qwen3.5 (ssm/recurrent) et gemma4 (sliding_window) non, qwen3 oui ; une seule question par modèle', async () => {
+  const { cacheReutilisable, cacheConnu } = require('../principal/machine-legere');
+  const infos = {
+    'qwen3.5:0.8b': { 'general.architecture': 'qwen35', 'qwen35.attention.recurrent_layers': 18, 'qwen35.ssm.state_size': 128 },
+    'gemma4:e4b': { 'general.architecture': 'gemma4', 'gemma4.attention.sliding_window': 512 },
+    'qwen3:1.7b': { 'general.architecture': 'qwen3', 'qwen3.attention.head_count': 16 },
+  };
+  let questions = 0;
+  const requete = async (_url, init) => { questions++; return { ok: true, json: async () => ({ model_info: infos[JSON.parse(init.body).model] }) }; };
+  assert.equal(cacheConnu('qwen3:1.7b'), undefined);
+  assert.equal(await cacheReutilisable('http://x', 'qwen3.5:0.8b', { requete }), false);
+  assert.equal(await cacheReutilisable('http://x', 'gemma4:e4b', { requete }), false);
+  assert.equal(await cacheReutilisable('http://x', 'qwen3:1.7b', { requete }), true);
+  assert.equal(await cacheReutilisable('http://x', 'qwen3:1.7b', { requete }), true);
+  assert.equal(questions, 3);
+  assert.equal(cacheConnu('qwen3.5:0.8b'), false);
+  // Ollama ne répond pas : on préchauffe comme avant, sans retenir la réponse
+  assert.equal(await cacheReutilisable('http://x', 'autre', { requete: async () => { throw new Error('éteint'); } }), true);
+  assert.equal(cacheConnu('autre'), undefined);
+  assert.match(lire('main.js'), /if \(LEGERE && cacheConnu\(modele\) === false\) return false;/);
 });

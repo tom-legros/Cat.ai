@@ -51,4 +51,24 @@ async function dechargerAutres(adresse, modele, { requete = fetch, signal } = {}
     }
 }
 
-module.exports = { BREF, SEUIL_RAM, machineLegere, allegerConsignes, allegerMessages, dechargerAutres };
+// Certains modèles ne peuvent pas réutiliser une lecture déjà faite : les « hybrides » (qwen3.5, couches ssm /
+// recurrent) et ceux à fenêtre glissante (gemma4, sliding_window). Ollama le dit dans son journal : « forcing full
+// prompt re-processing due to lack of cache data ». Sur une petite machine, les préchauffer ne sert à rien :
+// le processeur lit les consignes pour rien, puis la réponse doit tout relire.
+const CACHE_IMPOSSIBLE = /\.ssm\.|recurrent|sliding_window/;
+const caches = new Map();
+const cacheConnu = (modele) => caches.get(modele);
+async function cacheReutilisable(adresse, modele, { requete = fetch } = {}) {
+    if (caches.has(modele)) return caches.get(modele);
+    try {
+        const res = await requete(`${adresse}/api/show`, { method: 'POST', body: JSON.stringify({ model: modele }) });
+        if (!res.ok) return true;
+        const ok = !Object.keys((await res.json()).model_info || {}).some((cle) => CACHE_IMPOSSIBLE.test(cle));
+        caches.set(modele, ok);
+        return ok;
+    } catch {
+        return true; // dans le doute, on préchauffe comme avant
+    }
+}
+
+module.exports = { cacheConnu, cacheReutilisable, BREF, SEUIL_RAM, machineLegere, allegerConsignes, allegerMessages, dechargerAutres };

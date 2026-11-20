@@ -29,7 +29,7 @@ const { BINAIRES, lireTexteDocument, texteJointDocument, idValide } = require('.
 // Textes extraits des PDF et longs fichiers glissés dans la discussion
 const DOSSIER_DOCUMENTS = () => path.join(app.getPath('userData'), 'documents');
 const { OLLAMA, GARDER_CHARGE, LEGERE, optionsOllama, sansReflexion, REFLEXION, envoyerOllama, envoyerOpenAI, vulkanUtile } = require('./principal/envoi');
-const { allegerMessages, dechargerAutres } = require('./principal/machine-legere');
+const { allegerMessages, dechargerAutres, cacheConnu, cacheReutilisable } = require('./principal/machine-legere');
 const {
   FOURNISSEURS_DE_BASE, lireReglagesFournisseurs, infosFournisseur, configFournisseur, versInterface,
   etatChiffrement, chiffrer, messageCleIllisible, formatDouteux, avertissementFormat, marquerModeleCasse, listerModeles,
@@ -658,6 +658,13 @@ function prechaufferOllama({ modele, consignes, contexteProjet = '', prof }) {
   if (fileOllama.occupee) return false;
   // Petite machine : un préchauffage en cours n'est jamais remplacé (Ollama finirait quand même sa lecture)
   if (LEGERE && prechauffage) return false;
+  // Petite machine : un modèle qui ne peut pas réutiliser sa lecture (hybride, fenêtre glissante) n'est pas préchauffé.
+  // La première fois, on demande son architecture à Ollama, puis on revient ici.
+  if (LEGERE && cacheConnu(modele) === false) return false;
+  if (LEGERE && cacheConnu(modele) === undefined) {
+    cacheReutilisable(OLLAMA, modele).then((ok) => { if (ok) prechaufferOllama({ modele, consignes, contexteProjet, prof }); });
+    return false;
+  }
   prechauffage?.arret.abort();
   const arret = new AbortController();
   const debut = Date.now();
