@@ -147,6 +147,8 @@ const outilsPour = (mode) => TOOLS.filter(({ function: { name } }) => {
   if (Array.isArray(mode?.seulement) && !mode.seulement.includes(name)) return false;
   if (mode?.projet === false && OUTILS_PROJET.has(name)) return false;
   if (mode?.documents === false && name === 'lire_document') return false;
+  // Petite machine (principal/machine-legere.js) : ni web, ni autre dossier, ni connecteur
+  if (mode?.legere && !OUTILS_PROJET.has(name) && name !== 'lire_document') return false;
   if (OUTILS_MCP.has(name)) return mode?.connecteur === true;
   if ((name === 'lancer_tests' || name === 'verifier_godot')) return peutEcrire(mode);
   return peutEcrire(mode) || !OUTILS_ECRITURE.has(name);

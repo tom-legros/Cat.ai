@@ -2,6 +2,7 @@
 // Les deux renvoient le même format, pour que la boucle d'outils de main.js ne voie pas la différence.
 const { outilsPour } = require('./outils');
 const { limitesTaille } = require('./taille');
+const { machineLegere, allegerMessages, dechargerAutres } = require('./machine-legere');
 
 const OLLAMA = 'http://127.0.0.1:11434';
 
@@ -9,7 +10,9 @@ const OLLAMA = 'http://127.0.0.1:11434';
 // - keep_alive : le modèle reste chargé 30 min (5 par défaut), sinon chaque reprise coûte ~20 s de chargement ;
 // - pour Qwen 3 qui répond sans phase de réflexion (think: false), les réglages conseillés par l'équipe Qwen :
 //   temperature 0.7, top_p 0.8, top_k 20 (ceux d'Ollama par défaut sont prévus pour le mode réflexion).
-const GARDER_CHARGE = '30m';
+// Sur une petite machine (peu de RAM), 5 min seulement : un modèle oublié ne garde pas la mémoire pendant une demi-heure.
+const LEGERE = machineLegere();
+const GARDER_CHARGE = LEGERE ? '5m' : '30m';
 const optionsOllama = (modele) => ({ num_ctx: 8192, ...(String(modele).startsWith('qwen3') ? { temperature: 0.7, top_p: 0.8, top_k: 20 } : {}) });
 // Pas de phase de réflexion, pour tous les modèles : sans ce réglage, un modèle qui sait réfléchir (qwen3, deepseek-r1,
 // gpt-oss…) écrit d'abord des centaines de mots invisibles dans Cat Ai (plus de 4 fois plus de texte mesuré avec
@@ -131,7 +134,10 @@ async function lireOllama(messages, modele, onMorceau, signal, options, reflexio
 }
 
 async function lireFluxOllama(messages, modele, onMorceau, signal, options, reflexion, verifier, mesure, debut) {
-  const corps = { model: modele, messages: rappelsPourOllama(messages), tools: outilsPour(options), stream: true, think: reflexion, keep_alive: options.chantier ? '5m' : GARDER_CHARGE, options: optionsOllama(modele) };
+  // Petite machine : consignes courtes, outils du dossier seulement, un seul modèle en mémoire (principal/machine-legere.js)
+  const legere = LEGERE && !options.chantier;
+  if (legere) await dechargerAutres(OLLAMA, modele, { signal });
+  const corps = { model: modele, messages: rappelsPourOllama(legere ? allegerMessages(messages, options) : messages), tools: outilsPour(legere ? { ...options, legere } : options), stream: true, think: reflexion, keep_alive: options.chantier ? '5m' : GARDER_CHARGE, options: optionsOllama(modele) };
   if (options.chantier) {
     corps.options.temperature = 0.2;
     corps.options.num_predict = 2048;
@@ -434,4 +440,4 @@ function vulkanUtile(plateforme, env, cartes = []) {
   return vendeurs.includes(AMD) && !vendeurs.includes(NVIDIA);
 }
 
-module.exports = { appelOutilRefuse, OLLAMA, GARDER_CHARGE, optionsOllama, sansReflexion, rappelsPourOllama, NOTE_APP, langueProbable, DEBUT_A_VERIFIER, REFLEXION, vulkanUtile, envoyerOllama, envoyerOpenAI, versOpenAI, finirAppels, attenteDemandee, estModeleCasse, messageErreurOpenAI };
+module.exports = { appelOutilRefuse, OLLAMA, GARDER_CHARGE, LEGERE, optionsOllama, sansReflexion, rappelsPourOllama, NOTE_APP, langueProbable, DEBUT_A_VERIFIER, REFLEXION, vulkanUtile, envoyerOllama, envoyerOpenAI, versOpenAI, finirAppels, attenteDemandee, estModeleCasse, messageErreurOpenAI };

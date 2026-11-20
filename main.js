@@ -27,7 +27,8 @@ const { agentsDuChantier, etatDepot, MESSAGES_DEPOT, preparerDepot, garderChanti
 const { BINAIRES, lireTexteDocument, texteJointDocument, idValide } = require('./principal/documents');
 // Textes extraits des PDF et longs fichiers glissés dans la discussion
 const DOSSIER_DOCUMENTS = () => path.join(app.getPath('userData'), 'documents');
-const { OLLAMA, GARDER_CHARGE, optionsOllama, sansReflexion, REFLEXION, envoyerOllama, envoyerOpenAI, vulkanUtile } = require('./principal/envoi');
+const { OLLAMA, GARDER_CHARGE, LEGERE, optionsOllama, sansReflexion, REFLEXION, envoyerOllama, envoyerOpenAI, vulkanUtile } = require('./principal/envoi');
+const { allegerMessages, dechargerAutres } = require('./principal/machine-legere');
 const {
   FOURNISSEURS_DE_BASE, lireReglagesFournisseurs, infosFournisseur, configFournisseur, versInterface,
   etatChiffrement, chiffrer, messageCleIllisible, formatDouteux, avertissementFormat, marquerModeleCasse, listerModeles,
@@ -586,7 +587,8 @@ let prechauffage = null; // { corps, debut, promesse } pendant qu'Ollama lit
 
 function prechaufferOllama({ modele, consignes, contexteProjet = '', prof }) {
   if (chantierEnCours) return false;
-  const outils = outilsPour({ prof, projet: !!projectDir, documents: false, connecteur: !!readJson('settings.json', {}).adresseMcp });
+  // Petite machine : mêmes consignes allégées et mêmes outils que l'envoi (principal/envoi.js), sinon le cache ne sert à rien
+  const outils = outilsPour({ prof, projet: !!projectDir, documents: false, connecteur: !!readJson('settings.json', {}).adresseMcp, legere: LEGERE });
   let messages;
   try { messages = compacter([{ role: 'system', content: consignes }, { role: 'system', name: 'contexte_projet', content: contexteProjet }], LIMITES_OLLAMA.total); }
   catch { return false; } // Le préchauffage est facultatif ; l'envoi affichera le diagnostic.
@@ -646,6 +648,7 @@ ipcMain.handle('ollama-installer', async () => {
   if (installationOllama) return { erreur: 'Une installation est déjà en cours.' };
   installationOllama = true;
   try {
+  if (LEGERE) messages = allegerMessages(messages);
     const programme = path.join(process.env.LOCALAPPDATA || '', 'Microsoft', 'WindowsApps', 'winget.exe');
     const { response } = await dialog.showMessageBox(win, {
       type: 'question', title: 'Installer Ollama',
@@ -660,6 +663,7 @@ ipcMain.handle('ollama-installer', async () => {
       installateur.once('error', () => resolve(null));
       installateur.once('close', resolve);
     });
+      if (LEGERE) await dechargerAutres(OLLAMA, modele, { signal }); // un seul modèle en mémoire
     if (code !== 0 && !commandeOllama()) return { erreur: 'WinGet n’a pas installé Ollama. Utilise le lien vers l’installateur officiel.' };
     await demarrerOllama();
     return { ok: true };
