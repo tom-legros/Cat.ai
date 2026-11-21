@@ -27,13 +27,24 @@ function cartesDuPC({ plateforme = process.platform } = {}) {
 
 // Lance « ollama serve ». detache : il continue après la fin du programme qui l'a lancé (catai), pour que la
 // discussion suivante parte tout de suite, comme l'appli d'Ollama le fait. Renvoie le processus, ou null.
-function lancerOllama({ cartes = [], detache = false, plateforme = process.platform, env = process.env, lancer = spawn } = {}) {
-  const commande = commandeOllama({ plateforme, env });
+function lancerOllama({ cartes = [], detache = false, plateforme = process.platform, env = process.env, lancer = spawn, commande = commandeOllama({ plateforme, env }) } = {}) {
   if (!commande) return null;
-  const enfant = lancer(commande, ['serve'], {
-    windowsHide: true, stdio: 'ignore', detached: detache,
-    env: vulkanUtile(plateforme, env, cartes) ? { ...env, OLLAMA_VULKAN: '1' } : env,
-  });
+  const environnement = vulkanUtile(plateforme, env, cartes) ? { ...env, OLLAMA_VULKAN: '1' } : env;
+  // Sous Windows, un Ollama qui doit survivre à catai ne peut pas être lancé « détaché » : sans console, il ouvrait une
+  // fenêtre visible pour chaque modèle chargé (llama-server). Lancé normalement, Node le met dans un groupe que Windows
+  // ferme à la fin de catai. Un PowerShell normal (lui, dans le groupe) le lance donc avec sa propre console cachée :
+  // les petits-enfants sortent du groupe, Ollama survit, et ses programmes reprennent la console cachée. Vérifié :
+  // aucune fenêtre, Ollama toujours là après catai. (PowerShell « détaché » ne démarre pas : il lui faut une console.)
+  // Le chemin passe par une variable, jamais dans la commande.
+  if (detache && plateforme === 'win32') {
+    const enfant = lancer('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command',
+      "Start-Process -FilePath $env:CATAI_OLLAMA -ArgumentList 'serve' -WindowStyle Hidden"], {
+      windowsHide: true, stdio: 'ignore', env: { ...environnement, CATAI_OLLAMA: commande },
+    });
+    enfant.on?.('error', () => {});
+    return enfant;
+  }
+  const enfant = lancer(commande, ['serve'], { windowsHide: true, stdio: 'ignore', detached: detache, env: environnement });
   enfant.on?.('error', () => {});
   if (detache) enfant.unref?.();
   return enfant;
