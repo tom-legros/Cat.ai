@@ -102,6 +102,18 @@ const TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'proposer_tache',
+      description: "Propose à l'utilisateur de faire un VRAI travail de code sur le projet ouvert en tâche de fond : un agent le fera seul dans une copie du projet, pendant que l'utilisateur fait autre chose, et il gardera ou jettera le résultat. À utiliser quand la demande change le code en plusieurs endroits (corriger un bug, ajouter une fonctionnalité, refaire une partie). Jamais pour une question, une explication ou une petite modification d'une ligne. L'utilisateur confirme avant que la tâche ne parte.",
+      parameters: {
+        type: 'object',
+        properties: { tache: { type: 'string', description: "Ce que l'agent doit faire, écrit comme une consigne complète : fichiers, fonctions, comportement attendu." } },
+        required: ['tache'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'lire_document',
       description: "Lit un document joint par l'utilisateur (PDF, cours, long texte) : un morceau à partir d'une ligne, ou les passages qui contiennent un texte. L'identifiant du document est écrit dans le message où il a été joint.",
       parameters: {
@@ -131,6 +143,8 @@ const TOOLS = [
       parameters: { type: 'object', properties: { url: { type: 'string', description: "Adresse complète de la page, qui commence par https://" } }, required: ['url'] },
     },
   },
+  // L'horloge du PC : sans elle, les modèles inventent l'heure ou la cherchent sur internet (sans résultat)
+  { type: 'function', function: { name: 'date_heure', description: "Donne la date et l'heure exactes de l'ordinateur, et son fuseau horaire.", parameters: { type: 'object', properties: {} } } },
   // Connecteur MCP en dernier : quand on l'active, le début de la liste (gardé en mémoire par Ollama) ne change pas
   { type: 'function', function: { name: 'lister_connecteur', description: 'Liste les outils en lecture seule du connecteur local lorsque l’utilisateur demande de l’utiliser.', parameters: { type: 'object', properties: {}, additionalProperties: false } } },
   { type: 'function', function: { name: 'lire_connecteur', description: 'Lit des informations via un outil trouvé par lister_connecteur. Demande toujours confirmation.', parameters: { type: 'object', properties: { nom: { type: 'string' }, parametres: { type: 'string', description: 'Objet JSON encodé en texte, ou {}.' } }, required: ['nom', 'parametres'] } } },
@@ -141,7 +155,7 @@ const TOOLS = [
 const OUTILS_ECRITURE = new Set(['ecrire_fichier', 'remplacer_texte']);
 const peutEcrire = ({ prof } = {}) => !prof;
 // Un outil impossible à utiliser alourdit le contexte et ralentit les modèles locaux.
-const OUTILS_PROJET = new Set(['lister_fichiers', 'lire_fichier', 'chercher', 'ecrire_fichier', 'remplacer_texte', 'verifier_godot', 'lancer_tests']);
+const OUTILS_PROJET = new Set(['lister_fichiers', 'lire_fichier', 'chercher', 'ecrire_fichier', 'remplacer_texte', 'verifier_godot', 'lancer_tests', 'proposer_tache']);
 // mode.seulement : la liste des seuls outils permis (l'ouvrier du mode chantier n'a ni internet ni autre dossier)
 const outilsPour = (mode) => TOOLS.filter(({ function: { name } }) => {
   if (Array.isArray(mode?.seulement) && !mode.seulement.includes(name)) return false;
@@ -150,7 +164,7 @@ const outilsPour = (mode) => TOOLS.filter(({ function: { name } }) => {
   // Petite machine (principal/machine-legere.js) : ni web, ni autre dossier, ni connecteur
   if (mode?.legere && !OUTILS_PROJET.has(name) && name !== 'lire_document') return false;
   if (OUTILS_MCP.has(name)) return mode?.connecteur === true;
-  if ((name === 'lancer_tests' || name === 'verifier_godot')) return peutEcrire(mode);
+  if ((name === 'lancer_tests' || name === 'verifier_godot' || name === 'proposer_tache')) return peutEcrire(mode);
   return peutEcrire(mode) || !OUTILS_ECRITURE.has(name);
 });
 

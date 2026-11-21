@@ -32,7 +32,8 @@ const { lireReglagesFournisseurs, infosFournisseur, listerModeles, FOURNISSEURS_
 const { equipeDepuis } = require(path.join(racine, 'principal/equipe'));
 const { agentsDuChantier, etatDepot, MESSAGES_DEPOT } = require(path.join(racine, 'principal/lancement'));
 const { hote, HOTES_LOCAUX } = require(path.join(racine, 'principal/gratuit'));
-const { creerEcran } = require('./ecran');
+const { creerEcran, couper, largeurVisible } = require('./ecran');
+const { creerRenduMarkdown } = require('./markdown');
 
 // Plein écran (cli/ecran.js) : ouvert seulement pour une discussion dans un vrai terminal. Tout ce que catai écrit
 // passe par lui ; readline, lui, écrit directement la ligne de saisie.
@@ -40,7 +41,7 @@ const ecran = creerEcran();
 const sortieEcran = (t) => ecran.ecrire(t);
 
 // ---------- Couleurs (seulement dans un vrai terminal, et jamais avec NO_COLOR) ----------
-const couleurs = process.stdout.isTTY && !process.env.NO_COLOR;
+const couleurs = !!process.stdout.isTTY && !process.env.NO_COLOR;
 const teinte = (code) => (t) => (couleurs ? `\x1b[${code}m${t}\x1b[0m` : t);
 const gris = teinte('2');
 const vert = teinte('32');
@@ -162,34 +163,45 @@ function entreeClavier() {
 // Lit une ligne après avoir écrit l'invite. Les lignes arrivées avant d'être demandées attendent leur tour :
 // avec des réponses envoyées d'un coup (echo o | catai …), readline les lisait avant la question et elles étaient
 // perdues. null quand l'entrée est fermée.
+// Au clavier, une ligne tapée pendant que le modèle travaille est le message suivant, pas la réponse à une question
+// qu'on n'avait pas encore vue (« continue » tapé en avance répondait « non » à « Créer ce fichier ? »).
 function creerLecteur(rl, afficherReponses) {
   const enAvance = [];
   const enAttente = [];
   let fermee = false;
   // Sans vrai terminal, la réponse n'est pas affichée en la tapant : on l'écrit après l'invite, pour que ça se lise
   const montrer = (l) => { if (afficherReponses) sortieEcran(`${l}\n`); return l; };
-  rl.on('line', (l) => (enAttente.length ? enAttente.shift()(montrer(l)) : enAvance.push(l)));
+  rl.on('line', (l) => {
+    if (enAttente.length) { enAttente.shift()(montrer(l)); return; }
+    enAvance.push(l);
+    // Au clavier, on montre que le message est bien gardé pour après
+    if (ecran.ouvert && l.trim()) sortieEcran(gris(`\n❯ ${l.trim()}  (envoyé après la réponse)\n`));
+  });
   rl.on('close', () => { fermee = true; while (enAttente.length) enAttente.shift()(null); });
-  return (invite) => {
+  return (invite, { question = false } = {}) => {
     attenteActive?.();
     const lignes = String(invite).split('\n');
     const derniere = lignes.pop();
     if (lignes.length) sortieEcran(`${lignes.join('\n')}\n`);
     rl.setPrompt(derniere);
     ecran.invite(derniere);
-    if (enAvance.length || fermee) {
+    const enAvanceUtilisable = enAvance.length > 0 && !(question && rl.terminal);
+    if (enAvanceUtilisable || fermee) {
       sortieEcran(derniere);
-      return Promise.resolve(enAvance.length ? montrer(enAvance.shift()) : null);
+      return Promise.resolve(enAvanceUtilisable ? montrer(enAvance.shift()) : null);
     }
     rl.prompt(true);
-    // readline vient d'effacer le bas de l'écran (bas du cadre, aide) : on le remet
     ecran.pied();
-    return new Promise((resoudre) => enAttente.push(resoudre));
+    // En plein écran, la question et sa réponse restent dans la conversation (« Créer ce fichier ? (o/N) o »)
+    return new Promise((resoudre) => enAttente.push((l) => {
+      if (question && ecran.ouvert && l !== null) sortieEcran(`${derniere}${l}\n`);
+      resoudre(l);
+    }));
   };
 }
 
 function creerUi(lire) {
-  const oui = async (question) => /^(o|oui|y|yes)$/i.test(((await lire(`${question} ${gras('(o/N)')} `)) || '').trim());
+  const oui = async (question) => /^(o|oui|y|yes)$/i.test(((await lire(`${question} ${gras('(o/N)')} `, { question: true })) || '').trim());
   return {
     demander: async ({ titre, message, detail, accepter = 'Autoriser', attention }) => {
       sortieEcran(`\n${(attention ? jaune : gras)(`■ ${titre}`)}\n${message}\n${detail ? gris(detail) + '\n' : ''}`);
@@ -204,7 +216,7 @@ function creerUi(lire) {
       if (lignes.length > MAX) sortieEcran(gris(`… et ${lignes.length - MAX} lignes de plus\n`));
       return oui(existe ? 'Appliquer cette modification ?' : 'Créer ce fichier ?');
     },
-    choisirExecutable: async ({ titre }) => ((await lire(`${titre} (chemin complet, vide pour annuler) : `)) || '').trim().replace(/^"|"$/g, '') || null,
+    choisirExecutable: async ({ titre }) => ((await lire(`${titre} (chemin complet, vide pour annuler) : `, { question: true })) || '').trim().replace(/^"|"$/g, '') || null,
   };
 }
 
@@ -218,6 +230,7 @@ const ETIQUETTES = {
   chercher_web: (a) => `cherche sur internet « ${a.requete} »`,
   lire_page_web: (a) => `lit ${a.url}`,
   lancer_tests: () => 'demande à lancer les tests',
+  date_heure: () => "regarde l'heure",
   bilan_tests: (a) => a.bilan,
   refus: (a) => `écriture refusée : ${a.chemin}`,
   'refus-lecture': (a) => `lecture refusée : ${a.chemin}`,
@@ -230,8 +243,39 @@ async function ollamaRepond() {
 
 // « Miaou réfléchit » tant que le modèle n'a rien écrit, seulement dans un vrai terminal. La ligne est effacée dès
 // que quelque chose arrive.
+// En plein écran, l'indicateur est sur la ligne du bas et reste pendant toute la réponse, avec le temps écoulé : quand
+// le modèle prépare un outil (le contenu d'un fichier à écrire, par exemple), rien ne s'écrit pendant des minutes, et
+// sans lui on croyait que tout avait planté.
 let attenteActive = null;
+function creerAttenteBas() {
+  const IMAGES = ['✶', '✸', '✹', '✺', '✹', '✸'];
+  let minuterie = null;
+  let debut = 0;
+  let dernier = 0;
+  let enPause = false;
+  let n = 0;
+  const dessiner = () => {
+    if (enPause) return;
+    const secondes = Math.floor((Date.now() - debut) / 1000);
+    const verbe = Date.now() - dernier < 1500 ? 'écrit' : 'réfléchit';
+    ecran.activite(`${jaune(IMAGES[n++ % IMAGES.length])} Miaou ${verbe}… ${secondes} s · Ctrl+C pour arrêter`);
+  };
+  const pause = () => { enPause = true; ecran.activite(null); };
+  return {
+    lancer() {
+      enPause = false;
+      attenteActive = pause;
+      if (minuterie) return;
+      debut = Date.now();
+      minuterie = setInterval(dessiner, 160);
+      dessiner();
+    },
+    arreter() { dernier = Date.now(); },
+    finir() { clearInterval(minuterie); minuterie = null; attenteActive = null; ecran.activite(null); },
+  };
+}
 function creerAttente() {
+  if (ecran.ouvert) return creerAttenteBas();
   const IMAGES = ['·  ', '·· ', '···', ' ··', '  ·', '   '];
   let minuterie = null;
   const arreter = () => {
@@ -243,6 +287,7 @@ function creerAttente() {
   };
   return {
     arreter,
+    finir: arreter,
     lancer() {
       if (minuterie || !process.stdout.isTTY) return;
       let n = 0;
@@ -257,26 +302,56 @@ function creerAttente() {
 // ---------- Une réponse ----------
 // La sortie d'une réponse, comme dans Claude Code : « ● » devant le début, les lignes suivantes décalées de deux
 // espaces, les actions en gris sous « ⎿ ». Le texte arrive par morceaux : on suit où en est la ligne.
-function creerSortie(ecrireBrut = (t) => sortieEcran(t)) {
+// Une ligne trop longue passe à la suivante entre deux mots, en gardant le décalage (sinon le terminal la coupait
+// au milieu d'un mot et la suite repartait tout à gauche). Le dernier mot d'un morceau attend le suivant : il
+// n'est peut-être pas fini.
+function creerSortie(ecrireBrut = (t) => sortieEcran(t), largeurMax = () => process.stdout.columns || 80) {
   let etat = 'debut'; // debut : rien d'écrit ; milieu : au milieu d'une ligne ; nouvelle : au début d'une ligne
+  let col = 0;
+  let mot = '';
+  // Une colonne de marge : écrire jusqu'au dernier caractère fait sauter certains terminaux à la ligne
+  const limite = () => Math.max(20, largeurMax() - 1);
+  const aLaLigne = () => { ecrireBrut('\n  '); col = 2; };
+  const poser = (t) => {
+    if (!t) return;
+    const w = largeur(t);
+    if (!t.replace(/\x1b\[[0-9;]*m/g, '').trim()) {
+      if (col + w >= limite()) aLaLigne(); else { ecrireBrut(t); col += w; }
+      return;
+    }
+    if (col + w > limite() && col > 2) aLaLigne();
+    // Un mot plus long que toute la ligne (une adresse, un chemin) : coupé où il faut
+    const morceaux = col + w > limite() ? couper(t, limite() - col) : [t];
+    ecrireBrut(morceaux.join('\n  '));
+    col = (morceaux.length > 1 ? 2 : col) + largeur(morceaux.at(-1));
+  };
+  const vider = () => { poser(mot); mot = ''; };
   return {
     texte(t) {
-      String(t || '').split('\n').forEach((morceau, i) => {
-        if (i > 0 && etat !== 'debut') { ecrireBrut('\n'); etat = 'nouvelle'; }
+      const lignes = String(t || '').split('\n');
+      lignes.forEach((morceau, i) => {
+        if (i > 0 && etat !== 'debut') { vider(); ecrireBrut('\n'); etat = 'nouvelle'; col = 0; }
         let m = morceau;
-        if (etat === 'debut') { m = m.replace(/^\s+/, ''); if (!m) return; ecrireBrut(`${jaune('●')} `); }
+        if (etat === 'debut') { m = m.replace(/^\s+/, ''); if (!m) return; ecrireBrut(`${jaune('●')} `); col = 2; }
         else if (!m) return;
-        else if (etat === 'nouvelle') ecrireBrut('  ');
-        ecrireBrut(m);
+        else if (etat === 'nouvelle') { ecrireBrut('  '); col = 2; }
         etat = 'milieu';
+        const bouts = (mot + m).split(/(\s+)/);
+        mot = '';
+        const dernierMorceau = i === lignes.length - 1;
+        bouts.forEach((b, k) => {
+          if (k === bouts.length - 1 && dernierMorceau && b) mot = b; else poser(b);
+        });
       });
     },
     action(t) {
+      vider();
       if (etat === 'milieu') ecrireBrut('\n');
       ecrireBrut(`${gris(`  ⎿  ${t}`)}\n`);
+      col = 0;
       if (etat !== 'debut') etat = 'nouvelle';
     },
-    fin() { if (etat === 'milieu') ecrireBrut('\n'); },
+    fin() { vider(); if (etat === 'milieu') ecrireBrut('\n'); col = 0; },
   };
 }
 
@@ -327,8 +402,11 @@ async function repondre({ conversation, question, o, lire, signal }) {
   const mesures = [];
   const attente = creerAttente();
   const sortie = creerSortie();
+  // Le markdown (**gras**, titres, listes, code…) est mis en forme au lieu d'être écrit avec ses marques
+  const md = creerRenduMarkdown((t) => sortie.texte(t), { couleurs });
+  const versSortie = (t) => { attente.arreter(); md.texte(t); };
   // La réflexion que certains modèles écrivent quand même est gardée de côté (voir creerFiltrePensee)
-  let filtre = creerFiltrePensee((t) => { attente.arreter(); sortie.texte(t); }, { langue: langueProbable });
+  let filtre = creerFiltrePensee(versSortie, { langue: langueProbable });
   // L'agent annonce qu'il retire ce qui a été affiché : soit la réflexion (la réponse propre suit aussitôt),
   // soit un appel d'outil écrit en texte (rien ne suit)
   let remplacement = false;
@@ -340,7 +418,7 @@ async function repondre({ conversation, question, o, lire, signal }) {
     remplacement = true;
     queueMicrotask(() => { if (remplacement) { remplacement = false; etiquette("(c'était un appel d'outil)"); } });
   };
-  const etiquette = (t) => { filtre.fin(); attente.arreter(); sortie.action(t); filtre = creerFiltrePensee((x) => { attente.arreter(); sortie.texte(x); }, { langue: langueProbable }); };
+  const etiquette = (t) => { filtre.fin(); md.fin(); attente.arreter(); sortie.action(t); filtre = creerFiltrePensee(versSortie, { langue: langueProbable }); };
   const config = infosFournisseur(o.fournisseur);
   const ollama = config.type === 'ollama';
   const limites = ollama ? LIMITES_OLLAMA : limitesTaille(config);
@@ -361,7 +439,7 @@ async function repondre({ conversation, question, o, lire, signal }) {
       outil: (nom, args) => { const f = ETIQUETTES[nom]; if (f) etiquette(f(args || {})); },
       pause: (s) => etiquette(`pause de ${s} s demandée par le fournisseur`),
     },
-  }).finally(() => { filtre.fin(); attente.arreter(); sortie.fin(); });
+  }).finally(() => { filtre.fin(); md.fin(); attente.finir(); sortie.fin(); });
   if (!fini) sortieEcran(jaune('  (trop d\'étapes : demande-lui de continuer)\n'));
   sortieEcran(`${ligneMesures(mesures, debut)}\n`);
   // On garde la réponse finale pour la suite de la discussion, sans les résultats d'outils (trop lourds)
@@ -370,11 +448,13 @@ async function repondre({ conversation, question, o, lire, signal }) {
 
 // ---------- Mode chantier (/chantier dans la discussion) ----------
 // Lance l'équipe de la page Agents sur un plan, dans une copie du dossier. Renvoie 0 si le chantier a tourné.
+// Une erreur : dans la conversation quand le plein écran est ouvert (écrite à côté, elle abîmait le cadre)
+const ecrireErreur = (t) => (ecran.ouvert ? sortieEcran(t) : process.stderr.write(t));
 async function faireChantier({ dossier, plan, chefForce, modeleForce, codeurForce, signal }) {
   const { lancerChantier } = require(path.join(racine, 'principal/chantier'));
   const depot = etatDepot(dossier);
-  if (!depot.pret) { process.stderr.write(rouge(`${MESSAGES_DEPOT[depot.raison]}\n`) + gris('Dans ce dossier : git init, puis git add -A, puis git commit -m "départ".\n')); return 1; }
-  if (!(await ollamaRepond())) { process.stderr.write(rouge("Ollama ne répond pas : les codeurs du chantier en ont besoin.\n")); return 1; }
+  if (!depot.pret) { ecrireErreur(rouge(`${MESSAGES_DEPOT[depot.raison]}\n`) + gris('Dans ce dossier : git init, puis git add -A, puis git commit -m "départ".\n')); return 1; }
+  if (!(await ollamaRepond())) { ecrireErreur(rouge("Ollama ne répond pas : les codeurs du chantier en ont besoin.\n")); return 1; }
   // L'équipe composée dans l'app (page Agents) ; --chef et -m passent devant
   const { chef, codeurs, resume } = agentsDuChantier({
     reglages: lireReglagesFournisseurs(), infos: infosFournisseur, envoyerLocal: envoyerOllama, envoyerEnLigne: envoyeurParApp,
@@ -398,6 +478,35 @@ async function faireChantier({ dossier, plan, chefForce, modeleForce, codeurForc
   return 0;
 }
 
+// ---------- Le presse-papiers (/copier) ----------
+// L'outil du système : clip sous Windows (en UTF-16 sans BOM pour les accents, vérifié), pbcopy sur Mac, wl-copy, xclip ou xsel sous
+// Linux. Sans aucun d'eux, la demande OSC 52 que la plupart des terminaux récents comprennent.
+function essayerCommande(commandeSysteme, args, donnees) {
+  return new Promise((resoudre) => {
+    try {
+      const p = spawn(commandeSysteme, args, { stdio: ['pipe', 'ignore', 'ignore'], windowsHide: true });
+      p.on('error', () => resoudre(false));
+      p.on('close', (code) => resoudre(code === 0));
+      p.stdin.on('error', () => {});
+      p.stdin.end(donnees);
+    } catch { resoudre(false); }
+  });
+}
+async function copierPressePapiers(texte, { plateforme = process.platform, essayer = essayerCommande, terminal = !!process.stdout.isTTY, ecrireTerminal = (t) => process.stdout.write(t) } = {}) {
+  if (plateforme === 'win32') {
+    if (await essayer('clip', [], Buffer.from(texte, 'utf16le'))) return true;
+  } else if (plateforme === 'darwin') {
+    if (await essayer('pbcopy', [], texte)) return true;
+  } else {
+    for (const [c, a] of [['wl-copy', []], ['xclip', ['-selection', 'clipboard']], ['xsel', ['--clipboard', '--input']]]) {
+      if (await essayer(c, a, texte)) return true;
+    }
+  }
+  if (!terminal) return false;
+  ecrireTerminal(`\x1b]52;c;${Buffer.from(texte).toString('base64')}\x07`);
+  return true;
+}
+
 // ---------- Les commandes de la discussion ----------
 // [nom, ce qu'on peut écrire après, à quoi elle sert] : sert à /aide et à la complétion par Tab
 const COMMANDES_CLI = [
@@ -407,6 +516,7 @@ const COMMANDES_CLI = [
   ['/dossier', '<chemin>', 'travailler dans un autre dossier'],
   ['/prof', '', 'mode prof oui / non'],
   ['/oublier', '', 'nouvelle discussion'],
+  ['/copier', '', 'copie la dernière réponse'],
   ['/chantier', '<plan.md>', "l'équipe code un plan dans une copie git"],
   ['/jeter', '<nom>', "supprime la copie et la branche d'un chantier"],
   ['/equipe', '', 'qui fait quoi pendant un chantier'],
@@ -427,8 +537,8 @@ function completer(ligne) {
   return [trouvees.length ? trouvees : noms, ligne];
 }
 
-// Largeur visible d'un texte (sans les codes de couleur)
-const largeur = (t) => [...String(t).replace(/\x1b\[[0-9;]*m/g, '')].length;
+// Largeur visible d'un texte (sans les codes de couleur, un emoji compte pour deux)
+const largeur = largeurVisible;
 const colonnes = () => Math.max(40, Math.min(process.stdout.columns || 80, 100));
 const dossierCourt = (d) => {
   const maison = os.homedir();
@@ -472,6 +582,12 @@ async function commande(ligne, { o, conversation, lancer }) {
     case '/': case '/aide': case '/help': sortieEcran(`${AIDE_DISCUSSION}\n`); return true;
     case '/prof': o.prof = !o.prof; dire(`mode prof ${o.prof ? 'activé' : 'désactivé'}`); return true;
     case '/oublier': case '/nouveau': conversation.length = 0; dire('nouvelle discussion'); return true;
+    case '/copier': case '/copy': {
+      const derniere = [...conversation].reverse().find((m) => m.role === 'assistant' && m.content);
+      if (!derniere) { dire('rien à copier pour l\'instant'); return true; }
+      dire((await copierPressePapiers(derniere.content)) ? 'dernière réponse copiée' : "impossible de copier : sélectionne le texte à la souris, puis copie-le avec le menu du terminal");
+      return true;
+    }
     case '/modele': case '/modèle': {
       if (!reste[0]) { dire(`modèle : ${o.modele} (/modeles pour la liste)`); return true; }
       o.modele = reste[0];
@@ -533,12 +649,29 @@ async function principal() {
   o.modele ||= reglages.modeles[o.fournisseur] || (o.fournisseur === 'ollama' ? 'qwen3:8b' : '');
   if (!o.modele) { process.stderr.write(rouge(`Aucun modèle choisi pour ${o.fournisseur} : choisis-en un dans l'app, ou passe -m.\n`)); return 1; }
   if (!fs.existsSync(o.dossier) || !fs.statSync(o.dossier).isDirectory()) { process.stderr.write(rouge(`Dossier introuvable : ${o.dossier}\n`)); return 1; }
+  // App fermée, Ollama arrêté : catai le démarre lui-même (il continue ensuite, la discussion suivante part vite)
   if (o.fournisseur === 'ollama' && !(await ollamaRepond())) {
-    process.stderr.write(rouge('Ollama ne répond pas.') + ' Ouvre Cat Ai (elle le démarre), ou lance « ollama serve ».\n');
-    return 1;
+    const { cartesDuPC, lancerOllama, attendreOllama } = require(path.join(racine, 'principal/demarrer-ollama'));
+    process.stdout.write(gris('Démarrage d\'Ollama…\n'));
+    const lance = lancerOllama({ cartes: await cartesDuPC(), detache: true });
+    if (!lance || !(await attendreOllama(ollamaRepond))) {
+      process.stderr.write(rouge('Ollama ne démarre pas.') + (lance ? ' Lance « ollama serve » pour voir l\'erreur.\n' : ' Installe-le depuis ollama.com, puis relance catai.\n'));
+      return 1;
+    }
   }
   const entree = entreeClavier();
-  const rl = readline.createInterface({ input: entree, output: process.stdout, completer, terminal: entree === process.stdin ? undefined : !!entree.isTTY });
+  // Une discussion dans un vrai terminal : c'est l'écran qui dessine la saisie, readline écrit dans une sortie muette
+  const pleinEcran = !o.question && ecran.actif;
+  // Tab avec plusieurs commandes possibles : readline les écrirait dans la sortie muette, on les montre en bas
+  const completerVu = (ligne) => {
+    const r = completer(ligne);
+    if (pleinEcran && r[0].length > 1) ecran.indice(r[0].join('  '));
+    return r;
+  };
+  const rl = readline.createInterface({
+    input: entree, output: pleinEcran ? ecran.sortieReadline : process.stdout, completer: completerVu,
+    terminal: pleinEcran ? !!entree.isTTY : entree === process.stdin ? undefined : !!entree.isTTY,
+  });
   // Une entrée redirigée ne s'affiche pas : on écrit la réponse après la question (la console, elle, l'affiche déjà)
   const lire = creerLecteur(rl, entree === process.stdin && !process.stdin.isTTY);
   const conversation = [];
@@ -546,7 +679,8 @@ async function principal() {
   // directement, Ctrl+C arrive comme un signal du processus, pas par readline : on écoute les deux.
   let enCours = null;
   const surCtrlC = () => {
-    if (enCours && !enCours.signal.aborted) { enCours.abort(); sortieEcran(gris('\n(arrêté)\n')); } else { ecran.fermer(); rl.close(); process.exit(0); }
+    // « (arrêté) » est écrit par lancer, une fois la réponse vraiment finie (sinon son dernier mot arrivait après)
+    if (enCours && !enCours.signal.aborted) enCours.abort(); else { ecran.fermer(); rl.close(); process.exit(0); }
   };
   rl.on('SIGINT', surCtrlC);
   process.on('SIGINT', surCtrlC);
@@ -556,7 +690,8 @@ async function principal() {
     try {
       await travail(enCours.signal);
     } catch (err) {
-      if (err.name !== 'AbortError') sortieEcran(rouge(`\nErreur : ${err.message}\n`));
+      if (err.name !== 'AbortError' && !enCours?.signal.aborted) sortieEcran(rouge(`\nErreur : ${err.message}\n`));
+      else sortieEcran(gris('\n(arrêté)\n'));
       siErreur();
     } finally { enCours = null; }
   };
@@ -568,12 +703,13 @@ async function principal() {
     ecran.ouvrir();
     accueil(o);
     for (;;) {
-      let ligne = await lire(invite(o));
-      if (ligne === null) return 0; // entrée fermée
-      ligne = ligne.trim();
-      if (!ligne) continue;
+      const tapee = await lire(invite(o));
+      if (tapee === null) return 0; // entrée fermée
+      if (!tapee.trim()) continue;
+      // Un texte collé est envoyé en entier ; la conversation garde sa forme courte « [texte collé n°1 · 12 lignes] »
+      const ligne = ecran.deplier(tapee).trim();
       // Ce qu'on vient d'écrire monte dans la conversation, et le champ se vide
-      if (ecran.ouvert) { ecran.invite(''); sortieEcran(`\n${jaune('❯')} ${gras(ligne)}\n`); }
+      if (ecran.ouvert) { ecran.invite(''); sortieEcran(`\n${jaune('❯')} ${gras(tapee.trim())}\n`); }
       const fait = await commande(ligne, { o, conversation, lancer });
       if (fait === 'quitter') return 0;
       if (fait) continue;
@@ -588,4 +724,4 @@ async function principal() {
 
 if (require.main === module) principal().then((code) => { ecran.fermer(); process.exit(code); }, (err) => { ecran.fermer(); process.stderr.write(`${err.stack || err}\n`); process.exit(1); });
 
-module.exports = { lireOptions, dossierDonnees, consignes, infosProjet, commande, creerSortie, creerFiltrePensee, ligneMesures, completer, COMMANDES_CLI };
+module.exports = { principal, copierPressePapiers, lireOptions, dossierDonnees, consignes, infosProjet, commande, creerSortie, creerLecteur, creerFiltrePensee, ligneMesures, completer, COMMANDES_CLI };

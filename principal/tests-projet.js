@@ -7,8 +7,11 @@ const DELAI = 90_000;
 const ERREUR_GODOT = /^\s*(?:SCRIPT ERROR|ERROR|Parse Error):/i;
 const MAX_ERREURS = 20;
 
+// Chaque fichier de test dans son propre processus (le mode par défaut de Node) : avec --test-isolation=none, un
+// fichier qui plante au chargement (describe non importé, par exemple) était ignoré en silence, et « Tests réussis »
+// laissait passer le travail d'un agent qui cassait ses propres tests.
 function lancerTestsNode(dossier, signal) {
-  return executer(process.execPath, ['--test', '--test-isolation=none'], dossier, signal, true);
+  return executer(process.execPath, ['--test'], dossier, signal, true);
 }
 
 function verifierProjetGodot(executable, dossier, signal) {

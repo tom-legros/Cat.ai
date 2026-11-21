@@ -20,6 +20,7 @@
     <nav class="nav" aria-label="Pages">
       <button class="nav__lien is-actif" data-page="discussion" type="button" aria-current="page"><span data-icone="bulle"></span>Discussion</button>
       <button class="nav__lien" data-page="agents" type="button"><span data-icone="agents"></span>Agents</button>
+      <button class="nav__lien" data-page="taches" type="button"><span data-icone="agents"></span>Tâches<span id="taches-badge" class="nav__badge" hidden></span></button>
       <button class="nav__lien" data-page="modeles" type="button"><span data-icone="boite"></span>Modèles</button>
     </nav>
 
@@ -218,6 +219,29 @@
     </section>
 
     <!-- Page Modèles : ce que le PC peut faire tourner, et les téléchargements (interface/pages.js) -->
+    <!-- Tâches de fond : on donne du travail à l'agent, on part, on revient (interface/taches.js, principal/taches.js) -->
+    <section id="page-taches" class="page" hidden>
+      <div class="page__contenu">
+        <header class="page__tete">
+          <div>
+            <h2 class="page__titre">Tâches</h2>
+            <p id="taches-projet" class="taches__projet"></p>
+          </div>
+        </header>
+        <form id="tache-form" class="tache-nouvelle">
+          <textarea id="tache-demande" rows="2" placeholder="Ce que l'agent doit faire pendant que tu fais autre chose" aria-label="Nouvelle tâche"></textarea>
+          <select id="tache-mode" class="tache-mode" aria-label="Qui fait la tâche" title="L'agent seul pour une tâche précise, l'équipe (chef, codeurs, relecteur) pour un gros travail">
+            <option value="seul">Agent seul</option>
+            <option value="equipe">Équipe</option>
+          </select>
+          <button id="tache-ajouter" type="submit" class="bouton">Ajouter</button>
+        </form>
+        <p id="tache-erreur" class="tache-erreur" role="alert" hidden></p>
+        <ul id="taches-liste" class="taches" aria-label="Tâches"></ul>
+        <p id="taches-vide" class="taches-vide">Aucune tâche. Ajoute-en une ici, ou tape /agent (ou /chantier pour l'équipe) dans la discussion.</p>
+      </div>
+    </section>
+
     <section id="page-modeles" class="page" hidden>
       <div class="page__contenu page__contenu--large">
         <header class="page__tete">
@@ -327,6 +351,13 @@
 
           <section class="reglages__section" id="reglages-section-avance" aria-labelledby="reglages-titre-avance">
             <h3 class="reglages__titre" id="reglages-titre-avance">Avancé</h3>
+            <div class="reglages__ligne">
+              <div>
+                <p class="reglages__valeur">Commande catai</p>
+                <p id="catai-etat" class="conseil">Cat Ai dans n'importe quel terminal : tape catai.</p>
+              </div>
+              <button id="catai-installer" class="bouton-calme" type="button">Installer</button>
+            </div>
             <p class="reglages__sous-titre">Ton propre serveur (LM Studio…)</p>
             <div id="fournisseurs-avance" class="fournisseurs"></div>
             <p class="reglages__sous-titre">Connecteur MCP</p>
@@ -436,5 +467,6 @@
   <script src="renderer.js"></script>
   <script src="interface/pages.js"></script>
   <script src="interface/barre-laterale.js"></script>
+  <script src="interface/taches.js"></script>
 </body>
 </html>

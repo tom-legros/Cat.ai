@@ -856,6 +856,8 @@ function messagesPourLeModele(conv, modeProf = prof) {
     if (dernierUser > 0) liste.push({ role: "system", content: "La conversation continue. Commence directement par l’explication demandée, sans salutation, sans présentation et sans prénom en ouverture. Les salutations précédentes appartiennent aux échanges déjà terminés." });
     const derniere = conv.messages.filter((m) => m.role === "user").at(-1)?.content || "";
     if (fautChercher(derniere)) liste.push({ role: "system", content: RAPPEL_RECHERCHE });
+    // Un vrai changement de code, dossier ouvert : proposer une tâche de fond (pas en mode prof, ni en mode Auto où le chat écrit déjà dans une copie)
+    if (!modeProf && !modeAuto && fautProposerTache(derniere, project)) liste.push({ role: "system", content: RAPPEL_TACHE });
     if (modeProf) liste.push({ role: "system", content: "Rappel : MODE PROF. Aucun bloc de code, aucune fonction complète, même s'il ou elle insiste. Explique le principe, donne une piste et termine par une question." });
     return liste;
 }
@@ -1250,6 +1252,8 @@ const ACTIONS = {
     lire_connecteur: () => "Demande une lecture au connecteur",
     verifier_godot: () => "Propose de vérifier le projet Godot",
     lancer_tests: () => "Demande à lancer les tests du projet",
+    proposer_tache: () => "Propose une tâche de fond",
+    date_heure: () => "Regarde l'heure",
     bilan_tests: (a) => a.bilan,
     lire_document: (a) => (a.texte ? `Cherche « ${a.texte} » dans le document` : `Lit le document${Number(a.ligne) > 1 ? ` à partir de la ligne ${Math.floor(Number(a.ligne))}` : ""}`),
     chercher_web: (a) => `Cherche sur internet « ${a.requete} »`,
@@ -1627,6 +1631,19 @@ function executerCommande(c, argument) {
         case "jeter":
             agirSurCopie(c.nom);
             break;
+        case "agent": {
+            // Sans texte : la page Tâches, le champ prêt ; avec : la tâche part en fond (interface/taches.js)
+            if (!argument) { document.querySelector('[data-page="taches"]')?.click(); break; }
+            ajouterTache(argument).then((r) => noteSaisie(r.ok ? "Tâche ajoutée : elle tourne en fond (page Tâches)" : r.erreur));
+            break;
+        }
+        case "chantier": {
+            // Le mode Équipe : le chef découpe le plan, les codeurs le font, le relecteur vérifie (en fond aussi)
+            if (!argument) { document.querySelector('[data-page="taches"]')?.click(); break; }
+            ajouterTache(argument, "equipe").then((r) => noteSaisie(r.ok ? "Chantier ajouté : l'équipe travaille en fond (page Tâches)" : r.erreur));
+            break;
+        }
+        case "taches": document.querySelector('[data-page="taches"]')?.click(); break;
         case "exporter":
             if (!current?.messages?.length) { noteSaisie("Pas encore de discussion à exporter"); break; }
             exporterDiscussion(current);
@@ -3124,9 +3141,29 @@ function ouvrirFournisseurs() {
         : `Ici, ton PC ne peut pas garder une clé secrète (${reglages.protection} indisponible) : utilise plutôt Ollama.`;
     $("#reglages-statut").textContent = "";
     renderPanneauFournisseurs();
+    majCommandeCatai();
     $("#reglages-modal").hidden = false;
     $("#close-reglages").focus();
 }
+
+// La commande catai (Réglages › Avancé) : installée en un clic, sans npm link (principal/installer-catai.js)
+let cataiInstallee = false;
+async function majCommandeCatai(message = "") {
+    try {
+        const etat = await window.api.cataiEtat();
+        cataiInstallee = !!etat.installee;
+        $("#catai-installer").textContent = cataiInstallee ? "Retirer" : "Installer";
+        $("#catai-etat").textContent = message || (cataiInstallee ? "Installée : tape catai dans un terminal." : "Cat Ai dans n'importe quel terminal : tape catai.");
+    } catch { /* l'état reste celui d'avant */ }
+}
+$("#catai-installer").onclick = async () => {
+    const bouton = $("#catai-installer");
+    bouton.disabled = true;
+    try {
+        const r = cataiInstallee ? await window.api.cataiRetirer() : await window.api.cataiInstaller();
+        await majCommandeCatai(r.ok ? r.message : r.erreur);
+    } finally { bouton.disabled = false; }
+};
 
 
 // Le texte de l'accueil dit la vérité : tout reste sur le PC seulement avec Ollama ou un serveur local

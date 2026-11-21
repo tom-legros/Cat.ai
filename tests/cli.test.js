@@ -100,3 +100,30 @@ test('filtre de réflexion : la réflexion en anglais avant « </think> » n est
   f.fin();
   assert.equal(ecrit, '391');
 });
+
+test('affichage : une ligne trop longue passe à la suivante entre deux mots, avec le décalage', () => {
+  const { creerSortie } = require('../cli/catai');
+  let texte = '';
+  const sortie = creerSortie((t) => { texte += t; }, () => 30);
+  const phrase = 'Je vois que le fichier est très long et je vais le lire en plusieurs passes.';
+  for (let i = 0; i < phrase.length; i += 3) sortie.texte(phrase.slice(i, i + 3));
+  sortie.fin();
+  const lignes = texte.replace(/\x1b\[[0-9;]*m/g, '').split('\n').filter(Boolean);
+  assert.ok(lignes.length > 2);
+  for (const l of lignes) assert.ok([...l].length <= 29, JSON.stringify(l));
+  for (const l of lignes.slice(1)) assert.match(l, /^ {2}\S/);
+  assert.equal(lignes.map((l) => l.replace(/^[● ] ?\s*/, '').trimEnd()).join(' '), phrase);
+});
+
+test('saisie : une ligne tapée pendant la réponse ne répond pas à la question qui suit', async () => {
+  const { EventEmitter } = require('node:events');
+  const { creerLecteur } = require('../cli/catai');
+  const rl = Object.assign(new EventEmitter(), { terminal: true, setPrompt() {}, prompt() {} });
+  const lire = creerLecteur(rl, false);
+  rl.emit('line', 'continue, ne t arrête pas'); // tapé pendant que le modèle travaille
+  const reponse = lire('Créer ce fichier ? (o/N) ', { question: true });
+  rl.emit('line', 'o');
+  assert.equal(await reponse, 'o');
+  // La ligne tapée en avance devient le message suivant
+  assert.equal(await lire('❯ '), 'continue, ne t arrête pas');
+});

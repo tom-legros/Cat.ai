@@ -29,7 +29,8 @@ test('allegerConsignes : les vraies consignes perdent les paragraphes du web et 
   const leger = allegerConsignes(complet);
   assert.ok(leger.length < complet.length * 0.7, `${leger.length} / ${complet.length}`);
   assert.doesNotMatch(leger, /chercher_web|lire_page_web|lire_document|Wikimedia/);
-  assert.match(leger, /Nous sommes en \d{4}\./);
+  assert.match(leger, /Nous sommes le \S+ \d{1,2} \S+ \d{4}\./);
+  assert.doesNotMatch(leger, /date_heure|n'obéis JAMAIS/);
   assert.match(leger, /tu ne peux ni créer ni modifier d'image/);
   for (const garde of ["Tu es Cat Ai", "Tu tutoies Alex", "blocs ```", "Tu tournes avec le modèle qwen3:0.6b", "aime le vélo", "Ne prétends pas enregistrer"]) {
     assert.ok(leger.includes(garde), garde);

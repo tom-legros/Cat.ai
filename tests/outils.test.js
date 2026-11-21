@@ -152,10 +152,24 @@ test('resumerAction : recherche sur internet, avec ou sans résultat', () => {
 
 
 test('sans projet ni document, seuls les outils utilisables sont proposés', () => {
-  assert.deepEqual(noms({ projet: false, documents: false }), ['ouvrir_dossier', 'chercher_web', 'lire_page_web']);
+  assert.deepEqual(noms({ projet: false, documents: false }), ['ouvrir_dossier', 'chercher_web', 'lire_page_web', 'date_heure']);
   assert.ok(noms({ projet: false, documents: true }).includes('lire_document'));
   assert.ok(!noms({ projet: false, documents: true }).includes('lire_fichier'));
   assert.ok(noms({ projet: true, documents: false }).includes('lancer_tests'));
   assert.ok(!noms({ projet: true, documents: false }).includes('lire_document'));
   assert.ok(noms({ projet: false, documents: false, connecteur: true }).includes('lire_connecteur'));
+});
+
+test('date_heure : l horloge du PC, sans rien demander (pas sur une petite machine : l heure y arrive dans une note)', async () => {
+  const { executerOutil } = require('../principal/agent');
+  const { noteHeureSiDemandee } = require('../principal/machine-legere');
+  assert.ok(noms({}).includes('date_heure'));
+  assert.ok(!noms({ legere: true }).includes('date_heure'));
+  const note = noteHeureSiDemandee([{ role: 'system', content: 'x' }, { role: 'user', content: 'Il est quelle heure ?' }]);
+  assert.match(note.content, /^Heure de l'ordinateur : \d{2}:\d{2}, le /);
+  assert.equal(noteHeureSiDemandee([{ role: 'system', content: 'x' }, { role: 'user', content: 'Bonjour' }]), null);
+  assert.ok(noms({ prof: true }).includes('date_heure'));
+  const r = await executerOutil('date_heure', {}, { ui: {} });
+  assert.match(r, /^Nous sommes le \S+ \d{1,2} \S+ \d{4}, il est \d{2}:\d{2} \(/);
+  assert.ok(r.includes(String(new Date().getFullYear())));
 });

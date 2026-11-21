@@ -5,7 +5,7 @@
    ========================================================== */
 
 /* ---------- 10. Navigation ---------- */
-const PAGES = { agents: $("#page-agents"), modeles: $("#page-modeles") };
+const PAGES = { agents: $("#page-agents"), taches: $("#page-taches"), modeles: $("#page-modeles") };
 let pageOuverte = "discussion";
 // La page Agents est rangée le temps de la refonte de l'agent (façon Claude Code, avec Git) : le code reste, l'entrée disparaît
 const PAGE_AGENTS = false;
@@ -28,6 +28,7 @@ function voirPage(nom) {
     });
     if (pageOuverte === "agents") ouvrirAgents();
     if (pageOuverte === "modeles") ouvrirModeles();
+    if (pageOuverte === "taches") ouvrirTaches();
     if (pageOuverte === "discussion") $("#input").focus();
 }
 

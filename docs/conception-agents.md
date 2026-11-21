@@ -95,6 +95,48 @@ flowchart TD
     Chantier --> Bilan
 ```
 
+## Dans l'app : la page Tâches
+
+L'ancienne page Agents (l'arbre de l'équipe) disparaît. L'app gagne une page **Tâches**, pensée pour les tâches de fond :
+
+- **Lancer** : dans la discussion, `/agent ce qu'il faut faire` (sur le dossier ouvert, avec le modèle choisi dans le
+  chat) ; ou dans la page Tâches, un champ « Nouvelle tâche ». On peut en ajouter plusieurs : elles attendent leur tour.
+- **Suivre** : chaque tâche a un statut (en attente, en cours, réussie, à vérifier, en partie, ratée, interrompue) ; celle
+  en cours montre ce que fait l'agent (« essai 1/3 · lit src/calcul.js »). Un badge sur l'entrée Tâches compte celles
+  qui tournent. Une notification arrive quand une tâche se termine.
+- **Revenir** : chaque tâche terminée montre son bilan, ses fichiers changés, ses tests et ses doutes, avec **Voir**
+  (le diff, la même fenêtre que le mode Auto), **Garder** (les changements vont dans le projet) et **Jeter**.
+  Une tâche ratée ou interrompue peut être relancée.
+
+Côté programme :
+
+- `principal/taches.js` : la file (une tâche à la fois), enregistrée dans les données de l'app ; au redémarrage, une
+  tâche qui était en cours devient « interrompue ».
+- L'agent seul (`principal/mission.js`) fait chaque tâche dans sa copie git (la même que le mode Auto : Voir, Garder et
+  Jeter existent déjà) ; avec Ollama, chaque appel passe par la file d'Ollama, pour que le chat reste utilisable.
+- Le PC ne se met pas en veille tant que la file travaille.
+- Le mode Équipe passe par la même file : `/chantier ce qu'il faut faire` dans la discussion, ou « Équipe » à côté du
+  champ de la page Tâches. Le chantier (chef, codeurs, relecteur) travaille dans sa copie git ; à la fin, les tests du
+  projet sont relancés sur le travail entier, et Voir, Garder, Jeter marchent comme pour l'agent seul.
+- Une tâche ne tourne jamais sans fin : 45 min au plus pour l'agent seul, 2 h pour l'équipe. Arrêtée avec du travail
+  dans sa copie, elle passe « en partie » (on peut le voir et le garder) ; une copie sans aucun changement est retirée
+  tout de suite, avec sa branche.
+- Plus tard : le mode Automatique (Cat Ai choisit seul ou équipe), et la file sur le homelab.
+
+```mermaid
+flowchart LR
+    Chat["/agent ou /chantier dans la discussion"] --> File[File de tâches]
+    Page[Page Tâches : nouvelle tâche, seul ou équipe] --> File
+    File --> Mission[Agent seul]
+    File --> Equipe[Équipe : chef, codeurs, relecteur]
+    Mission --> Copie[Copie git de la tâche]
+    Equipe --> Copie
+    Mission --> Statut[Statut et activité en direct]
+    Equipe --> Statut
+    Statut --> Notif[Notification à la fin]
+    Copie --> Retour[Retour : bilan, Voir, Garder, Jeter, Relancer]
+```
+
 ## Le constat
 
 Cat Ai a déjà trois façons de faire travailler un modèle sur un projet :

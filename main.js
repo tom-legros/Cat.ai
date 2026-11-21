@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, nativeImage, Menu, powerSaveBlocker } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, nativeImage, Menu, powerSaveBlocker, Notification } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -18,6 +18,8 @@ const { configurerMiseAJour } = require('./principal/miseajour');
 const { urlsDans } = require('./principal/web');
 const { integrerMenu } = require('./principal/menu-linux');
 const { ouvrirTerminal } = require('./principal/terminal');
+const { lancerOllama, commandeOllama } = require('./principal/demarrer-ollama');
+const { etatCommande, installerCommande, desinstallerCommande, executerPowerShell, SCRIPT_LIRE_PATH } = require('./principal/installer-catai');
 const { consigneTitre, nettoyerTitre } = require('./principal/titre');
 const { conseilMateriel, catalogueMateriel } = require('./principal/materiel');
 const { TYPES, equipeDepuis, equipeParDefaut, ajoutsPossibles, ajouterAgent, retirerAgent, modifierAgent } = require('./principal/equipe');
@@ -26,6 +28,9 @@ const { lancerChantier, preparerPlan, codeurPour, jeterChantier } = require('./p
 const { agentsDuChantier, etatDepot, MESSAGES_DEPOT, preparerDepot, garderChantier, resumeChantier } = require('./principal/lancement');
 const { NOM_COPIE, brancheDe, copieDe, depotDeLaCopie, preparerCopie, changementsCopie, garderCopie, jeterCopie } = require('./principal/copie-agent');
 const { BINAIRES, lireTexteDocument, texteJointDocument, idValide } = require('./principal/documents');
+const { lancerMission } = require('./principal/mission');
+const { lancerTestsNode } = require('./principal/tests-projet');
+const { creerFileTaches } = require('./principal/taches');
 // Textes extraits des PDF et longs fichiers glissés dans la discussion
 const DOSSIER_DOCUMENTS = () => path.join(app.getPath('userData'), 'documents');
 const { OLLAMA, GARDER_CHARGE, LEGERE, optionsOllama, sansReflexion, REFLEXION, envoyerOllama, envoyerOpenAI, vulkanUtile } = require('./principal/envoi');
@@ -64,26 +69,14 @@ async function ollamaRepond() {
 
 // Où trouver Ollama : sur Windows, son installeur le met dans LOCALAPPDATA ; sur Linux et macOS,
 // la commande « ollama » est dans le PATH (et souvent déjà lancée en service par le système).
-function commandeOllama() {
-  if (process.platform !== 'win32') return 'ollama';
-  const exe = path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Ollama', 'ollama.exe');
-  return fs.existsSync(exe) ? exe : null;
-}
-
 async function demarrerOllama() {
   if (await ollamaRepond()) return;
-  const commande = commandeOllama();
-  if (!commande) return;
-  // Les cartes graphiques du PC, pour décider de Vulkan (voir vulkanUtile)
+  // Les cartes graphiques du PC, pour décider de Vulkan (voir vulkanUtile) ; le lancement est partagé avec catai
   const cartes = await app.getGPUInfo('basic').then((infos) => infos.gpuDevice || [], () => []);
-  serveurOllama = spawn(commande, ['serve'], {
-    windowsHide: true,
-    stdio: 'ignore',
-    env: vulkanUtile(process.platform, process.env, cartes) ? { ...process.env, OLLAMA_VULKAN: '1' } : process.env,
-  });
+  serveurOllama = lancerOllama({ cartes });
   // Pas installé : rien ne se lance, et l'interface affiche « Ollama ne répond pas »
-  serveurOllama.on('error', () => (serveurOllama = null));
-  serveurOllama.on('exit', () => (serveurOllama = null));
+  serveurOllama?.on('error', () => (serveurOllama = null));
+  serveurOllama?.on('exit', () => (serveurOllama = null));
 }
 
 function createWindow() {
@@ -163,6 +156,8 @@ function contexteAgent({ prof, fournisseurId, liensDonnes = [], documentsJoints 
       return signal?.aborted ? null : choix;
     },
     confirmerEcriture: auto ? async () => !signal?.aborted : infos => demanderConfirmation(infos, { requeteId, signal }),
+    // Une proposition de tâche de fond : une carte sous la réponse, l'utilisateur lance ou non (interface/taches.js)
+    proposerTache: (tache) => { if (!signal?.aborted) win?.webContents.send('chat-proposition-tache', { id: requeteId, tache }); },
   };
   return {
     projet: () => dossier,
@@ -515,6 +510,28 @@ ipcMain.handle('ouvrir-terminal', () => {
   } catch (err) {
     return { ok: false, erreur: "Impossible d'ouvrir le terminal : " + err.message };
   }
+});
+
+// La commande catai, installée depuis les Réglages (principal/installer-catai.js). Le PATH de l'utilisateur (Windows)
+// n'est modifié que sur un clic, et seulement pour le dossier de la commande.
+function optionsCatai() {
+  return {
+    empaquetee: app.isPackaged, ressources: process.resourcesPath, donnees: app.getPath('userData'),
+    moteur: process.execPath, script: path.join(app.getAppPath(), 'cli', 'catai.js'), appimage: process.env.APPIMAGE || null,
+    executerPowerShell: (script, env) => executerPowerShell(script, env),
+  };
+}
+ipcMain.handle('catai-etat', async () => {
+  try {
+    const pathUtilisateur = process.platform === 'win32' ? await executerPowerShell(SCRIPT_LIRE_PATH) : process.env.PATH;
+    return etatCommande({ ...optionsCatai(), pathUtilisateur });
+  } catch { return { installee: false }; }
+});
+ipcMain.handle('catai-installer', async () => {
+  try { return await installerCommande(optionsCatai()); } catch (err) { return { ok: false, erreur: "La commande n'a pas pu être installée : " + err.message }; }
+});
+ipcMain.handle('catai-retirer', async () => {
+  try { return await desinstallerCommande(optionsCatai()); } catch (err) { return { ok: false, erreur: "La commande n'a pas pu être retirée : " + err.message }; }
 });
 
 ipcMain.handle('choisir-fichier', async (_e, options = {}) => {
@@ -1174,6 +1191,191 @@ ipcMain.handle('agent-jeter', async (_e, demande = {}) => {
   try { return jeterCopie(depotDeLaCopie(c.copie), c.nom); } catch (err) { return { ok: false, erreur: err.message }; }
 });
 
+// ---------- Tâches de fond (docs/conception-agents.md, la page Tâches) ----------
+// On ajoute des tâches (/agent dans la discussion, ou la page Tâches) ; l'agent seul (principal/mission.js) les fait
+// une par une, chacune dans sa copie git (la même que le mode Auto : Voir, Garder et Jeter sont partagés).
+let fileTachesCreee = null;
+let veilleTaches = null;
+function fileTaches() {
+  if (fileTachesCreee) return fileTachesCreee;
+  fileTachesCreee = creerFileTaches({
+    lire: () => readJson('taches.json', []),
+    ecrire: (taches) => writeJson('taches.json', taches),
+    prevenir: (taches) => win?.webContents.send('taches-maj', taches),
+    executer: executerTache,
+  });
+  return fileTachesCreee;
+}
+
+// Un appel à Ollama qui prend son tour dans la file d'Ollama : le chat reste utilisable entre deux appels
+const envoyerAvecTour = (envoyerBrut) => async (messages, modele, morceau, sig, options) => {
+  const liberer = await fileOllama.prendre({ signal: sig });
+  try { return await envoyerBrut(messages, modele, morceau, sig, { ...options, chantier: true }); } finally { liberer(); }
+};
+
+// Une tâche en mode Équipe : le chantier (chef, codeurs, relecteur) dans sa copie git, avec l'équipe des réglages
+async function executerEquipe(tache, { signal, activite }) {
+  if (chantierEnCours) throw new Error('Un chantier tourne déjà : relance cette tâche une fois fini.');
+  if (!(await ollamaRepond())) throw new Error("Ollama ne répond pas : les codeurs de l'équipe en ont besoin.");
+  const etat = etatDepot(tache.projet);
+  if (!etat.pret) throw new Error(MESSAGES_DEPOT[etat.raison]);
+  chantierEnCours = { arret: { abort: () => {} } };
+  prechauffage?.arret.abort();
+  veilleTaches ??= powerSaveBlocker.start('prevent-app-suspension');
+  try {
+    const { chef, codeurs } = agentsDuChantier({
+      reglages: lireReglagesFournisseurs(), infos: infosFournisseur, envoyerLocal: envoyerAvecTour(envoyerOllama), limitesLocales: LIMITES_OLLAMA,
+      limitesEnLigne: (id) => limitesTaille(infosFournisseur(id)),
+      envoyerEnLigne: (id) => async (messages, modele, ...reste) => { verifierGratuit(id, modele); return (await envoyeurPour(id))(messages, modele, ...reste); },
+      dire: (t) => activite(t),
+    });
+    const base = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: tache.projet, encoding: 'utf8', windowsHide: true }).trim();
+    let etapeEnCours = '';
+    const r = await lancerChantier({
+      projet: tache.projet, plan: tache.demande, chef, codeurs, base, signal,
+      dossierCopies: path.join(app.getPath('userData'), 'chantiers'),
+      ev: {
+        etape: (i, n, titre) => { etapeEnCours = `étape ${i}/${n} · ${titre}`; activite(etapeEnCours); },
+        activite: (a) => { if (a?.nom) activite(`${etapeEnCours ? `${etapeEnCours} · ` : ''}${a.nom} ${a.action || ''}`.trim()); },
+      },
+    });
+    const nom = r.branche.replace('catai/chantier-', '');
+    const faites = r.etapes.filter((e) => e.ok).length;
+    const doutes = r.etapes.filter((e) => e.ok && e.aVerifier).length;
+    let statut = faites === 0 ? 'ratée' : faites < r.plan.length ? 'en partie' : doutes ? 'réussie, à vérifier' : 'réussie';
+    const changements = changementsCopie(r.copie, base);
+    const vide = !changements.fichiers.length;
+    if (vide) { try { jeterChantier(tache.projet, nom); } catch { /* déjà retirée */ } }
+    // Les tests du projet une dernière fois, sur le travail entier : la carte dit s'ils passent, comme pour l'agent seul
+    let tests = '';
+    let aVerifier = '';
+    if (faites && !vide && !signal.aborted) {
+      activite('lance les tests une dernière fois');
+      const bilanTests = await lancerTestsNode(r.copie, signal);
+      tests = bilanTests.startsWith('Tests réussis') ? 'réussis' : bilanTests.startsWith('Aucun test') ? 'aucun test' : 'échec';
+      if (tests === 'échec' && statut.startsWith('réussie')) { statut = 'réussie, à vérifier'; aVerifier = 'Les tests du projet échouent à la fin du chantier : regarde le travail avant de le garder.'; }
+    }
+    if (Notification.isSupported()) new Notification({ title: `Tâche ${statut}`, body: tache.demande.split('\n')[0].slice(0, 120) }).show();
+    return {
+      statut, copie: vide ? null : { type: 'chantier', nom, base },
+      // Le rapport sans les commandes git de la fin : la page Tâches a ses boutons Voir, Garder et Jeter
+      rapport: r.rapport.split('\nLe travail est sur la branche')[0].trim(),
+      bilan: `${faites} étape${faites > 1 ? 's' : ''} sur ${r.plan.length} faite${faites > 1 ? 's' : ''} par l'équipe.`,
+      fichiers: changements.fichiers.length, ajouts: changements.ajouts, retraits: changements.retraits, tests, aVerifier,
+    };
+  } finally {
+    chantierEnCours = null;
+    if (!fileTaches().lister().some((t) => t.statut === 'en attente')) { powerSaveBlocker.stop(veilleTaches); veilleTaches = null; }
+  }
+}
+
+async function executerTache(tache, { signal, activite }) {
+  if (tache.mode === 'equipe') return executerEquipe(tache, { signal, activite });
+  const config = infosFournisseur(tache.fournisseurId);
+  if (!config) throw new Error('Fournisseur inconnu : choisis un modèle dans la discussion.');
+  verifierGratuit(tache.fournisseurId, tache.modele);
+  const local = config.type === 'ollama';
+  if (local && !(await ollamaRepond())) throw new Error("Ollama ne répond pas : la tâche n'a pas pu commencer.");
+  const envoyerBrut = await envoyeurPour(tache.fournisseurId);
+  // Avec Ollama, chaque appel prend son tour dans la file d'Ollama : le chat reste utilisable entre deux appels
+  const envoyer = local ? envoyerAvecTour(envoyerBrut) : envoyerBrut;
+  const nom = `mission-${tache.id}`.replace(/[^\w-]/g, '').slice(0, 60);
+  // Le PC ne dort pas pendant qu'une tâche travaille
+  veilleTaches ??= powerSaveBlocker.start('prevent-app-suspension');
+  copiesOccupees.add(nom);
+  try {
+    const r = await lancerMission({
+      projet: tache.projet, demande: tache.demande, modele: tache.modele, envoyer, nom, signal,
+      limites: local ? LIMITES_OLLAMA : limitesTaille(config), dossierCopies: dossierCopiesAgent(),
+      ev: {
+        essai: (i, n) => activite(`essai ${i}/${n}`),
+        outil: (outil, a) => { const quoi = a?.chemin || a?.texte || a?.dossier || ''; activite(`${outil.replace(/_/g, ' ')}${quoi ? ` · ${quoi}` : ''}`); },
+      },
+    });
+    if (Notification.isSupported()) {
+      new Notification({ title: `Tâche ${r.statut}`, body: tache.demande.split('\n')[0].slice(0, 120) }).show();
+    }
+    // Rien de changé : la copie et sa branche ne servent à rien, elles sont retirées tout de suite (sinon la branche
+    // catai/agent-mission-… restait dans le dépôt de l'utilisateur, sans bouton pour la jeter)
+    const vide = !r.changements.fichiers.length;
+    if (vide) { try { jeterCopie(depotDeLaCopie(r.copie), r.nom); } catch { /* déjà retirée */ } }
+    return {
+      statut: r.statut, rapport: r.rapport, bilan: r.bilan, aVerifier: r.aVerifier, tests: r.tests,
+      copie: vide ? null : { nom: r.nom, base: r.base }, fichiers: r.changements.fichiers.length, ajouts: r.changements.ajouts, retraits: r.changements.retraits,
+    };
+  } finally {
+    copiesOccupees.delete(nom);
+    if (!fileTaches().lister().some((t) => t.statut === 'en attente')) { powerSaveBlocker.stop(veilleTaches); veilleTaches = null; }
+  }
+}
+
+ipcMain.handle('taches-lister', () => fileTaches().lister());
+ipcMain.handle('tache-ajouter', (_e, { demande, fournisseurId, modele, mode } = {}) => {
+  if (!projectDir) return { ok: false, erreur: "Ouvre d'abord le dossier du projet : la tâche travaille dessus." };
+  const etat = etatDepot(projectDir);
+  if (!etat.pret) return { ok: false, erreur: MESSAGES_DEPOT[etat.raison] };
+  try { return { ok: true, tache: fileTaches().ajouter({ demande: String(demande || ''), projet: projectDir, fournisseurId: String(fournisseurId || 'ollama'), modele: String(modele || ''), mode: mode === 'equipe' ? 'equipe' : 'seul' }) }; }
+  catch (err) { return { ok: false, erreur: err.message }; }
+});
+ipcMain.handle('tache-arreter', (_e, id) => ({ ok: fileTaches().arreter(String(id)) }));
+ipcMain.handle('tache-relancer', (_e, id) => ({ ok: fileTaches().relancer(String(id)) }));
+ipcMain.handle('tache-retirer', (_e, id) => {
+  const c = copieDeTache(id);
+  if (c) {
+    try {
+      if (changementsCopie(c.copie, c.base).fichiers.length) return { ok: false, erreur: "Cette tâche a du travail dans sa copie : garde-le ou jette-le d'abord." };
+      if (c.chantier) jeterChantier(c.projet, c.nom); else jeterCopie(depotDeLaCopie(c.copie), c.nom);
+    } catch { /* la copie n'est plus utilisable : la tâche part quand même */ }
+  }
+  return { ok: fileTaches().retirer(String(id)) };
+});
+// Voir, Garder et Jeter passent par la copie de la tâche : celle de l'agent seul (la même que le mode Auto), ou celle
+// du chantier pour une tâche en mode Équipe
+function copieDeChantier({ nom, base } = {}, projet) {
+  if (!NOM_CHANTIER.test(String(nom)) || !/^[0-9a-f]{40}$/.test(String(base))) return null;
+  const copie = path.join(app.getPath('userData'), 'chantiers', `chantier-${nom}`);
+  if (!fs.existsSync(copie)) return null;
+  try {
+    const branche = execFileSync('git', ['symbolic-ref', '--short', 'HEAD'], { cwd: copie, encoding: 'utf8', windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+    if (branche !== `catai/chantier-${nom}`) return null;
+  } catch { return null; }
+  return { nom, base, copie, chantier: true, projet };
+}
+const copieDeTache = (id) => {
+  const t = fileTaches().lister().find((x) => x.id === String(id));
+  if (!t?.copie) return null;
+  return t.copie.type === 'chantier' ? copieDeChantier(t.copie, t.projet) : copieParNom(t.copie);
+};
+// Après Garder, la copie disparaît : pour un chantier, sa branche aussi
+const retirerCopieChantier = (c) => { try { jeterChantier(c.projet, c.nom); } catch { /* déjà retirée */ } };
+ipcMain.handle('tache-changements', (_e, id) => {
+  const c = copieDeTache(id);
+  if (!c) return { ok: false, erreur: "La copie de cette tâche n'existe plus." };
+  try { return { ok: true, ...changementsCopie(c.copie, c.base, { patch: true }) }; } catch (err) { return { ok: false, erreur: err.message }; }
+});
+ipcMain.handle('tache-garder', (_e, id) => {
+  const c = copieDeTache(id);
+  if (!c) return { ok: false, erreur: "La copie de cette tâche n'existe plus." };
+  if (c.chantier && chantierEnCours) return { ok: false, erreur: 'Attends la fin du chantier en cours.' };
+  try {
+    const r = garderCopie(c.copie, c.base, c.nom);
+    if (r.ok && c.chantier) retirerCopieChantier(c);
+    if (r.ok) fileTaches().marquer(String(id), 'gardée');
+    return r;
+  } catch (err) { return { ok: false, erreur: err.message }; }
+});
+ipcMain.handle('tache-jeter', async (_e, id) => {
+  const c = copieDeTache(id);
+  if (!c) { fileTaches().marquer(String(id), 'jetée'); return { ok: true }; }
+  const accord = await demanderAccord({ titre: 'Jeter le travail', message: 'Jeter les changements de cette tâche ?', accepter: 'Jeter', detail: 'Sa copie et sa branche sont supprimées. Ton projet ne change pas.' });
+  if (!accord) return { ok: false, annule: true };
+  try {
+    if (c.chantier) jeterChantier(c.projet, c.nom); else jeterCopie(depotDeLaCopie(c.copie), c.nom);
+    fileTaches().marquer(String(id), 'jetée');
+    return { ok: true };
+  } catch (err) { return { ok: false, erreur: err.message }; }
+});
+
 // Une seule app ouverte à la fois : deux fenêtres liraient et enregistreraient chacune leur version
 // des discussions et des réglages, et la dernière qui enregistre effacerait le travail de l'autre.
 // Relancer l'app ramène simplement la fenêtre déjà ouverte au premier plan.
@@ -1199,7 +1401,13 @@ async function appelPourCatai(fichier) {
   }
 }
 
-if (APPEL_CATAI >= 0) {
+const MODE_CATAI = process.argv.indexOf('--catai');
+if (MODE_CATAI >= 0) {
+  // Le lanceur ~/.local/bin/catai d'une AppImage : catai tourne ici, sans fenêtre, avec les arguments qui suivent
+  process.argv = [process.argv[0], 'catai', ...process.argv.slice(MODE_CATAI + 1)];
+  app.disableHardwareAcceleration();
+  require('./cli/catai').principal().then((code) => process.exit(code), (err) => { process.stderr.write(`${err.stack || err}\n`); process.exit(1); });
+} else if (APPEL_CATAI >= 0) {
   app.disableHardwareAcceleration();
   app.whenReady().then(() => appelPourCatai(process.argv[APPEL_CATAI + 1]));
 } else if (!app.requestSingleInstanceLock()) {
@@ -1217,6 +1425,8 @@ if (APPEL_CATAI >= 0) {
     win.webContents.once('did-finish-load', () => {
       configurerMiseAJour((etat) => win?.webContents.send('mise-a-jour', etat));
       menuLinux();
+      // Les tâches qui attendaient à la fermeture repartent (celles qui tournaient sont marquées « interrompue »)
+      fileTaches().reprendre();
     });
   });
 }

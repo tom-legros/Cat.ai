@@ -9,6 +9,7 @@
 //
 // Les garde-fous sont ici, pas dans l'interface : toute écriture passe par confirmerEcriture, un fichier sensible
 // n'est lu qu'avec un accord, tout reste dans le dossier ouvert (cheminSur), et le mode prof n'écrit ni ne lance rien.
+const { noteHeureSiDemandee } = require('./machine-legere');
 const fs = require('fs');
 const path = require('path');
 const { MAX_FICHIER_OUTIL, extraitLignes, cheminSur, estSensible, listFiles, chercherDansProjet } = require('./fichiers');
@@ -61,12 +62,21 @@ const accordLectureSensible = (ctx, chemin) => ctx.ui.demander({
   accepter: 'Autoriser', refuser: 'Refuser', attention: true,
 });
 
+// « samedi 21 novembre 2026, 00:09 (Europe/Paris) », lu sur l'horloge du PC
+function dateHeure(d = new Date()) {
+  const jour = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const heure = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  const fuseau = Intl.DateTimeFormat().resolvedOptions().timeZone || 'heure locale';
+  return `Nous sommes le ${jour}, il est ${heure} (${fuseau}), d'après l'horloge de l'ordinateur.`;
+}
+
 async function executerOutil(name, args, ctx) {
   if (OUTILS_ECRITURE.has(name)) {
     const refus = ecritureRefusee(ctx, args.chemin);
     if (refus) return refus;
   }
   switch (name) {
+    case 'date_heure': return dateHeure();
     case 'ouvrir_dossier': {
       const full = path.resolve(String(args.chemin || ''));
       if (!fs.existsSync(full) || !fs.statSync(full).isDirectory()) return `Le dossier ${full} n'existe pas. Demande le bon chemin à l'utilisateur.`;
@@ -136,6 +146,13 @@ async function executerOutil(name, args, ctx) {
       if (!ok || ctx.signal?.aborted) return 'Vérification Godot annulée.';
       if (!ctx.projet() || fs.realpathSync(ctx.projet()) !== dossier) return 'Le dossier ouvert a changé. Vérification annulée.';
       return verifierProjetGodot(executable, dossier, ctx.signal);
+    }
+    case 'proposer_tache': {
+      const tache = String(args.tache || '').trim().slice(0, 4000);
+      if (!tache) return 'Décris la tâche dans le paramètre tache.';
+      if (!ctx.ui.proposerTache) return "Les tâches de fond ne sont pas disponibles ici : fais le travail toi-même.";
+      ctx.ui.proposerTache(tache);
+      return "La proposition est affichée : l'utilisateur choisira de lancer la tâche de fond ou non. Ne fais PAS les changements toi-même. Dis-lui en une phrase, en le tutoyant (« je te propose… »), ce que la tâche fera.";
     }
     case 'lancer_tests': {
       if (ctx.prof) return 'Ce mode ne permet pas de lancer des tests.';
@@ -240,9 +257,12 @@ async function discuter({ messages, modele, envoyer, limites, ctx, ev = {}, opti
   let relance = false;
   let bouclesConsecutives = 0;
   let arretBoucle = false;
+  // Une question sur l'heure : l'heure du PC est jointe d'office (même avec l'outil date_heure, qwen3.5 l'inventait)
+  const heure = noteHeureSiDemandee(messages);
   for (let etape = 0; etape < MAX_STEPS; etape++) {
     ctx.signal?.throwIfAborted();
-    const aEnvoyer = limites ? compacter(historique, limites.total) : historique;
+    const compacte = limites ? compacter(historique, limites.total) : historique;
+    const aEnvoyer = heure ? [...compacte, heure] : compacte;
     // Mode prof : les blocs de code sont retirés pendant que la réponse arrive (principal/prof.js)
     const filtre = ctx.prof ? creerFiltreCode(afficher) : null;
     let { content, toolCalls } = await envoyer(aEnvoyer, modele, filtre ? filtre.morceau : afficher, ctx.signal, { prof: ctx.prof, onPause: ev.pause, ...options });

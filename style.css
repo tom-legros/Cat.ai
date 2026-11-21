@@ -1235,3 +1235,42 @@ button.menu-modeles__titre--fournisseur[aria-expanded="false"] .menu-modeles__fl
 .agent-barre.is-alerte .agent-barre__texte { white-space: normal; color: var(--texte-2); }
 .diff__fichier { color: var(--texte); font-weight: 600; }
 .diff__texte { white-space: pre; }
+
+/* Page Tâches (interface/taches.js) : la nouvelle tâche en haut, puis une carte par tâche, les plus récentes d'abord */
+.nav__badge { margin-left: auto; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: rgba(var(--oeil-rvb), .18); color: var(--oeil); font: 600 11px/18px var(--police-texte); text-align: center; }
+.taches__projet { margin: 6px 0 0; color: var(--texte-2); font-size: 13px; }
+.tache-nouvelle { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 10px; }
+.tache-nouvelle textarea { flex: 1; min-height: 46px; max-height: 160px; resize: vertical; padding: 12px 14px; border: 1px solid var(--ligne-2); border-radius: 14px; background: #131313; color: var(--texte); font: 14px/1.5 var(--police-texte); }
+.tache-mode { align-self: flex-end; height: 34px; padding: 0 10px; border-radius: var(--rayon-petit); font: 13px var(--police-texte); }
+.tache-nouvelle textarea:focus { outline: none; border-color: rgba(var(--oeil-rvb), .55); }
+.tache-erreur { margin: 0 0 12px; color: #e07a6e; font-size: 13px; }
+.taches { list-style: none; margin: 18px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.taches-vide { color: var(--texte-2); font-size: 14px; }
+.tache { padding: 14px 16px; border: 1px solid var(--ligne); border-radius: 14px; background: rgba(255, 255, 255, .02); }
+.tache.is-nouvelle { animation: arrivee .2s ease-out both; }
+.tache__tete { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 4px 10px; }
+.tache__titre { font-size: 14.5px; color: var(--texte); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tache__infos { grid-column: 2; color: var(--texte-2); font-size: 12.5px; }
+.tache__statut { padding: 2px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+.statut--attente { background: rgba(255, 255, 255, .06); color: var(--texte-2); }
+.statut--cours { background: rgba(var(--oeil-rvb), .16); color: var(--oeil); }
+.statut--ok { background: rgba(110, 200, 130, .14); color: #7fd394; }
+.statut--doute { background: rgba(230, 170, 80, .15); color: #e6b25a; }
+.statut--rate { background: rgba(224, 122, 110, .14); color: #e07a6e; }
+.statut--neutre { background: rgba(255, 255, 255, .05); color: var(--texte-3); }
+.tache__activite { margin: 8px 0 0; color: var(--texte-2); font: 12.5px var(--police-mono); }
+.tache__erreur { margin: 8px 0 0; color: #e07a6e; font-size: 13px; }
+.tache__doute { margin: 8px 0 0; color: #e6b25a; font-size: 13px; }
+.tache__rapport { margin-top: 8px; }
+.tache__rapport summary { cursor: pointer; color: var(--texte-2); font-size: 12.5px; }
+.tache__texte { margin: 8px 0 0; padding: 12px 14px; border-radius: 10px; background: #111; color: var(--texte-2); font: 13.5px/1.55 var(--police-texte); max-height: 320px; overflow: auto; }
+.tache__texte h1 { margin: 0 0 8px; font-size: 15px; color: var(--texte); }
+.tache__texte p, .tache__texte ul { margin: 0 0 8px; }
+.tache__texte code { font: 12.5px var(--police-mono); color: var(--texte); }
+.tache__actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+
+/* Proposition de tâche de fond, sous une réponse du chat */
+.proposition-tache { margin: 10px 0 4px; padding: 14px 16px; border: 1px solid rgba(var(--oeil-rvb), .35); border-radius: 14px; background: rgba(var(--oeil-rvb), .05); max-width: 640px; animation: arrivee .2s ease-out both; }
+.proposition-tache__titre { margin: 0 0 8px; color: var(--texte); font-size: 14px; font-weight: 600; }
+.proposition-tache__texte { width: 100%; box-sizing: border-box; resize: vertical; padding: 10px 12px; border: 1px solid var(--ligne-2); border-radius: 10px; background: #131313; color: var(--texte); font: 13.5px/1.5 var(--police-texte); }
+.proposition-tache__texte:focus { outline: none; border-color: rgba(var(--oeil-rvb), .55); }

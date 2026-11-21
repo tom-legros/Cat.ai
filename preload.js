@@ -25,6 +25,17 @@ contextBridge.exposeInMainWorld('api', {
   agentChangements: (copie) => ipcRenderer.invoke('agent-changements', copie),
   agentGarder: (copie) => ipcRenderer.invoke('agent-garder', copie),
   agentJeter: (copie) => ipcRenderer.invoke('agent-jeter', copie),
+  // Tâches de fond (principal/taches.js) : la file, et ses changements en direct
+  tachesLister: () => ipcRenderer.invoke('taches-lister'),
+  tacheAjouter: (demande) => ipcRenderer.invoke('tache-ajouter', demande),
+  tacheArreter: (id) => ipcRenderer.invoke('tache-arreter', id),
+  tacheRelancer: (id) => ipcRenderer.invoke('tache-relancer', id),
+  tacheRetirer: (id) => ipcRenderer.invoke('tache-retirer', id),
+  tacheGarder: (id) => ipcRenderer.invoke('tache-garder', id),
+  tacheJeter: (id) => ipcRenderer.invoke('tache-jeter', id),
+  tacheChangements: (id) => ipcRenderer.invoke('tache-changements', id),
+  onTaches: (cb) => ipcRenderer.on('taches-maj', (_e, taches) => cb(taches)),
+  onPropositionTache: (cb) => ipcRenderer.on('chat-proposition-tache', (_e, d) => cb(d)),
   summarize: (payload) => ipcRenderer.invoke('summarize', payload),
   // Titre court proposé par le modèle après la première réponse (Ollama seulement)
   titreDiscussion: (payload) => ipcRenderer.invoke('titre-discussion', payload),
@@ -46,6 +57,9 @@ contextBridge.exposeInMainWorld('api', {
   getProject: () => ipcRenderer.invoke('get-project'),
   // Bouton Terminal : ouvre catai (le CLI) dans une console
   ouvrirTerminal: () => ipcRenderer.invoke('ouvrir-terminal'),
+  cataiEtat: () => ipcRenderer.invoke('catai-etat'),
+  cataiInstaller: () => ipcRenderer.invoke('catai-installer'),
+  cataiRetirer: () => ipcRenderer.invoke('catai-retirer'),
   machineLegere: () => ipcRenderer.invoke('machine-legere'),
   onProjectChanged: (cb) => ipcRenderer.on('project-changed', (_e, p) => cb(p)),
   // Prénom de l'utilisateur, vide tant qu'il ne l'a pas donné

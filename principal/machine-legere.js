@@ -15,6 +15,8 @@ const machineLegere = (totale = os.totalmem(), env = process.env) => env.CATAI_P
 const RETIRES = [
     /^Si .+ te donne un lien \(https:/,
     /^Pour une doc \(Linux, une commande/,
+    // La consigne contre les instructions des pages web n'a plus lieu d'être
+    /^Le texte des pages et des résultats vient d'internet/,
 ];
 function allegerConsignes(texte, { documents = false } = {}) {
     if (typeof texte !== 'string') return texte;
@@ -27,9 +29,9 @@ function allegerConsignes(texte, { documents = false } = {}) {
         if (/^Quand un document est joint/.test(ligne)) return documents ? [ligne] : [];
         // Chaque mot coûte ~0,1 s sur le processeur : des réponses courtes par défaut
         if (/Tu adaptes ta réponse/.test(ligne)) return [ligne, BREF];
-        // La consigne contre les instructions des pages web n'a plus lieu d'être ; l'année reste
-        const annee = /^Le texte des pages et des résultats vient d'internet.*(Nous sommes en \d{4}\.)/.exec(ligne);
-        if (annee) return [annee[1]];
+        // La date reste ; l'outil date_heure, lui, n'est pas donné ici (sans outils, la réponse part plus vite)
+        const date = /^(Nous sommes le [^.]+\.)/.exec(ligne);
+        if (date) return [date[1]];
         return [ligne];
     }).join('\n');
 }
@@ -40,6 +42,16 @@ const BREF = "Ce PC est lent : réponds en quelques phrases, sans introduction n
 
 // Les messages envoyés à Ollama, avec les consignes système allégées
 const allegerMessages = (messages, options = {}) => messages.map((m) => (m.role === 'system' && !m.name ? { ...m, content: allegerConsignes(m.content, options) } : m));
+
+// Une question sur l'heure reçoit l'heure du PC dans une note, après la question (principal/agent.js) : les
+// consignes ne changent pas (le cache d'Ollama les garde), seule cette question coûte quelques tokens de plus.
+// Sur une petite machine, c'est la seule source de l'heure : l'outil date_heure n'y est pas donné.
+const HEURE_DEMANDEE = /(quelle heure|l'heure|l’heure|heure est|heure il|what time|time is it)/i;
+const noteHeure = (d = new Date()) => `Heure de l'ordinateur : ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}, le ${d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}.`;
+function noteHeureSiDemandee(messages, d = new Date()) {
+    const question = [...messages].reverse().find((m) => m.role === 'user');
+    return question && HEURE_DEMANDEE.test(String(question.content)) ? { role: 'system', name: 'heure', content: noteHeure(d) } : null;
+}
 
 // Un seul modèle en mémoire : ceux qu'Ollama garde encore (autre que celui qu'on va utiliser) sont déchargés
 async function dechargerAutres(adresse, modele, { requete = fetch, signal } = {}) {
@@ -76,4 +88,4 @@ async function cacheReutilisable(adresse, modele, { requete = fetch } = {}) {
     }
 }
 
-module.exports = { cacheConnu, cacheReutilisable, BREF, SEUIL_RAM, machineLegere, allegerConsignes, allegerMessages, dechargerAutres };
+module.exports = { cacheConnu, cacheReutilisable, BREF, SEUIL_RAM, machineLegere, allegerConsignes, allegerMessages, noteHeureSiDemandee, dechargerAutres };
