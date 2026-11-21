@@ -20,7 +20,7 @@
     <nav class="nav" aria-label="Pages">
       <button class="nav__lien is-actif" data-page="discussion" type="button" aria-current="page"><span data-icone="bulle"></span>Discussion</button>
       <button class="nav__lien" data-page="agents" type="button"><span data-icone="agents"></span>Agents</button>
-      <button class="nav__lien" data-page="taches" type="button"><span data-icone="agents"></span>Tâches<span id="taches-badge" class="nav__badge" hidden></span></button>
+      <button class="nav__lien" data-page="taches" type="button"><span data-icone="agents"></span>Tâches<span class="etiquette-beta" title="Les agents sont encore en test : regarde toujours leur travail avant de le garder">Bêta</span><span id="taches-badge" class="nav__badge" hidden></span></button>
       <button class="nav__lien" data-page="modeles" type="button"><span data-icone="boite"></span>Modèles</button>
     </nav>
 
@@ -224,8 +224,9 @@
       <div class="page__contenu">
         <header class="page__tete">
           <div>
-            <h2 class="page__titre">Tâches</h2>
+            <h2 class="page__titre">Tâches <span class="etiquette-beta">Bêta</span></h2>
             <p id="taches-projet" class="taches__projet"></p>
+            <p class="taches__beta">Les agents sont encore en test : regarde toujours leur travail (Voir) avant de le garder.</p>
           </div>
         </header>
         <form id="tache-form" class="tache-nouvelle">

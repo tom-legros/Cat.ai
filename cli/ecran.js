@@ -162,10 +162,12 @@ function creerEcran({ sortie = process.stdout, actif = !!sortie.isTTY && !proces
     let s = `${CSI}?2026h\r${auDessus ? `${CSI}${auDessus}A` : ''}${CSI}J`;
     const lignes = (enCours + nettoyer(nouveau)).split('\n');
     enCours = finir(lignes.pop());
+    // Une ligne finie plus large que l'écran passe à la ligne entre deux mots (le terminal la coupait n'importe où)
     for (const l of lignes) {
-      const ligne = finir(l);
-      historique.push(ligne);
-      s += `${ligne}${CSI}0m\r\n`;
+      for (const ligne of couper(finir(l), L, { mots: true })) {
+        historique.push(ligne);
+        s += `${ligne}${CSI}0m\r\n`;
+      }
     }
     // Une ligne commencée plus large que l'écran : ses premières lignes d'écran sont finies, elles montent
     if (enCours) {

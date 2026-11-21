@@ -1237,6 +1237,9 @@ button.menu-modeles__titre--fournisseur[aria-expanded="false"] .menu-modeles__fl
 .diff__texte { white-space: pre; }
 
 /* Page Tâches (interface/taches.js) : la nouvelle tâche en haut, puis une carte par tâche, les plus récentes d'abord */
+.etiquette-beta { display: inline-block; margin-left: 6px; padding: 1px 6px; border: 1px solid rgba(var(--oeil-rvb), .45); border-radius: 6px; color: var(--oeil); font: 600 10px/1.5 var(--police-texte); letter-spacing: .04em; text-transform: uppercase; vertical-align: middle; }
+.page__titre .etiquette-beta { font-size: 11px; vertical-align: 6px; }
+.taches__beta { margin: 6px 0 0; color: var(--texte-3); font-size: 12.5px; }
 .nav__badge { margin-left: auto; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: rgba(var(--oeil-rvb), .18); color: var(--oeil); font: 600 11px/18px var(--police-texte); text-align: center; }
 .taches__projet { margin: 6px 0 0; color: var(--texte-2); font-size: 13px; }
 .tache-nouvelle { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 10px; }
