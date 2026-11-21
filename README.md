@@ -12,14 +12,14 @@ Un chat noir en pixel art qui vit sur ton PC et t'aide pour tout : expliquer un 
 
 Va dans les [Releases](https://github.com/tom-legros/Cat.ai/releases/latest) et prends le fichier de ton système :
 
-- **Windows** : `Cat-Ai-1.1.1-installateur.exe`
-- **Linux** : `Cat-Ai-1.1.1.AppImage`
+- **Windows** : `Cat-Ai-2.0.0-installateur.exe`
+- **Linux** : `Cat-Ai-2.0.0.AppImage`
 
 ### 2. Installer
 
 - **Windows** : double-clique sur l'installateur. L'app n'est pas signée (un certificat coûte cher), donc Windows affiche « Windows a protégé votre ordinateur » : clique sur **Informations complémentaires**, puis **Exécuter quand même**. Pas besoin d'être administrateur.
   - **« Le Contrôle intelligent des applications a bloqué… »** : c'est une protection plus stricte de Windows 11, qui bloque toute app non signée, sans bouton pour passer outre. L'app n'est pas dangereuse, Windows ne la connaît juste pas encore. L'app n'est pas encore signée, donc pour l'instant la seule solution est de désactiver cette protection dans Sécurité Windows → Contrôle des applications et du navigateur → Paramètres du Contrôle intelligent des applications. C'est une protection de ton PC : ne la coupe que si tu es à l'aise avec ça, et sache que selon ta version de Windows tu ne pourras peut-être pas la réactiver sans réinitialiser Windows.
-- **Linux** : `chmod +x Cat-Ai-1.1.1.AppImage && ./Cat-Ai-1.1.1.AppImage` (sur Arch, il peut falloir `fuse2`). Range d'abord le fichier dans un dossier où il restera (par exemple `~/Applications`) : au premier lancement, Cat Ai propose de s'ajouter au **menu des applications**, avec son icône, comme une app installée.
+- **Linux** : `chmod +x Cat-Ai-2.0.0.AppImage && ./Cat-Ai-2.0.0.AppImage` (sur Arch, il peut falloir `fuse2`). Range d'abord le fichier dans un dossier où il restera (par exemple `~/Applications`) : au premier lancement, Cat Ai propose de s'ajouter au **menu des applications**, avec son icône, comme une app installée.
 
 ### 3. Premier lancement
 
@@ -58,6 +58,7 @@ Les clés gratuites (Gemini, Groq, OpenRouter) se collent dans **Réglages**, en
 - **Lire ton projet** : il ouvre un dossier, lit et cherche dans le code, et répond à partir du vrai code.
 - **Chercher sur internet** : pour une doc (Linux, une commande, une erreur…) ou une info récente, il cherche, lit les meilleures pages (ArchWiki, manuels, doc officielle…) et te répond avec leurs liens. Tu peux aussi lui donner un lien à lire ou à résumer. La recherche passe par DuckDuckGo, gratuit et sans compte : seuls les mots cherchés y partent.
 - **Modifier des fichiers** : chaque modification s'affiche avant / après, et rien n'est écrit sans ton accord.
+- **Tâches de fond** : donne-lui un travail sur ton projet (`/agent corrige le bug du menu`), va faire autre chose, et reviens voir le résultat dans la page **Tâches**. Il travaille dans une copie de ton projet : tu regardes ce qu'il a changé, puis tu gardes ou tu jettes. Pour un gros travail, `/chantier` le confie à une équipe (un chef qui découpe, des codeurs, un relecteur). Le chat peut aussi te proposer lui-même de lancer une tâche.
 - **Longues tâches** : le chat enchaîne jusqu'à 30 actions par message sans te demander de continuer, et ne refait jamais trois fois la même. Les modifications de fichiers te sont toujours montrées avant.
 - **Pour tout le monde** : il explique, aide à écrire, fait réviser, apprend à coder depuis zéro.
 - **Mode prof** : il explique et pose des questions, mais c'est toi qui trouves.
@@ -68,17 +69,14 @@ Les clés gratuites (Gemini, Groq, OpenRouter) se collent dans **Réglages**, en
 
 ## Dans le terminal : `catai`
 
-Le même chat, sans fenêtre. Sous Windows, l'installateur ajoute la commande tout seul.
+Le même chat, sans fenêtre, et même app fermée : il démarre Ollama lui-même. Sous Windows, l'installateur ajoute la commande tout seul ; sous Linux, clique sur **Installer** dans Réglages › Avancé › Commande catai.
 
 ```bash
-catai                      # le chat s'ouvre dans le dossier courant ; tape / pour ses commandes (/modele, /dossier, /prof, /chantier…)
+catai                      # le chat s'ouvre dans le dossier courant ; tape / pour ses commandes (/modele, /dossier, /prof, /copier…)
 catai "explique main.js"   # une question, puis il rend la main
-# dans la discussion : /chantier plan.md fait coder le plan par l'équipe d'agents, dans une copie du projet
 ```
 
-Comme dans l'app, chaque modification de fichier est montrée avant d'être écrite et attend ton accord.
-
-**Les agents.** Dans la page Agents de l'app, tu composes une équipe : un chef qui découpe ton plan, des codeurs, un testeur, un lecteur de logs, des relecteurs. Un chantier travaille toujours dans une copie de ton projet (une branche git à part) : à la fin tu lis le rapport, puis tu gardes ou tu jettes.
+Comme dans l'app, chaque modification de fichier est montrée avant d'être écrite et attend ton accord. La sélection à la souris, le copier-coller et la molette marchent comme dans n'importe quel terminal ; un texte collé de plusieurs lignes part en un seul message.
 
 **Sur un petit PC ou un serveur, sans écran.** Node et Ollama suffisent, Electron n'est pas nécessaire :
 
