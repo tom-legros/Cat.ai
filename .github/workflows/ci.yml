@@ -1,0 +1,57 @@
+# Vérifie chaque push et chaque PR ; seuls les push sur main produisent les installateurs.
+name: Tests et CI
+
+on:
+  push:
+  pull_request:
+
+# Les PR n'ont besoin d'aucun secret ni droit d'écriture sur le dépôt.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verifier:
+    name: Tests et build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    steps:
+      # Versions officielles figées pour éviter une modification silencieuse d'un tag.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Installer les dépendances verrouillées
+        run: npm ci
+      - name: Lint si le projet en déclare un
+        run: npm run lint --if-present
+      - name: Tests automatisés
+        run: npm test
+      - name: Construire l'installateur Windows
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && runner.os == 'Windows'
+        run: npm run installateur
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Construire l'AppImage Linux
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && runner.os == 'Linux'
+        run: npm run installateur:linux
+      - name: Conserver les installateurs de cette exécution
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: installateur-${{ matrix.os }}
+          path: |
+            dist/*.exe
+            dist/*.AppImage
+          if-no-files-found: error
+          retention-days: 7
