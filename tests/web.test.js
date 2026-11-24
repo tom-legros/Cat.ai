@@ -93,3 +93,43 @@ test('presenterResultats : liste numérotée, et conseille de lire les pages ava
   assert.match(texte, /lire_page_web/);
   assert.match(presenterResultats('xyz', []), /Aucun résultat/);
 });
+
+test('lecture web : un DNS privé est refusé avant toute requête HTTP', async (t) => {
+  const dns = require('node:dns').promises;
+  const { lirePageWeb } = require('../principal/web');
+  t.mock.method(dns, 'lookup', async () => [{ address: '127.0.0.1', family: 4 }]);
+  t.mock.method(globalThis, 'fetch', async () => assert.fail('aucune requête locale ne doit partir'));
+  assert.match(await lirePageWeb('https://page.example/article'), /réseau local/);
+});
+
+test('lecture web : une redirection vers le réseau local n’est pas suivie', async (t) => {
+  const dns = require('node:dns').promises;
+  const { lirePageWeb } = require('../principal/web');
+  t.mock.method(dns, 'lookup', async () => [{ address: '93.184.215.14', family: 4 }]);
+  let requetes = 0;
+  t.mock.method(globalThis, 'fetch', async (_url, options) => {
+    requetes++;
+    assert.equal(options.redirect, 'manual');
+    return new Response(null, { status: 302, headers: { location: 'http://192.168.1.1/administration' } });
+  });
+  assert.match(await lirePageWeb('https://page.example/article'), /réseau local/);
+  assert.equal(requetes, 1);
+});
+
+test('lecture web : le DNS de la nouvelle cible est aussi contrôlé après redirection', async (t) => {
+  const dns = require('node:dns').promises;
+  const { lirePageWeb } = require('../principal/web');
+  const hotes = [];
+  t.mock.method(dns, 'lookup', async (hote) => {
+    hotes.push(hote);
+    return [{ address: hotes.length === 1 ? '93.184.215.14' : '10.0.0.1', family: 4 }];
+  });
+  let requetes = 0;
+  t.mock.method(globalThis, 'fetch', async () => {
+    requetes++;
+    return new Response(null, { status: 302, headers: { location: 'https://cible.example/' } });
+  });
+  assert.match(await lirePageWeb('https://page.example/'), /réseau local/);
+  assert.deepEqual(hotes, ['page.example', 'cible.example']);
+  assert.equal(requetes, 1);
+});
