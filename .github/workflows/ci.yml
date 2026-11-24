@@ -37,6 +37,8 @@ jobs:
         run: npm run lint --if-present
       - name: Tests automatisés
         run: npm test
+      - name: Vérifier les dépendances de production
+        run: npm audit --omit=dev --audit-level=high
       - name: Construire l'installateur Windows
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && runner.os == 'Windows'
         run: npm run installateur

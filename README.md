@@ -123,7 +123,7 @@ Le code est séparé en deux : `main.js` et `principal/` pour le processus princ
 
 ## Tests et CI
 
-La CI (intégration continue) vérifie automatiquement les changements sur GitHub. Le workflow `ci.yml` lance l'installation, le lint s'il existe et les tests sur **chaque push et chaque pull request**, sous **Windows et Linux**. Le projet ne déclare actuellement aucun lint.
+La CI (intégration continue) vérifie automatiquement les changements sur GitHub. Le workflow `ci.yml` lance l'installation, le lint s'il existe, les tests et l'audit des dépendances de production sur **chaque push et chaque pull request**, sous **Windows et Linux**. Le projet ne déclare actuellement aucun lint.
 
 Les installateurs Windows et AppImage Linux sont construits **uniquement sur un push sur `main`**, après réussite des tests du système concerné. Ils restent téléchargeables sept jours dans les artefacts de l'exécution. Cette CI ne publie aucune release, ne signe pas les fichiers et ne demande aucune clé API. Le workflow de release `installateur-windows.yml` conserve ses déclencheurs séparés (tag ou lancement manuel).
 
@@ -162,6 +162,7 @@ Les fichiers arrivent dans `dist/`. Installe les dépendances séparément sur c
 | `tests/secrets-liens.test.js` | Variantes de casse et lien symbolique vers un fichier sensible ; exclusion des pièces jointes, de la recherche et lecture soumise à accord. |
 | `tests/secrets-renommes.test.js` | Secrets reconnaissables après renommage, documents joints et contenu stable pendant la confirmation de lecture. |
 | `tests/securite-ipc.test.js` | Vrais handlers avec interface simulée : refus de stockage sans coffre, pièces jointes et bouton Enregistrer. |
+| `tests/dependances-securite.test.js` | Vérifie le vrai rendu KaTeX et le refus des options de confiance héritées. |
 | `tests/fournisseurs.test.js` | Coffre indisponible, backend Linux `basic_text`, clé illisible et absence de clés dans les données envoyées à l'interface. Le coffre est simulé. |
 | `tests/connecteur-mcp.test.js` | Adresses locales, outils déclarés en lecture seule, interdiction des redirections et fermeture de session. |
 | `tests/web.test.js` | Tests existants complétés par le contrôle DNS et les redirections vers le réseau privé, sans accès réseau réel. |
@@ -178,3 +179,5 @@ Les tests existants de fichiers, stockage, mode prof et copies Git restent exéc
 - Les permissions « lecture seule » MCP reposent sur les déclarations du serveur : elles ne prouvent pas son innocuité. Utilise un serveur de confiance. Les contenus web et MCP restent des données externes susceptibles de contenir des instructions trompeuses.
 - Les tests du coffre valident la logique de l'app avec un faux `safeStorage`, pas le trousseau réel de chaque machine. Ils ne remplacent pas une vérification manuelle d'Electron, de l'interface et des installateurs sur les systèmes visés.
 - Les tests réseau vérifient le filtrage déclaré, pas tous les scénarios réseau adverses. Un succès de la CI ne constitue pas un audit exhaustif de sécurité ni une protection de branche : pour bloquer une fusion, les contrôles doivent être rendus obligatoires dans les réglages GitHub.
+
+Les dépendances de production ont été mises à jour de façon ciblée : PDF.js **6.2.108** ([avis de sécurité](https://github.com/advisories/GHSA-hq66-cqwq-w95j)) et KaTeX **0.18.2** ([avis de sécurité](https://github.com/advisories/GHSA-238p-pmpm-9mq7)). `package.json` fixe ces versions et `package-lock.json` verrouille leur installation. Les tests lisent un vrai PDF et rendent une vraie formule. La CI exécute aussi `npm audit --omit=dev --audit-level=high` : une alerte élevée ou critique de production fait échouer le contrôle. Cet audit dépend des avis publiés et ne prouve pas l'absence de faille inconnue.
