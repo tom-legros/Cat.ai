@@ -6,7 +6,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { MAX_FICHIER_OUTIL, extraitLignes } = require('./fichiers');
+const { MAX_FICHIER_OUTIL, extraitLignes, fichierSensible } = require('./fichiers');
 
 const MAX_PDF = 30 * 1024 * 1024;
 const MAX_PAGES = 400;
@@ -64,6 +64,7 @@ async function lireTexteDocument(chemin, dossier) {
     texte = fs.readFileSync(chemin, 'utf8');
     if (texte.includes('\u0000')) return { erreur: `${nom} n'est pas un fichier texte.` };
   }
+  if (fichierSensible(chemin, texte)) return { erreur: 'Ce document semble contenir un secret sensible : il ne sera pas joint automatiquement.' };
   const document = idDocument(chemin, stat);
   fs.mkdirSync(dossier, { recursive: true });
   fs.writeFileSync(path.join(dossier, `${document}.txt`), texte, 'utf8');

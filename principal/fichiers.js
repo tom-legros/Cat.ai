@@ -54,6 +54,26 @@ function estSensible(chemin) {
   return !EXEMPLES.test(nom) && SENSIBLES.some((motif) => motif.test(nom));
 }
 
+// Heuristique locale, sans service externe : un renommage ne doit pas suffire
+// à partager une clé privée ou une affectation de secret reconnaissable.
+// Ce n'est pas un détecteur universel : le README décrit les limites.
+function contenuSensible(contenu) {
+  if (/-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----/.test(contenu)) return true;
+  const affectations = /(?:^|[\s{,;])["']?((?:[\w-]+[_-])?(?:api[_-]?key|cle[_-]?api|secret|token|password|passwd|mot[_-]de[_-]passe))["']?\s*[:=]\s*["']?([^\s"',;}]+)/gim;
+  for (const [, , valeur] of contenu.matchAll(affectations)) {
+    // Les valeurs d'exemple explicites et les références d'environnement ne
+    // sont pas des secrets. Un vrai secret dans .env.example reste protégé.
+    if (!/^(?:a[-_]remplir|changeme|example|placeholder|null|undefined)$/i.test(valeur)
+      && !/^(?:\$\{|process\.env\.|os\.environ)/.test(valeur)) return true;
+  }
+  return false;
+}
+
+function fichierSensible(chemin, contenu = '') {
+  // Garder aussi le nom du lien : un lien .env vers un nom ordinaire reste sensible.
+  return estSensible(chemin) || estSensible(cheminReel(chemin)) || contenuSensible(contenu);
+}
+
 // max : 300 pour la liste donnée au modèle, plus pour une recherche qui doit fouiller tout le projet
 function listFiles(dir, prefix = '', out = [], max = 300) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -117,6 +137,7 @@ function chercherDansProjet(projet, texte, { regex = false, dossier = '' } = {})
     if ((octets += stat.size) > MAX_OCTETS_FOUILLES) { arretee = true; break; }
     const contenu = fs.readFileSync(full, 'utf8');
     if (contenu.includes('\u0000')) continue; // binaire
+    if (fichierSensible(full, contenu)) { sensibles++; continue; }
     const lignes = contenu.split(/\r?\n/);
     for (let i = 0; i < lignes.length && resultats.length <= MAX_RESULTATS; i++) {
       if (correspond(lignes[i])) resultats.push(`${relatif}:${i + 1}: ${lignes[i].trim().slice(0, 200)}`);
@@ -179,10 +200,10 @@ function contenuJoint(projet, relatif) {
   } catch {
     return '(mène en dehors du projet : pas joint)';
   }
-  if (estSensible(full)) return "(fichier sensible, pas joint automatiquement : lis-le avec lire_fichier si tu en as vraiment besoin, l'utilisateur devra confirmer)";
   if (fs.statSync(full).size > MAX_FILE) return '(fichier trop gros)';
   const contenu = fs.readFileSync(full, 'utf8');
+  if (fichierSensible(full, contenu)) return "(fichier sensible, pas joint automatiquement : lis-le avec lire_fichier si tu en as vraiment besoin, l'utilisateur devra confirmer)";
   return contenu.includes('\u0000') ? "(fichier binaire, pas joint)" : contenu;
 }
 
-module.exports = { IGNORED, MAX_FILE, MAX_FICHIER_OUTIL, extraitLignes, cheminSur, cheminReel, estSensible, listFiles, chercherDansProjet, fichiersCites, contenuJoint };
+module.exports = { IGNORED, MAX_FILE, MAX_FICHIER_OUTIL, extraitLignes, cheminSur, cheminReel, estSensible, fichierSensible, contenuSensible, listFiles, chercherDansProjet, fichiersCites, contenuJoint };

@@ -12,7 +12,7 @@
 const { noteHeureSiDemandee } = require('./machine-legere');
 const fs = require('fs');
 const path = require('path');
-const { MAX_FICHIER_OUTIL, extraitLignes, cheminSur, cheminReel, estSensible, listFiles, chercherDansProjet } = require('./fichiers');
+const { MAX_FICHIER_OUTIL, extraitLignes, cheminSur, cheminReel, fichierSensible, listFiles, chercherDansProjet } = require('./fichiers');
 const { OUTILS_ECRITURE, RIEN_N_A_CHANGE, REFUS_LECTURE, BOUCLE, appelRepete, ecritureRefusee, remplacerTexte, parseTextToolCalls, resumerAction } = require('./outils');
 const { raccourcir, compacter } = require('./taille');
 const { REFUS_PAGE, memePage, verifierUrl, lirePageWeb, chercherWeb } = require('./web');
@@ -114,11 +114,15 @@ async function executerOutil(name, args, ctx) {
       const full = cheminProjet(ctx, args.chemin);
       const size = fs.statSync(full).size;
       if (size > MAX_FICHIER_OUTIL) return `Fichier trop gros (${Math.round(size / 1024)} Ko, 2 Mo au plus), lecture refusée.`;
-      if (estSensible(full) && !(await accordLectureSensible(ctx, args.chemin))) {
+      // Garder le même texte pendant la confirmation : aucun second accès au
+      // chemin ne doit lire une autre cible remplacée pendant l'attente.
+      const contenu = fs.readFileSync(full, 'utf8');
+      if (fichierSensible(full, contenu) && !(await accordLectureSensible(ctx, args.chemin))) {
         return `${REFUS_LECTURE}${args.chemin} : ce fichier peut contenir des secrets. Fais sans, ou demande-lui l'information dont tu as besoin.`;
       }
       // Un long fichier arrive par morceaux qui tiennent dans la limite du modèle (8 192 tokens avec Ollama)
-      return extraitLignes(fs.readFileSync(full, 'utf8'), args.chemin, args.ligne, ctx.maxExtrait);
+      if (ctx.signal?.aborted) return 'Lecture annulée.';
+      return extraitLignes(contenu, args.chemin, args.ligne, ctx.maxExtrait);
     }
     case 'lister_connecteur': {
       return avecConnecteur(ctx.reglages().adresseMcp, ctx.signal, (outils) => outils.length

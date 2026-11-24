@@ -4,12 +4,12 @@ const fs = require('fs');
 const os = require('os');
 const { spawn, execFileSync } = require('child_process');
 const { adresseMcp } = require('./principal/connecteur-mcp');
-const { discuter, MAX_STEPS } = require('./principal/agent');
+const { discuter, MAX_STEPS, ecrireAvecAccord } = require('./principal/agent');
 const { creerFileOllama } = require('./principal/file-ollama');
 const fileOllama = creerFileOllama();
 
 const { configurerStockage, readJson, writeJson, prendreAlertes } = require('./principal/stockage');
-const { IGNORED, MAX_FILE, MAX_FICHIER_OUTIL, cheminSur, estSensible, listFiles, fichiersCites, contenuJoint } = require('./principal/fichiers');
+const { IGNORED, MAX_FILE, MAX_FICHIER_OUTIL, cheminSur, estSensible, fichierSensible, listFiles, fichiersCites, contenuJoint } = require('./principal/fichiers');
 const { outilsPour } = require('./principal/outils');
 const { hote, HOTES_LOCAUX, fournisseurGratuit, modeleGratuit, conseilGratuit, adresseValide } = require('./principal/gratuit');
 const { LIMITES_OLLAMA, MAX_JOINT, limitesTaille, raccourcir, listeCourte, compacter } = require('./principal/taille');
@@ -219,18 +219,8 @@ function demanderConfirmation(infos, { requeteId, signal } = {}) {
 }
 
 async function writeWithConfirm(chemin, contenu) {
-  const full = safePath(chemin);
-  const exists = fs.existsSync(full);
-  let ancien = '';
-  if (exists) {
-    if (fs.statSync(full).size > MAX_FICHIER_OUTIL) return 'Fichier existant trop gros pour être remplacé par le chat.';
-    ancien = fs.readFileSync(full, 'utf8');
-  }
-  const ok = await demanderConfirmation({ chemin: full, ancien, nouveau: contenu, existe: exists });
-  if (!ok) return REFUS_ECRITURE;
-  fs.mkdirSync(path.dirname(full), { recursive: true });
-  fs.writeFileSync(full, contenu);
-  return `Fichier ${exists ? 'modifié' : 'créé'} : ${chemin}`;
+  // Le bouton Enregistrer utilise les mêmes contrôles après accord que le chat.
+  return ecrireAvecAccord({ projet: () => projectDir, ui: { confirmerEcriture: demanderConfirmation } }, chemin, contenu);
 }
 
 // Bouton "Enregistrer" sur un bloc de code
@@ -546,6 +536,7 @@ ipcMain.handle('choisir-fichier', async (_e, options = {}) => {
 
 ipcMain.handle('read-dropped', async (_e, chemin) => {
   try {
+    if (fichierSensible(chemin)) return { erreur: 'Ce fichier est sensible. Ouvre son dossier et demande au chat de le lire avec confirmation.' };
     chemin = fs.realpathSync(chemin);
     const stat = fs.statSync(chemin);
     if (stat.isDirectory()) return { dossier: true, chemin };
@@ -577,6 +568,7 @@ ipcMain.handle('read-dropped', async (_e, chemin) => {
       return doc.erreur ? doc : { nom, chemin, document: doc.document, joint: texteJointDocument(doc), pages: doc.pages };
     }
     const contenu = fs.readFileSync(chemin, 'utf8');
+    if (fichierSensible(chemin, contenu)) return { erreur: 'Ce fichier semble contenir un secret sensible. Ouvre son dossier et demande au chat de le lire avec confirmation.' };
     if (contenu.includes('\u0000')) return { erreur: `${path.basename(chemin)} n'est pas un fichier texte.` };
     return { nom: path.basename(chemin), chemin, contenu };
   } catch (err) {
