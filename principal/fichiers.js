@@ -185,4 +185,4 @@ function contenuJoint(projet, relatif) {
   return contenu.includes('\u0000') ? "(fichier binaire, pas joint)" : contenu;
 }
 
-module.exports = { IGNORED, MAX_FILE, MAX_FICHIER_OUTIL, extraitLignes, cheminSur, estSensible, listFiles, chercherDansProjet, fichiersCites, contenuJoint };
+module.exports = { IGNORED, MAX_FILE, MAX_FICHIER_OUTIL, extraitLignes, cheminSur, cheminReel, estSensible, listFiles, chercherDansProjet, fichiersCites, contenuJoint };

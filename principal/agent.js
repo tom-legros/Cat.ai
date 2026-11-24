@@ -12,7 +12,7 @@
 const { noteHeureSiDemandee } = require('./machine-legere');
 const fs = require('fs');
 const path = require('path');
-const { MAX_FICHIER_OUTIL, extraitLignes, cheminSur, estSensible, listFiles, chercherDansProjet } = require('./fichiers');
+const { MAX_FICHIER_OUTIL, extraitLignes, cheminSur, cheminReel, estSensible, listFiles, chercherDansProjet } = require('./fichiers');
 const { OUTILS_ECRITURE, RIEN_N_A_CHANGE, REFUS_LECTURE, BOUCLE, appelRepete, ecritureRefusee, remplacerTexte, parseTextToolCalls, resumerAction } = require('./outils');
 const { raccourcir, compacter } = require('./taille');
 const { REFUS_PAGE, memePage, verifierUrl, lirePageWeb, chercherWeb } = require('./web');
@@ -38,7 +38,10 @@ const REFUS_ECRITURE = "L'utilisateur a refusé la modification.";
 const cheminProjet = (ctx, rel) => cheminSur(ctx.projet(), rel);
 
 async function ecrireAvecAccord(ctx, chemin, contenu) {
-  const full = cheminProjet(ctx, chemin);
+  const projet = ctx.projet();
+  const full = cheminSur(projet, chemin);
+  const projetReel = cheminReel(projet);
+  const destination = cheminReel(full);
   const existe = fs.existsSync(full);
   let ancien = '';
   if (existe) {
@@ -47,7 +50,22 @@ async function ecrireAvecAccord(ctx, chemin, contenu) {
     if (ancien === contenu) return `Aucun changement : ${chemin} a déjà ce contenu.`;
   }
   if (!(await ctx.ui.confirmerEcriture({ chemin: full, ancien, nouveau: contenu, existe }))) return REFUS_ECRITURE + RIEN_N_A_CHANGE;
+  // L'accord porte sur le chemin présenté, pas sur une autre destination apparue
+  // pendant l'attente (changement de projet, lien symbolique ou jonction).
+  const destinationInchangee = () => {
+    try {
+      return !ctx.signal?.aborted && ctx.projet() === projet
+        && cheminReel(projet) === projetReel && cheminSur(projet, chemin) === full
+        && cheminReel(full) === destination;
+    } catch {
+      return false; // chemin supprimé, devenu inaccessible ou sorti du projet
+    }
+  };
+  const annulee = 'Écriture annulée : la destination a changé ou la demande a été arrêtée.' + RIEN_N_A_CHANGE;
+  if (!destinationInchangee()) return annulee;
   fs.mkdirSync(path.dirname(full), { recursive: true });
+  // Revérifier aussi après la création des parents, sans nouvelle attente UI.
+  if (!destinationInchangee()) return annulee;
   fs.writeFileSync(full, contenu);
   return `Fichier ${existe ? 'modifié' : 'créé'} : ${chemin}`;
 }
