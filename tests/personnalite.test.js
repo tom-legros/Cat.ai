@@ -1,5 +1,6 @@
 // Les consignes de personnalité sont partagées avec la CLI.
 const test = require('node:test');
+require('./helpers/machine-normale.cjs');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');

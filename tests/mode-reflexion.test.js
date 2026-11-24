@@ -2,6 +2,7 @@
 // Transport : think demandé, repli silencieux sur les modèles qui refusent, chantier inchangé,
 // caractères de réflexion collectés. Coutures : handler 'chat', IPC capacités, bouton et persistance.
 const test = require('node:test');
+require('./helpers/machine-normale.cjs');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');

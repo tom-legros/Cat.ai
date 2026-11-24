@@ -7,7 +7,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-const lire = (nom) => fs.readFileSync(path.join(__dirname, '..', nom), 'utf8');
+// Les assertions sur le source doivent être indépendantes du checkout CRLF de Windows.
+const lire = (nom) => fs.readFileSync(path.join(__dirname, '..', nom), 'utf8').replace(/\r\n/g, '\n');
 const html = lire('index.html');
 const renderer = lire('renderer.js');
 const style = lire('style.css');
