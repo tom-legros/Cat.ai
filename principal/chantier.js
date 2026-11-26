@@ -213,8 +213,9 @@ async function lancerChantier({ projet, plan, chef, codeurs, ouvrier, verificate
     }
   } else git(racine, 'worktree', 'add', '-b', branche, copie, commitInitial);
   function restaurerCopie() {
-    const reel = fs.realpathSync(copie);
-    if (path.relative(reel, fs.realpathSync(racine)) === '' || path.relative(reel, fs.realpathSync(git(copie, 'rev-parse', '--show-toplevel'))) !== '' ||
+    // La résolution native développe aussi les noms courts Windows (RUNNER~1).
+    const reel = fs.realpathSync.native(copie);
+    if (path.relative(reel, fs.realpathSync.native(racine)) === '' || path.relative(reel, fs.realpathSync.native(git(copie, 'rev-parse', '--show-toplevel'))) !== '' ||
         git(copie, 'symbolic-ref', '--short', 'HEAD') !== branche) {
       throw new Error('Restauration refusée : la copie isolée du chantier ne correspond plus.');
     }

@@ -83,7 +83,8 @@ function preparerCopie(projet, dossierCopies, nom) {
     throw err;
   }
   const base = gitTexte(copie, 'rev-parse', 'HEAD');
-  const sousDossier = path.relative(fs.realpathSync(racine), fs.realpathSync(projet));
+  // Comparer les noms canoniques, même si Windows a fourni un chemin court 8.3.
+  const sousDossier = path.relative(fs.realpathSync.native(racine), fs.realpathSync.native(projet));
   return { nom, copie, base, dossier: sousDossier ? path.join(copie, sousDossier) : copie };
 }
 

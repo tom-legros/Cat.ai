@@ -158,6 +158,7 @@ Les fichiers arrivent dans `dist/`. Installe les dépendances séparément sur c
 
 | Fichier | Rôle |
 | --- | --- |
+| `tests/chemins-courts-windows.test.js` | Vérifie les copies Git avec les noms courts Windows (8.3), sans modifier le projet original. Ces deux tests sont ignorés sous Linux ou si le volume Windows ne fournit pas de noms courts. |
 | `tests/confirmation-chemin.test.js` | Accord/refus, annulation et remplacement de la destination pendant la confirmation, pour créer ou modifier un fichier. |
 | `tests/secrets-liens.test.js` | Variantes de casse et lien symbolique vers un fichier sensible ; exclusion des pièces jointes, de la recherche et lecture soumise à accord. |
 | `tests/secrets-renommes.test.js` | Secrets reconnaissables après renommage, documents joints et contenu stable pendant la confirmation de lecture. |
