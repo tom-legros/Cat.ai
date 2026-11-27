@@ -1,0 +1,102 @@
+{
+  "name": "assistant-ia",
+  "version": "2.0.0",
+  "description": "Cat Ai : assistant de code de bureau 100 % gratuit, avec Ollama en local ou un fournisseur en ligne gratuit (Gemini, Groq, OpenRouter)",
+  "main": "main.js",
+  "bin": {
+    "catai": "cli/catai.js"
+  },
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test \"tests/*.test.js\"",
+    "installateur": "electron-builder --win --publish never",
+    "installateur:linux": "electron-builder --linux --publish never"
+  },
+  "author": "tom-legros",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^45.0.0",
+    "electron-builder": "26.17.0"
+  },
+  "allowScripts": {
+    "electron@45.0.0": true
+  },
+  "dependencies": {
+    "@highlightjs/cdn-assets": "^11.12.0",
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "diff": "^9.0.0",
+    "dompurify": "^3.4.17",
+    "electron-updater": "6.8.10",
+    "katex": "0.18.2",
+    "marked": "^18.1.1",
+    "pdfjs-dist": "6.2.108"
+  },
+  "desktopName": "cat-ai.desktop",
+  "build": {
+    "appId": "fr.catai.app",
+    "productName": "Cat Ai",
+    "directories": {
+      "output": "dist"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "tom-legros",
+        "repo": "Cat.ai"
+      }
+    ],
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer.js",
+      "chat.js",
+      "index.html",
+      "style.css",
+      "icone.png",
+      "fonts/*.woff2",
+      "interface/**",
+      "principal/**",
+      "cli/**",
+      "package.json",
+      "!**/desktop.ini"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icone.ico",
+      "extraResources": [
+        {
+          "from": "bin/catai.cmd",
+          "to": "bin/catai.cmd"
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "Cat Ai",
+      "artifactName": "Cat-Ai-${version}-installateur.${ext}",
+      "installerSidebar": "build/installateur-cote.bmp",
+      "uninstallerSidebar": "build/installateur-cote.bmp",
+      "installerHeader": "build/installateur-entete.bmp",
+      "installerIcon": "build/icone.ico",
+      "uninstallerIcon": "build/icone.ico",
+      "installerHeaderIcon": "build/icone.ico",
+      "installerLanguages": [
+        "fr_FR"
+      ],
+      "language": "1036",
+      "createDesktopShortcut": true,
+      "runAfterFinish": true,
+      "include": "build/installateur.nsh",
+      "differentialPackage": false
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "icone.png",
+      "category": "Development",
+      "artifactName": "Cat-Ai-${version}.${ext}",
+      "syncDesktopName": true
+    }
+  }
+}

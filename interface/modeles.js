@@ -1,0 +1,113 @@
+/* ==========================================================
+   Cat Ai — choix des modèles : le conseillé (★), les gourmands (▲), celui pris par défaut.
+   Que des fonctions pures : elles ne touchent ni à la page ni au processus principal.
+   ========================================================== */
+
+// Modèle conseillé de chaque fournisseur : bon en code et avec les outils, sans vider le quota gratuit.
+// Du meilleur au moins bon. Une RegExp prend la version la plus récente qui correspond
+// (Gemini change souvent de numéro de version). C'est aussi le modèle choisi quand rien n'est retenu.
+// Le modèle Ollama pour lequel Cat Ai est réglé et testé (même valeur que principal/materiel.js)
+const MODELE_INTEGRE = "qwen3.5:9b";
+
+const MODELE_PREFERE = {
+    // Ollama : le plus gros Qwen installé passe en premier (le conseil selon la carte graphique est dans principal/materiel.js)
+    // qwen3.5:9b d'abord : c'est le modèle « Intégré par Cat Ai », réglé et testé pour l'app
+    ollama: ["qwen3.5:9b", "qwen3.6:27b", "qwen3:14b", "qwen3:8b", "qwen3.5:4b", "qwen3.5:2b", "qwen2.5-coder:7b"],
+    groq: ["openai/gpt-oss-20b", "qwen/qwen3-32b", "llama-3.1-8b-instant"],
+    gemini: [/^gemini-[\d.]+-flash-lite$/, /^gemini-[\d.]+-flash$/],
+    // Les :free changent souvent : north-mini-code a répondu juste au test d'octobre 2026, sinon un autre modèle de code
+    openrouter: ["cohere/north-mini-code:free", "qwen/qwen3-coder:free", /cod(e|er)\b/]
+};
+
+// Pourquoi le conseillé est conseillé, affiché sous la liste
+const RAISON_CONSEIL = {
+    ollama: "tourne bien sur ta carte graphique, sans aucune limite",
+    groq: "bon avec les fichiers, et assez de quota pour une journée de code",
+    gemini: "le plus de messages par jour dans l'offre gratuite",
+    openrouter: "spécialisé en code ; tous les « :free » partagent le même quota par jour"
+};
+
+// Modèles qui vident le quota gratuit bien plus vite (ou trop lourds pour ton PC avec Ollama)
+const GOURMANDS = {
+    ollama: { motif: /:(1[4-9]|[2-9]\d|\d{3})b/, raison: "trop lourd pour 8 Go de carte graphique : très lent" },
+    groq: { motif: /70b|120b|compound/, raison: "quota du jour plus petit, il sera vite épuisé" },
+    gemini: { motif: /flash(?!-lite)/, raison: "environ 4 fois moins de messages par jour que les « flash-lite »" }
+};
+
+function modeleConseille(models, fournisseurId) {
+    // Un modèle gourmand (▲) n'est jamais « Conseillé » quand une alternative existe : l'étoile et la
+    // mention Gourmand se contrediraient. S'il n'y a que des gourmands, le meilleur passe quand même.
+    let gourmand = null;
+    for (const p of MODELE_PREFERE[fournisseurId] || []) {
+        if (typeof p === "string") {
+            if (!models.includes(p)) continue;
+            if (estGourmand(p, fournisseurId)) { if (!gourmand) gourmand = p; continue; }
+            return p;
+        }
+        if (p instanceof RegExp) {
+            const trouves = models.filter((m) => p.test(m));
+            if (!trouves.length) continue;
+            const tries = trouves.sort((a, b) => noteModele(b, fournisseurId) - noteModele(a, fournisseurId));
+            const clair = tries.find((m) => !estGourmand(m, fournisseurId));
+            if (clair) return clair;
+            if (!gourmand) gourmand = tries[0];
+        }
+    }
+    return gourmand;
+}
+
+const estGourmand = (modele, fournisseurId) => !!GOURMANDS[fournisseurId]?.motif.test(modele);
+
+// Note d'un modèle pour le choisir par défaut : version stable > préversion, puis la version la plus récente
+function noteModele(nom, fournisseurId) {
+    let note = 0;
+    if (/preview|exp|beta|alpha|latest|~/.test(nom)) note -= 1000;
+    if (/lite|nano|tiny/.test(nom)) note -= 100;
+    if (fournisseurId === "gemini" && /flash/.test(nom)) note += 50; // rapide et dans l'offre gratuite
+    if (fournisseurId === "openrouter" && nom.endsWith(":free")) note += 500; // rien à payer
+    const version = nom.match(/(\d+(?:\.\d+)?)/);
+    if (version) note += parseFloat(version[1]);
+    return note;
+}
+
+function modeleParDefaut(models, fournisseurId) {
+    const prefere = modeleConseille(models, fournisseurId);
+    if (prefere) return prefere;
+    return [...models].sort((a, b) => noteModele(b, fournisseurId) - noteModele(a, fournisseurId))[0];
+}
+// Où obtenir une clé gratuite, affiché dans le panneau
+// Messages gratuits par jour, à peu près (offres gratuites d'octobre 2026) : sert au petit rond du raccourci.
+// Ollama n'a pas de limite. Ce n'est qu'une estimation : le fournisseur peut changer ses règles.
+function quotaDuJour(fournisseurId, modele) {
+    if (fournisseurId === "ollama") return Infinity;
+    if (fournisseurId === "gemini") return /lite/.test(modele) ? 1000 : 250;
+    if (fournisseurId === "groq") return 1000;
+    if (fournisseurId === "openrouter") return 50;
+    return null; // serveur personnalisé : inconnu
+}
+
+// Icône, couleur et conseil de chaque fournisseur, pour les menus et la pastille
+// Les dessins sont dans icones.js (icone(nom))
+
+const FOURNISSEURS_AFFICHAGE = {
+    ollama: { icone: "logoOllama", couleur: "blanc", conseil: "Sur ton PC · sans limite · PC puissant conseillé" },
+    gemini: { icone: "logoGemini", couleur: "bleu", conseil: "En ligne, chez Google · le plus simple" },
+    groq: { icone: "logoGroq", couleur: "orange", conseil: "En ligne · très rapide" },
+    openrouter: { icone: "logoOpenRouter", couleur: "blanc", conseil: "En ligne · plein de modèles, petit quota" },
+    perso: { icone: "serveur", couleur: "gris", conseil: "Ton propre serveur" }
+};
+
+// Le conseil sous un modèle : pourquoi il est conseillé, pourquoi il est gourmand, ou son quota
+function conseilModele(modele, fournisseurId, conseille) {
+    if (modele === conseille && fournisseurId === "ollama" && modele === MODELE_INTEGRE) return { icone: "etoile", couleur: "jaune", conseil: "Intégré par Cat Ai · réglé et testé pour l'app" };
+    if (modele === conseille) return { icone: "etoile", couleur: "jaune", conseil: `Conseillé · ${RAISON_CONSEIL[fournisseurId] || "le meilleur choix ici"}` };
+    if (estGourmand(modele, fournisseurId)) return { icone: "poids", couleur: "rose", conseil: `Gourmand · ${GOURMANDS[fournisseurId].raison}` };
+    const limite = quotaDuJour(fournisseurId, modele);
+    return { icone: "puce", couleur: "gris", conseil: limite === Infinity ? "Sans limite" : limite ? `Environ ${limite} messages par jour` : "" };
+}
+
+const LIENS_CLES = {
+    gemini: "https://aistudio.google.com/apikey",
+    groq: "https://console.groq.com/keys",
+    openrouter: "https://openrouter.ai/keys"
+};

@@ -1,0 +1,172 @@
+// Prépare un chantier à partir de l'équipe de la page Agents : les mêmes agents pour l'app et pour `catai chantier`.
+// Rien ici ne parle à un modèle : on reçoit de quoi envoyer (local et en ligne), on rend ce que lancerChantier attend.
+const { execFileSync } = require('child_process');
+const { equipeDepuis, planDeTravail } = require('./equipe');
+const { compacter } = require('./taille');
+
+// Pauses, en secondes, quand un agent en ligne bute sur une limite ; puis délai avant de le retenter
+const ATTENTES = [70, 140];
+const RETOUR_EN_LIGNE = 15 * 60 * 1000;
+// Une attente qui s'arrête tout de suite si le chantier est arrêté
+const attendre = (ms, signal) => new Promise((ok, rate) => {
+  if (signal?.aborted) { rate(signal.reason); return; }
+  const annuler = () => { clearTimeout(minuterie); rate(signal.reason); };
+  const minuterie = setTimeout(() => { signal?.removeEventListener('abort', annuler); ok(); }, ms);
+  signal?.addEventListener('abort', annuler, { once: true });
+});
+
+// opts :
+//   reglages          contenu de fournisseurs.json
+//   infos(id)         { type, baseUrl } d'un fournisseur, ou null
+//   envoyerLocal      envoyerOllama
+//   envoyerEnLigne    (fournisseurId) => envoyer(messages, modele, …) ; c'est lui qui vérifie la gratuité et la clé
+//   limitesLocales    LIMITES_OLLAMA
+//   dire(texte)       pour prévenir quand un agent en ligne est remplacé
+//   limitesEnLigne    (fournisseurId) => limites de taille de ce fournisseur, ou null s'il n'en a pas
+//   chefForce         fournisseur du chef imposé (catai --chef), modeleForce : modèle du premier codeur (catai -m),
+//                     codeurForce : fournisseur de tous les codeurs (catai --codeur)
+// Renvoie { chef, codeurs, resume } ; resume est une ligne lisible : qui fait quoi.
+function agentsDuChantier({ reglages, infos, envoyerLocal, envoyerEnLigne, limitesLocales, limitesEnLigne = () => null, dire = () => {}, chefForce, modeleForce, codeurForce, pause = attendre, maintenant = Date.now }) {
+  const equipe = planDeTravail(equipeDepuis(reglages, infos));
+  const premierDevLocal = equipe.codeurs.find((c) => c.fournisseur === 'ollama' && c.modele);
+  const modeleLocal = modeleForce || premierDevLocal?.modele || reglages.modeles?.ollama || 'qwen3:8b';
+  const envoyerSurLePc = async (messages, modele, morceau, signal, options) => {
+    const limite = AbortSignal.timeout(120_000);
+    const arret = signal ? AbortSignal.any([signal, limite]) : limite;
+    try {
+      const contexte = limitesLocales?.total ? compacter(messages, limitesLocales.total) : messages;
+      return await envoyerLocal(contexte, modele, morceau, arret, { ...options, chantier: true });
+    } catch (err) {
+      if (signal?.aborted) throw signal.reason;
+      if (limite.aborted) throw new Error(`Ollama · ${modele} : réponse interrompue après 2 minutes.`);
+      if (err.message === 'fetch failed' || err.message === 'terminated') {
+        throw new Error(`Ollama · ${modele} : connexion interrompue. Vérifie Ollama avant de relancer l’étape.`, { cause: err });
+      }
+      throw err;
+    }
+  };
+  const secours = { envoyer: envoyerSurLePc, modele: modeleLocal };
+
+  // Un agent qui parle sans coder (chef, relecteur, lecteur de logs) : sur le PC ou en ligne.
+  // S'il ne répond pas (clé illisible, quota du jour), le modèle du PC prend sa place, et on le dit.
+  const agentSur = (nom, choix) => {
+    const local = choix.fournisseur === 'ollama';
+    const origine = local ? { envoyer: envoyerSurLePc, modele: choix.modele || modeleLocal } : { envoyer: envoyerEnLigne(choix.fournisseur), modele: choix.modele };
+    let agent = origine;
+    let retour = 0; // quand retenter l'agent en ligne après une limite (0 : jamais, la panne n'est pas une limite)
+    return {
+      get modele() { return agent.modele; },
+      nom: () => (agent === secours || local ? agent.modele : `${choix.fournisseur} ${agent.modele}`),
+      surLePc: () => local || agent === secours,
+      envoyer: async (...args) => {
+        const appeler = (a) => a.envoyer(args[0], a.modele, ...args.slice(2));
+        if (local) return appeler(agent);
+        if (agent === secours && retour && maintenant() >= retour) { agent = origine; dire(`${nom} : nouvel essai en ligne.`); }
+        if (agent === secours) return appeler(agent);
+        for (let essai = 0; ; essai++) {
+          try { return await appeler(agent); } catch (err) {
+            if (args[3]?.aborted || err.name === 'AbortError') throw err;
+            // Une limite par minute passe en attendant : un chantier a le temps. Le quota du jour, lui, ne revient
+            // pas : après deux attentes, le modèle du PC prend le relais, et on retente en ligne un quart d'heure après.
+            const limite = /429|limite atteinte|rate.?limit|quota/i.test(String(err.message));
+            if (limite && essai < ATTENTES.length) {
+              dire(`${nom} : limite du fournisseur, pause de ${ATTENTES[essai]} s.`);
+              await pause(ATTENTES[essai] * 1000, args[3]);
+              continue;
+            }
+            dire(`${nom} indisponible (${String(err.message).split('\n')[0].slice(0, 160)}) : ${modeleLocal} le remplace${limite ? " pendant un quart d'heure" : ''}.`);
+            agent = secours;
+            retour = limite ? maintenant() + RETOUR_EN_LIGNE : 0;
+            return appeler(agent);
+          }
+        }
+      },
+    };
+  };
+  // Un même agent de l'arbre (un relecteur sous le chef, par exemple) sert à tous les codeurs
+  const dejaFaits = new Map();
+  const agentDe = (a) => dejaFaits.get(a.id) || dejaFaits.set(a.id, agentSur(a.nom, a)).get(a.id);
+  const chef = chefForce ? agentSur('Chef', { fournisseur: chefForce, modele: reglages.modeles?.[chefForce] }) : agentDe(equipe.chef);
+  const codeurs = equipe.codeurs.map((c, i) => {
+    const controles = c.controles.map((k) => (k.type === 'tests'
+      ? { id: k.id, type: 'tests', nom: k.nom, logs: k.logs ? Object.assign(agentDe(k.logs), { nomAgent: k.logs.nom }) : null }
+      : { id: k.id, type: 'relecture', nom: k.nom, envoyer: agentDe(k.agent).envoyer, modele: k.agent.modele }));
+    const choix = codeurForce ? { fournisseur: codeurForce, modele: reglages.modeles?.[codeurForce] } : c;
+    if (choix.fournisseur === 'ollama') {
+      const modele = (i === 0 && modeleForce) || choix.modele || modeleLocal;
+      return { id: c.id, nom: c.nom, specialite: c.specialite, envoyer: envoyerSurLePc, limites: limitesLocales, modele, local: true, qui: () => modele, controles };
+    }
+    // Un codeur en ligne : plus fort, mais s'il n'a plus de quota le modèle du PC reprend, avec ses propres limites
+    const agent = agentSur(c.nom, choix);
+    return {
+      id: c.id, nom: c.nom, specialite: c.specialite, envoyer: agent.envoyer, controles, qui: agent.nom,
+      get modele() { return agent.modele; },
+      get limites() { return agent.surLePc() ? limitesLocales : limitesEnLigne(choix.fournisseur); },
+      get local() { return agent.surLePc(); },
+    };
+  });
+  const autres = [...new Set([...dejaFaits.values()].filter((a) => a !== chef).map((a) => a.nom()))];
+  const quiCode = codeurs.length > 1 ? `codeurs ${codeurs.map((c) => `${c.nom} (${c.qui()})`).join(', ')}` : `codeur ${codeurs[0].qui()}`;
+  return { chef, codeurs, resume: `chef ${chef.nom()} · ${quiCode}${autres.length ? ` · contrôles : ${autres.join(', ')}` : ''}` };
+}
+
+const git = (dossier, ...args) => execFileSync('git', args, { cwd: dossier, encoding: 'utf8', windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+
+// Un chantier travaille sur une copie git du projet : il faut un dépôt avec au moins un commit.
+// Renvoie { pret: true, modifs } (modifs : nombre de fichiers changés et pas encore committés, absents de la copie),
+// ou { pret: false, raison: 'git-absent' | 'pas-de-depot' | 'pas-de-commit' }.
+function etatDepot(dossier) {
+  try { git(dossier, '--version'); } catch { return { pret: false, raison: 'git-absent' }; }
+  try { git(dossier, 'rev-parse', '--show-toplevel'); } catch { return { pret: false, raison: 'pas-de-depot' }; }
+  try { git(dossier, 'rev-parse', '--verify', 'HEAD'); } catch { return { pret: false, raison: 'pas-de-commit' }; }
+  return { pret: true, modifs: git(dossier, 'status', '--porcelain').split('\n').filter(Boolean).length };
+}
+
+const MESSAGES_DEPOT = {
+  'git-absent': "Git n'est pas installé sur ce PC : les tâches en ont besoin pour travailler sur une copie.",
+  'pas-de-depot': "Ce dossier n'est pas encore suivi par git : les tâches en ont besoin pour travailler sur une copie, sans toucher à tes fichiers.",
+  'pas-de-commit': "Ce dossier n'a encore aucune version enregistrée dans git : les tâches ont besoin d'un point de départ.",
+};
+
+// Met le dossier sous git avec une première version, pour qu'un chantier puisse partir. À n'appeler qu'après
+// l'accord de l'utilisateur : cela crée un dossier .git dans son projet.
+// Avec un dépôt déjà prêt mais des fichiers pas encore enregistrés, ils le sont dans une nouvelle version : sinon la
+// copie de la tâche ne les voit pas. L'identité git de l'utilisateur est gardée si elle existe.
+function preparerDepot(dossier) {
+  const etat = etatDepot(dossier);
+  if (etat.raison === 'git-absent') throw new Error(MESSAGES_DEPOT['git-absent']);
+  if (etat.raison === 'pas-de-depot') git(dossier, 'init', '-q');
+  if (etat.pret && !etat.modifs) return etat;
+  git(dossier, 'add', '-A');
+  const message = etat.pret ? 'Fichiers enregistrés avant une tâche' : 'Point de départ avant le premier chantier';
+  git(dossier, ...identiteGit(dossier), 'commit', '-q', '--allow-empty', '-m', message);
+  return etatDepot(dossier);
+}
+
+// L'identité de l'utilisateur dans git si elle est réglée, sinon celle de Cat Ai (sans elle, git refuse le commit)
+function identiteGit(dossier) {
+  const lire = (cle) => { try { return git(dossier, 'config', cle); } catch { return ''; } };
+  return lire('user.name') && lire('user.email') ? [] : ['-c', 'user.name=Cat Ai', '-c', 'user.email=chantier@cat-ai.invalid'];
+}
+
+// Garde le travail d'un chantier : fusionne sa branche dans le projet. Refusé si le projet a des changements en
+// cours (la fusion pourrait les mélanger) ; en cas de conflit, la fusion est annulée et rien ne change.
+function garderChantier(dossier, nom) {
+  const branche = `catai/chantier-${nom}`;
+  const racine = git(dossier, 'rev-parse', '--show-toplevel');
+  if (git(racine, 'status', '--porcelain', '--untracked-files=no')) return { ok: false, erreur: 'Ton projet a des changements en cours : enregistre-les (commit) ou annule-les avant de garder le travail du chantier.' };
+  try {
+    git(racine, '-c', 'user.name=Cat Ai', '-c', 'user.email=chantier@cat-ai.invalid', 'merge', '--no-edit', '--no-overwrite-ignore', branche);
+    return { ok: true };
+  } catch (err) {
+    try { git(racine, 'merge', '--abort'); } catch { /* aucune fusion en cours */ }
+    return { ok: false, erreur: `La fusion n'a pas pu se faire toute seule, rien n'a été changé. Détail : ${String(err.stderr || err.message).trim().split('\n')[0].slice(0, 200)}` };
+  }
+}
+
+// Ce qu'un chantier a changé, en court : la liste des fichiers avec le nombre de lignes
+function resumeChantier(dossier, nom) {
+  try { return git(dossier, 'diff', '--stat', `HEAD...catai/chantier-${nom}`); } catch { return ''; }
+}
+
+module.exports = { agentsDuChantier, etatDepot, MESSAGES_DEPOT, preparerDepot, garderChantier, resumeChantier };
