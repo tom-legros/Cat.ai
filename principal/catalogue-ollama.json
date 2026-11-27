@@ -1,0 +1,3284 @@
+[
+  {
+    "modele": "llama3.1:latest",
+    "nom": "llama3.1",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "8b",
+      "70b",
+      "405b"
+    ]
+  },
+  {
+    "modele": "deepseek-r1:latest",
+    "nom": "deepseek-r1",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "1.5b",
+      "7b",
+      "8b",
+      "14b",
+      "32b",
+      "70b",
+      "671b"
+    ]
+  },
+  {
+    "modele": "llama3.2:latest",
+    "nom": "llama3.2",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "1b",
+      "3b"
+    ]
+  },
+  {
+    "modele": "qwen2.5:latest",
+    "nom": "qwen2.5",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "0.5b",
+      "1.5b",
+      "3b",
+      "7b",
+      "14b",
+      "32b",
+      "72b"
+    ]
+  },
+  {
+    "modele": "qwen3:latest",
+    "nom": "qwen3",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "0.6b",
+      "1.7b",
+      "4b",
+      "8b",
+      "14b",
+      "30b",
+      "32b",
+      "235b"
+    ]
+  },
+  {
+    "modele": "gemma3:latest",
+    "nom": "gemma3",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "270m",
+      "1b",
+      "4b",
+      "12b",
+      "27b"
+    ]
+  },
+  {
+    "modele": "gemma2:latest",
+    "nom": "gemma2",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "2b",
+      "9b",
+      "27b"
+    ]
+  },
+  {
+    "modele": "mistral:latest",
+    "nom": "mistral",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "7b"
+    ]
+  },
+  {
+    "modele": "gemma4:latest",
+    "nom": "gemma4",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "e2b",
+      "e4b",
+      "12b",
+      "26b",
+      "31b"
+    ]
+  },
+  {
+    "modele": "llama3:latest",
+    "nom": "llama3",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "8b",
+      "70b"
+    ]
+  },
+  {
+    "modele": "qwen3.5:latest",
+    "nom": "qwen3.5",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "0.8b",
+      "2b",
+      "4b",
+      "9b",
+      "27b",
+      "35b",
+      "122b"
+    ]
+  },
+  {
+    "modele": "qwen2.5-coder:latest",
+    "nom": "qwen2.5-coder",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "code"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "0.5b",
+      "1.5b",
+      "3b",
+      "7b",
+      "14b",
+      "32b"
+    ]
+  },
+  {
+    "modele": "phi3:latest",
+    "nom": "phi3",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "3.8b",
+      "14b"
+    ]
+  },
+  {
+    "modele": "llava:latest",
+    "nom": "llava",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b",
+      "13b",
+      "34b"
+    ]
+  },
+  {
+    "modele": "gpt-oss:latest",
+    "nom": "gpt-oss",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "20b",
+      "120b"
+    ]
+  },
+  {
+    "modele": "qwen3-coder:latest",
+    "nom": "qwen3-coder",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "code"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "30b",
+      "480b"
+    ]
+  },
+  {
+    "modele": "glm-ocr:latest",
+    "nom": "glm-ocr",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": []
+  },
+  {
+    "modele": "gemma:latest",
+    "nom": "gemma",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "2b",
+      "7b"
+    ]
+  },
+  {
+    "modele": "codellama:latest",
+    "nom": "codellama",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "code"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b",
+      "13b",
+      "34b",
+      "70b"
+    ]
+  },
+  {
+    "modele": "qwen:latest",
+    "nom": "qwen",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "0.5b",
+      "1.8b",
+      "4b",
+      "7b",
+      "14b",
+      "32b",
+      "72b",
+      "110b"
+    ]
+  },
+  {
+    "modele": "phi4:latest",
+    "nom": "phi4",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "14b"
+    ]
+  },
+  {
+    "modele": "llama2:latest",
+    "nom": "llama2",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b",
+      "13b",
+      "70b"
+    ]
+  },
+  {
+    "modele": "qwen3.6:latest",
+    "nom": "qwen3.6",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "27b",
+      "35b"
+    ]
+  },
+  {
+    "modele": "qwen3-vl:latest",
+    "nom": "qwen3-vl",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "2b",
+      "4b",
+      "8b",
+      "30b",
+      "32b",
+      "235b"
+    ]
+  },
+  {
+    "modele": "tinyllama:latest",
+    "nom": "tinyllama",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "1.1b"
+    ]
+  },
+  {
+    "modele": "qwen3.8:latest",
+    "nom": "qwen3.8",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "27b"
+    ]
+  },
+  {
+    "modele": "qwen2:latest",
+    "nom": "qwen2",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "0.5b",
+      "1.5b",
+      "7b",
+      "72b"
+    ]
+  },
+  {
+    "modele": "qwen2.5vl:latest",
+    "nom": "qwen2.5vl",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "3b",
+      "7b",
+      "32b",
+      "72b"
+    ]
+  },
+  {
+    "modele": "mistral-nemo:latest",
+    "nom": "mistral-nemo",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "12b"
+    ]
+  },
+  {
+    "modele": "minicpm-v:latest",
+    "nom": "minicpm-v",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "8b"
+    ]
+  },
+  {
+    "modele": "llama3.2-vision:latest",
+    "nom": "llama3.2-vision",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "11b",
+      "90b"
+    ]
+  },
+  {
+    "modele": "deepseek-coder:latest",
+    "nom": "deepseek-coder",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "code"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "1.3b",
+      "6.7b",
+      "33b"
+    ]
+  },
+  {
+    "modele": "llama3.3:latest",
+    "nom": "llama3.3",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "70b"
+    ]
+  },
+  {
+    "modele": "dolphin3:latest",
+    "nom": "dolphin3",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "8b"
+    ]
+  },
+  {
+    "modele": "smollm2:latest",
+    "nom": "smollm2",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "135m",
+      "360m",
+      "1.7b"
+    ]
+  },
+  {
+    "modele": "deepseek-v3:latest",
+    "nom": "deepseek-v3",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "671b"
+    ]
+  },
+  {
+    "modele": "olmo2:latest",
+    "nom": "olmo2",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b",
+      "13b"
+    ]
+  },
+  {
+    "modele": "deepseek-coder-v2:latest",
+    "nom": "deepseek-coder-v2",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "code"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "16b",
+      "236b"
+    ]
+  },
+  {
+    "modele": "codegemma:latest",
+    "nom": "codegemma",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "code"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "2b",
+      "7b"
+    ]
+  },
+  {
+    "modele": "mistral-small:latest",
+    "nom": "mistral-small",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "22b",
+      "24b"
+    ]
+  },
+  {
+    "modele": "orca-mini:latest",
+    "nom": "orca-mini",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "3b",
+      "7b",
+      "13b",
+      "70b"
+    ]
+  },
+  {
+    "modele": "granite3.1-moe:latest",
+    "nom": "granite3.1-moe",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "1b",
+      "3b"
+    ]
+  },
+  {
+    "modele": "starcoder2:latest",
+    "nom": "starcoder2",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "code"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "3b",
+      "7b",
+      "15b"
+    ]
+  },
+  {
+    "modele": "nemotron-3-super:latest",
+    "nom": "nemotron-3-super",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "120b"
+    ]
+  },
+  {
+    "modele": "mixtral:latest",
+    "nom": "mixtral",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": []
+  },
+  {
+    "modele": "translategemma:latest",
+    "nom": "translategemma",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "4b",
+      "12b",
+      "27b"
+    ]
+  },
+  {
+    "modele": "llama2-uncensored:latest",
+    "nom": "llama2-uncensored",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b",
+      "70b"
+    ]
+  },
+  {
+    "modele": "devstral-small-2:latest",
+    "nom": "devstral-small-2",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "24b"
+    ]
+  },
+  {
+    "modele": "falcon3:latest",
+    "nom": "falcon3",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "1b",
+      "3b",
+      "7b",
+      "10b"
+    ]
+  },
+  {
+    "modele": "mistral-small3.2:latest",
+    "nom": "mistral-small3.2",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "24b"
+    ]
+  },
+  {
+    "modele": "gemma3n:latest",
+    "nom": "gemma3n",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "e2b",
+      "e4b"
+    ]
+  },
+  {
+    "modele": "smollm:latest",
+    "nom": "smollm",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "135m",
+      "360m",
+      "1.7b"
+    ]
+  },
+  {
+    "modele": "sqlcoder:latest",
+    "nom": "sqlcoder",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "code"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b",
+      "15b"
+    ]
+  },
+  {
+    "modele": "llava-llama3:latest",
+    "nom": "llava-llama3",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "8b"
+    ]
+  },
+  {
+    "modele": "qwq:latest",
+    "nom": "qwq",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "32b"
+    ]
+  },
+  {
+    "modele": "dolphin-llama3:latest",
+    "nom": "dolphin-llama3",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "8b",
+      "70b"
+    ]
+  },
+  {
+    "modele": "qwen3-coder-next:latest",
+    "nom": "qwen3-coder-next",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "code"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": []
+  },
+  {
+    "modele": "moondream:latest",
+    "nom": "moondream",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "1.8b"
+    ]
+  },
+  {
+    "modele": "glm-4.7-flash:latest",
+    "nom": "glm-4.7-flash",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": []
+  },
+  {
+    "modele": "cogito:latest",
+    "nom": "cogito",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "3b",
+      "8b",
+      "14b",
+      "32b",
+      "70b"
+    ]
+  },
+  {
+    "modele": "starcoder:latest",
+    "nom": "starcoder",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "code"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "1b",
+      "3b",
+      "7b",
+      "15b"
+    ]
+  },
+  {
+    "modele": "wizardcoder:latest",
+    "nom": "wizardcoder",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "code"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "33b"
+    ]
+  },
+  {
+    "modele": "dolphin-mixtral:latest",
+    "nom": "dolphin-mixtral",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": []
+  },
+  {
+    "modele": "llama4:latest",
+    "nom": "llama4",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": []
+  },
+  {
+    "modele": "dolphin-mistral:latest",
+    "nom": "dolphin-mistral",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b"
+    ]
+  },
+  {
+    "modele": "openhermes:latest",
+    "nom": "openhermes",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": []
+  },
+  {
+    "modele": "hermes3:latest",
+    "nom": "hermes3",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "3b",
+      "8b",
+      "70b",
+      "405b"
+    ]
+  },
+  {
+    "modele": "phi4-reasoning:latest",
+    "nom": "phi4-reasoning",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "14b"
+    ]
+  },
+  {
+    "modele": "phi4-mini:latest",
+    "nom": "phi4-mini",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "3.8b"
+    ]
+  },
+  {
+    "modele": "granite-code:latest",
+    "nom": "granite-code",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "code"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "3b",
+      "8b",
+      "20b",
+      "34b"
+    ]
+  },
+  {
+    "modele": "dolphin-phi:latest",
+    "nom": "dolphin-phi",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "2.7b"
+    ]
+  },
+  {
+    "modele": "ministral-3:latest",
+    "nom": "ministral-3",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "3b",
+      "8b",
+      "14b"
+    ]
+  },
+  {
+    "modele": "yi:latest",
+    "nom": "yi",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "6b",
+      "9b",
+      "34b"
+    ]
+  },
+  {
+    "modele": "granite4:latest",
+    "nom": "granite4",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "350m",
+      "1b",
+      "3b"
+    ]
+  },
+  {
+    "modele": "command-r:latest",
+    "nom": "command-r",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "35b"
+    ]
+  },
+  {
+    "modele": "phi:latest",
+    "nom": "phi",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "2.7b"
+    ]
+  },
+  {
+    "modele": "magistral:latest",
+    "nom": "magistral",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "24b"
+    ]
+  },
+  {
+    "modele": "mistral-openorca:latest",
+    "nom": "mistral-openorca",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b"
+    ]
+  },
+  {
+    "modele": "openchat:latest",
+    "nom": "openchat",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b"
+    ]
+  },
+  {
+    "modele": "codestral:latest",
+    "nom": "codestral",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "code"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "22b"
+    ]
+  },
+  {
+    "modele": "mistral-large:latest",
+    "nom": "mistral-large",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "123b"
+    ]
+  },
+  {
+    "modele": "wizard-vicuna-uncensored:latest",
+    "nom": "wizard-vicuna-uncensored",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b",
+      "13b",
+      "30b"
+    ]
+  },
+  {
+    "modele": "vicuna:latest",
+    "nom": "vicuna",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b",
+      "13b",
+      "33b"
+    ]
+  },
+  {
+    "modele": "deepseek-llm:latest",
+    "nom": "deepseek-llm",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b",
+      "67b"
+    ]
+  },
+  {
+    "modele": "zephyr:latest",
+    "nom": "zephyr",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b",
+      "141b"
+    ]
+  },
+  {
+    "modele": "lfm2.5-thinking:latest",
+    "nom": "lfm2.5-thinking",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "1.2b"
+    ]
+  },
+  {
+    "modele": "glm4:latest",
+    "nom": "glm4",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "9b"
+    ]
+  },
+  {
+    "modele": "nous-hermes:latest",
+    "nom": "nous-hermes",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b",
+      "13b"
+    ]
+  },
+  {
+    "modele": "deepscaler:latest",
+    "nom": "deepscaler",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "1.5b"
+    ]
+  },
+  {
+    "modele": "deepseek-v2:latest",
+    "nom": "deepseek-v2",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "16b",
+      "236b"
+    ]
+  },
+  {
+    "modele": "neural-chat:latest",
+    "nom": "neural-chat",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b"
+    ]
+  },
+  {
+    "modele": "wizardlm2:latest",
+    "nom": "wizardlm2",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b"
+    ]
+  },
+  {
+    "modele": "falcon:latest",
+    "nom": "falcon",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b",
+      "40b",
+      "180b"
+    ]
+  },
+  {
+    "modele": "llama2-chinese:latest",
+    "nom": "llama2-chinese",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b",
+      "13b"
+    ]
+  },
+  {
+    "modele": "qwen2-math:latest",
+    "nom": "qwen2-math",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "1.5b",
+      "7b",
+      "72b"
+    ]
+  },
+  {
+    "modele": "openthinker:latest",
+    "nom": "openthinker",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b",
+      "32b"
+    ]
+  },
+  {
+    "modele": "stablelm2:latest",
+    "nom": "stablelm2",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "1.6b",
+      "12b"
+    ]
+  },
+  {
+    "modele": "codeqwen:latest",
+    "nom": "codeqwen",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "code"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b"
+    ]
+  },
+  {
+    "modele": "granite3.3:latest",
+    "nom": "granite3.3",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "2b",
+      "8b"
+    ]
+  },
+  {
+    "modele": "llava-phi3:latest",
+    "nom": "llava-phi3",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "3.8b"
+    ]
+  },
+  {
+    "modele": "yi-coder:latest",
+    "nom": "yi-coder",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "code"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "1.5b",
+      "9b"
+    ]
+  },
+  {
+    "modele": "lfm2:latest",
+    "nom": "lfm2",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "24b"
+    ]
+  },
+  {
+    "modele": "aya:latest",
+    "nom": "aya",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "8b",
+      "35b"
+    ]
+  },
+  {
+    "modele": "nous-hermes2:latest",
+    "nom": "nous-hermes2",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "10.7b",
+      "34b"
+    ]
+  },
+  {
+    "modele": "stable-code:latest",
+    "nom": "stable-code",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "code"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "3b"
+    ]
+  },
+  {
+    "modele": "devstral:latest",
+    "nom": "devstral",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "24b"
+    ]
+  },
+  {
+    "modele": "wizard-math:latest",
+    "nom": "wizard-math",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b",
+      "13b",
+      "70b"
+    ]
+  },
+  {
+    "modele": "internlm2:latest",
+    "nom": "internlm2",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "1m",
+      "1.8b",
+      "7b",
+      "20b"
+    ]
+  },
+  {
+    "modele": "granite3.1-dense:latest",
+    "nom": "granite3.1-dense",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "2b",
+      "8b"
+    ]
+  },
+  {
+    "modele": "aya-expanse:latest",
+    "nom": "aya-expanse",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "8b",
+      "32b"
+    ]
+  },
+  {
+    "modele": "xwinlm:latest",
+    "nom": "xwinlm",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b",
+      "13b"
+    ]
+  },
+  {
+    "modele": "llama3-chatqa:latest",
+    "nom": "llama3-chatqa",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "8b",
+      "70b"
+    ]
+  },
+  {
+    "modele": "granite3-dense:latest",
+    "nom": "granite3-dense",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "2b",
+      "8b"
+    ]
+  },
+  {
+    "modele": "phi3.5:latest",
+    "nom": "phi3.5",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "3.8b"
+    ]
+  },
+  {
+    "modele": "dolphincoder:latest",
+    "nom": "dolphincoder",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "code"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b",
+      "15b"
+    ]
+  },
+  {
+    "modele": "samantha-mistral:latest",
+    "nom": "samantha-mistral",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b"
+    ]
+  },
+  {
+    "modele": "yarn-llama2:latest",
+    "nom": "yarn-llama2",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b",
+      "13b"
+    ]
+  },
+  {
+    "modele": "llama3-gradient:latest",
+    "nom": "llama3-gradient",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "8b",
+      "70b"
+    ]
+  },
+  {
+    "modele": "llama3-groq-tool-use:latest",
+    "nom": "llama3-groq-tool-use",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "8b",
+      "70b"
+    ]
+  },
+  {
+    "modele": "granite3.2-vision:latest",
+    "nom": "granite3.2-vision",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "2b"
+    ]
+  },
+  {
+    "modele": "phind-codellama:latest",
+    "nom": "phind-codellama",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "code"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "34b"
+    ]
+  },
+  {
+    "modele": "starling-lm:latest",
+    "nom": "starling-lm",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b"
+    ]
+  },
+  {
+    "modele": "solar:latest",
+    "nom": "solar",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "10.7b"
+    ]
+  },
+  {
+    "modele": "stable-beluga:latest",
+    "nom": "stable-beluga",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b",
+      "13b",
+      "70b"
+    ]
+  },
+  {
+    "modele": "granite3-moe:latest",
+    "nom": "granite3-moe",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "1b",
+      "3b"
+    ]
+  },
+  {
+    "modele": "nemotron-3-nano:latest",
+    "nom": "nemotron-3-nano",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "4b",
+      "30b"
+    ]
+  },
+  {
+    "modele": "orca2:latest",
+    "nom": "orca2",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b",
+      "13b"
+    ]
+  },
+  {
+    "modele": "deepcoder:latest",
+    "nom": "deepcoder",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "code"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "1.5b",
+      "14b"
+    ]
+  },
+  {
+    "modele": "wizardlm:latest",
+    "nom": "wizardlm",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": []
+  },
+  {
+    "modele": "reader-lm:latest",
+    "nom": "reader-lm",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "0.5b",
+      "1.5b"
+    ]
+  },
+  {
+    "modele": "llama-pro:latest",
+    "nom": "llama-pro",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": []
+  },
+  {
+    "modele": "yarn-mistral:latest",
+    "nom": "yarn-mistral",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b"
+    ]
+  },
+  {
+    "modele": "nexusraven:latest",
+    "nom": "nexusraven",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "13b"
+    ]
+  },
+  {
+    "modele": "meditron:latest",
+    "nom": "meditron",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b",
+      "70b"
+    ]
+  },
+  {
+    "modele": "bakllava:latest",
+    "nom": "bakllava",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b"
+    ]
+  },
+  {
+    "modele": "mistral-small3.1:latest",
+    "nom": "mistral-small3.1",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "24b"
+    ]
+  },
+  {
+    "modele": "nemotron-3.5-lightning:latest",
+    "nom": "nemotron-3.5-lightning",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "30b"
+    ]
+  },
+  {
+    "modele": "command-r-plus:latest",
+    "nom": "command-r-plus",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "104b"
+    ]
+  },
+  {
+    "modele": "exaone-deep:latest",
+    "nom": "exaone-deep",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "2.4b",
+      "7.8b",
+      "32b"
+    ]
+  },
+  {
+    "modele": "ornith:latest",
+    "nom": "ornith",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "9b",
+      "35b"
+    ]
+  },
+  {
+    "modele": "tinydolphin:latest",
+    "nom": "tinydolphin",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "1.1b"
+    ]
+  },
+  {
+    "modele": "medllama2:latest",
+    "nom": "medllama2",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b"
+    ]
+  },
+  {
+    "modele": "deepseek-v3.1:latest",
+    "nom": "deepseek-v3.1",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "671b"
+    ]
+  },
+  {
+    "modele": "nemotron-mini:latest",
+    "nom": "nemotron-mini",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "4b"
+    ]
+  },
+  {
+    "modele": "nemotron3:latest",
+    "nom": "nemotron3",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "33b"
+    ]
+  },
+  {
+    "modele": "codegeex4:latest",
+    "nom": "codegeex4",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "code"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "9b"
+    ]
+  },
+  {
+    "modele": "deepseek-ocr:latest",
+    "nom": "deepseek-ocr",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "3b"
+    ]
+  },
+  {
+    "modele": "opencoder:latest",
+    "nom": "opencoder",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "code"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "1.5b",
+      "8b"
+    ]
+  },
+  {
+    "modele": "wizardlm-uncensored:latest",
+    "nom": "wizardlm-uncensored",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "13b"
+    ]
+  },
+  {
+    "modele": "nemotron:latest",
+    "nom": "nemotron",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "70b"
+    ]
+  },
+  {
+    "modele": "reflection:latest",
+    "nom": "reflection",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "70b"
+    ]
+  },
+  {
+    "modele": "granite4.1:latest",
+    "nom": "granite4.1",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "3b",
+      "8b",
+      "30b"
+    ]
+  },
+  {
+    "modele": "codeup:latest",
+    "nom": "codeup",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "code"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "13b"
+    ]
+  },
+  {
+    "modele": "athene-v2:latest",
+    "nom": "athene-v2",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "72b"
+    ]
+  },
+  {
+    "modele": "nous-hermes2-mixtral:latest",
+    "nom": "nous-hermes2-mixtral",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": []
+  },
+  {
+    "modele": "qwen3-next:latest",
+    "nom": "qwen3-next",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "80b"
+    ]
+  },
+  {
+    "modele": "exaone3.5:latest",
+    "nom": "exaone3.5",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "2.4b",
+      "7.8b",
+      "32b"
+    ]
+  },
+  {
+    "modele": "megadolphin:latest",
+    "nom": "megadolphin",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "120b"
+    ]
+  },
+  {
+    "modele": "everythinglm:latest",
+    "nom": "everythinglm",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "13b"
+    ]
+  },
+  {
+    "modele": "nuextract:latest",
+    "nom": "nuextract",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "3.8b"
+    ]
+  },
+  {
+    "modele": "solar-pro:latest",
+    "nom": "solar-pro",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "22b"
+    ]
+  },
+  {
+    "modele": "mathstral:latest",
+    "nom": "mathstral",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b"
+    ]
+  },
+  {
+    "modele": "magicoder:latest",
+    "nom": "magicoder",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "code"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b"
+    ]
+  },
+  {
+    "modele": "notus:latest",
+    "nom": "notus",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b"
+    ]
+  },
+  {
+    "modele": "falcon2:latest",
+    "nom": "falcon2",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "11b"
+    ]
+  },
+  {
+    "modele": "notux:latest",
+    "nom": "notux",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": []
+  },
+  {
+    "modele": "stablelm-zephyr:latest",
+    "nom": "stablelm-zephyr",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "3b"
+    ]
+  },
+  {
+    "modele": "bespoke-minicheck:latest",
+    "nom": "bespoke-minicheck",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b"
+    ]
+  },
+  {
+    "modele": "duckdb-nsql:latest",
+    "nom": "duckdb-nsql",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b"
+    ]
+  },
+  {
+    "modele": "firefunction-v2:latest",
+    "nom": "firefunction-v2",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "70b"
+    ]
+  },
+  {
+    "modele": "mistrallite:latest",
+    "nom": "mistrallite",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b"
+    ]
+  },
+  {
+    "modele": "wizard-vicuna:latest",
+    "nom": "wizard-vicuna",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "13b"
+    ]
+  },
+  {
+    "modele": "open-orca-platypus2:latest",
+    "nom": "open-orca-platypus2",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "13b"
+    ]
+  },
+  {
+    "modele": "rnj-1:latest",
+    "nom": "rnj-1",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "8b"
+    ]
+  },
+  {
+    "modele": "codebooga:latest",
+    "nom": "codebooga",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "code"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "34b"
+    ]
+  },
+  {
+    "modele": "goliath:latest",
+    "nom": "goliath",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": []
+  },
+  {
+    "modele": "olmo-3:latest",
+    "nom": "olmo-3",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "7b",
+      "32b"
+    ]
+  },
+  {
+    "modele": "medgemma:latest",
+    "nom": "medgemma",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "4b",
+      "27b"
+    ]
+  },
+  {
+    "modele": "granite3.2:latest",
+    "nom": "granite3.2",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "2b",
+      "8b"
+    ]
+  },
+  {
+    "modele": "ornith-1.5:latest",
+    "nom": "ornith-1.5",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "9b",
+      "35b",
+      "122b",
+      "397b"
+    ]
+  },
+  {
+    "modele": "sailor2:latest",
+    "nom": "sailor2",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "1b",
+      "8b",
+      "20b"
+    ]
+  },
+  {
+    "modele": "mistral-medium-3.5:latest",
+    "nom": "mistral-medium-3.5",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "128b"
+    ]
+  },
+  {
+    "modele": "r1-1776:latest",
+    "nom": "r1-1776",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "70b",
+      "671b"
+    ]
+  },
+  {
+    "modele": "tulu3:latest",
+    "nom": "tulu3",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "8b",
+      "70b"
+    ]
+  },
+  {
+    "modele": "muse-glimmer:latest",
+    "nom": "muse-glimmer",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "30b"
+    ]
+  },
+  {
+    "modele": "dbrx:latest",
+    "nom": "dbrx",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "132b"
+    ]
+  },
+  {
+    "modele": "devstral-2:latest",
+    "nom": "devstral-2",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "123b"
+    ]
+  },
+  {
+    "modele": "command-r7b:latest",
+    "nom": "command-r7b",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "7b"
+    ]
+  },
+  {
+    "modele": "alfred:latest",
+    "nom": "alfred",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "40b"
+    ]
+  },
+  {
+    "modele": "lfm2.5:latest",
+    "nom": "lfm2.5",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "8b",
+      "24b"
+    ]
+  },
+  {
+    "modele": "phi4-mini-reasoning:latest",
+    "nom": "phi4-mini-reasoning",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "3.8b"
+    ]
+  },
+  {
+    "modele": "olmo-3.1:latest",
+    "nom": "olmo-3.1",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "32b"
+    ]
+  },
+  {
+    "modele": "deepseek-v2.5:latest",
+    "nom": "deepseek-v2.5",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "236b"
+    ]
+  },
+  {
+    "modele": "granite4.2:latest",
+    "nom": "granite4.2",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "3b",
+      "8b",
+      "30b"
+    ]
+  },
+  {
+    "modele": "smallthinker:latest",
+    "nom": "smallthinker",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "3b"
+    ]
+  },
+  {
+    "modele": "qwen3.8-flash-next:latest",
+    "nom": "qwen3.8-flash-next",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": []
+  },
+  {
+    "modele": "command-a:latest",
+    "nom": "command-a",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "111b"
+    ]
+  },
+  {
+    "modele": "cogito-2.1:latest",
+    "nom": "cogito-2.1",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "671b"
+    ]
+  },
+  {
+    "modele": "marco-o1:latest",
+    "nom": "marco-o1",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "7b"
+    ]
+  },
+  {
+    "modele": "medgemma1.5:latest",
+    "nom": "medgemma1.5",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "4b"
+    ]
+  },
+  {
+    "modele": "command-r7b-arabic:latest",
+    "nom": "command-r7b-arabic",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "7b"
+    ]
+  },
+  {
+    "modele": "functiongemma:latest",
+    "nom": "functiongemma",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "270m"
+    ]
+  },
+  {
+    "modele": "laguna-s-2.1:latest",
+    "nom": "laguna-s-2.1",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": []
+  },
+  {
+    "modele": "nemotron-cascade-2:latest",
+    "nom": "nemotron-cascade-2",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "30b"
+    ]
+  },
+  {
+    "modele": "bonsai-2:latest",
+    "nom": "bonsai-2",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "2b",
+      "4b",
+      "9b",
+      "27b"
+    ]
+  },
+  {
+    "modele": "tev1:latest",
+    "nom": "tev1",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "0.8b",
+      "4b"
+    ]
+  },
+  {
+    "modele": "laguna-xs-2.1:latest",
+    "nom": "laguna-xs-2.1",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": []
+  },
+  {
+    "modele": "phonon:latest",
+    "nom": "phonon",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": []
+  },
+  {
+    "modele": "strands-decider:latest",
+    "nom": "strands-decider",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "2b"
+    ]
+  },
+  {
+    "modele": "clef:latest",
+    "nom": "clef",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "27b"
+    ]
+  },
+  {
+    "modele": "minicpm-v4.6:latest",
+    "nom": "minicpm-v4.6",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "1b"
+    ]
+  },
+  {
+    "modele": "nimble:latest",
+    "nom": "nimble",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "9b"
+    ]
+  },
+  {
+    "modele": "north-mini-code-1.0:latest",
+    "nom": "north-mini-code-1.0",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "code",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": []
+  },
+  {
+    "modele": "flint:latest",
+    "nom": "flint",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "40b"
+    ]
+  },
+  {
+    "modele": "d3:latest",
+    "nom": "d3",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "2b",
+      "4b",
+      "9b",
+      "27b"
+    ]
+  },
+  {
+    "modele": "lfm3:latest",
+    "nom": "lfm3",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "1.7b"
+    ]
+  },
+  {
+    "modele": "clef-flash:latest",
+    "nom": "clef-flash",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "9b"
+    ]
+  },
+  {
+    "modele": "mimo-v2.6:latest",
+    "nom": "mimo-v2.6",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "9b"
+    ]
+  },
+  {
+    "modele": "minicpm-v4.5:latest",
+    "nom": "minicpm-v4.5",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "8b"
+    ]
+  },
+  {
+    "modele": "d1:latest",
+    "nom": "d1",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "2b",
+      "3b"
+    ]
+  },
+  {
+    "modele": "nemotron-3.5-bolt:latest",
+    "nom": "nemotron-3.5-bolt",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "e4b"
+    ]
+  },
+  {
+    "modele": "lfm3-omni:latest",
+    "nom": "lfm3-omni",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "2b"
+    ]
+  },
+  {
+    "modele": "d1-omni:latest",
+    "nom": "d1-omni",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "600m",
+      "2b"
+    ]
+  },
+  {
+    "modele": "laguna-xs.2:latest",
+    "nom": "laguna-xs.2",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": []
+  },
+  {
+    "modele": "lfm3-vl:latest",
+    "nom": "lfm3-vl",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "2b"
+    ]
+  },
+  {
+    "modele": "pplx-decider:latest",
+    "nom": "pplx-decider",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "27b"
+    ]
+  },
+  {
+    "modele": "autotrust-jev:latest",
+    "nom": "autotrust-jev",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "9b",
+      "35b"
+    ]
+  },
+  {
+    "modele": "pplx-decider-flash:latest",
+    "nom": "pplx-decider-flash",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": [
+      "4b"
+    ]
+  },
+  {
+    "modele": "nemotron-3.5-super:latest",
+    "nom": "nemotron-3.5-super",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "images",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "120b"
+    ]
+  },
+  {
+    "modele": "nimble-v3:latest",
+    "nom": "nimble-v3",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "9b"
+    ]
+  },
+  {
+    "modele": "kev:latest",
+    "nom": "kev",
+    "fournisseur": "ollama",
+    "usages": [
+      "general"
+    ],
+    "outils": false,
+    "raison": "Discussion · outils non annoncés",
+    "variantes": []
+  },
+  {
+    "modele": "ripple-preview:latest",
+    "nom": "ripple-preview",
+    "fournisseur": "ollama",
+    "usages": [
+      "general",
+      "reflexion"
+    ],
+    "outils": true,
+    "raison": "Discussion et outils",
+    "variantes": [
+      "65b"
+    ]
+  }
+]

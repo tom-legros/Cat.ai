@@ -1,0 +1,4 @@
+#!/bin/sh
+# catai sous Linux et macOS, sans ouvrir l'app : Node suffit pour discuter avec Ollama.
+# Depuis le dossier du projet : npm link, puis « catai » dans n'importe quel dossier.
+exec node "$(dirname "$(readlink -f "$0")")/../cli/catai.js" "$@"

@@ -1,0 +1,175 @@
+// Outils du modèle : règles d'écriture du mode prof, remplacer_texte, appels d'outils écrits en texte
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { outilsPour, ecritureRefusee, remplacerTexte, parseTextToolCalls, matchingBrace, resumerAction, REFUS_LECTURE, appelRepete } = require('../principal/outils');
+
+const noms = (mode) => outilsPour(mode).map((t) => t.function.name);
+
+test('outils d écriture proposés en mode normal', () => {
+  assert.ok(noms({}).includes('ecrire_fichier') && noms({}).includes('remplacer_texte'));
+});
+
+test('outils d écriture retirés en mode prof, lecture et recherche gardées', () => {
+  const mode = { prof: true };
+  assert.ok(!noms(mode).includes('ecrire_fichier') && !noms(mode).includes('remplacer_texte'));
+  assert.ok(noms(mode).includes('lire_fichier') && noms(mode).includes('chercher'));
+});
+
+test('ecritureRefusee : rien en mode normal, refus en mode prof', () => {
+  assert.equal(ecritureRefusee({}, 'main.js'), undefined);
+  assert.match(ecritureRefusee({ prof: true }, 'README.md'), /Mode prof/);
+});
+
+test('le refus interdit au modèle de prétendre que le fichier a changé', () => {
+  assert.match(ecritureRefusee({ prof: true }, 'a.js'), /ne dis pas à l'utilisateur qu'il est modifié/);
+});
+
+const code = 'function moyenne(notes) {\n  for (let i = 0; i <= notes.length; i++) total += notes[i];\n}\n';
+
+test('remplacer_texte : 1 occurrence remplacée, le reste intact', () => {
+  assert.deepEqual(remplacerTexte(code, 'i <= notes.length', 'i < notes.length'), { contenu: code.replace('<=', '<'), fois: 1 });
+});
+
+test('remplacer_texte : 0 occurrence, erreur qui dit de relire le fichier', () => {
+  assert.match(remplacerTexte(code, 'i <= note.length', 'x').erreur, /introuvable.*lire_fichier/s);
+});
+
+test('remplacer_texte : plusieurs occurrences, erreur avec le nombre et rien de remplacé', () => {
+  assert.match(remplacerTexte('a = 1;\nb = 1;\n', ' = 1;', ' = 2;').erreur, /apparaît 2 fois.*remplacer_partout/s);
+});
+
+test('remplacer_texte : remplacer partout (renommage), avec le nombre de remplacements', () => {
+  const avant = 'function calculer(f) {}\nmodule.exports = { calculer };\n';
+  assert.deepEqual(remplacerTexte(avant, 'calculer', 'evaluerFormule', true), {
+    contenu: 'function evaluerFormule(f) {}\nmodule.exports = { evaluerFormule };\n',
+    fois: 2,
+  });
+});
+
+test('remplacer_texte : ancien texte vide refusé, nouveau texte vide = suppression', () => {
+  assert.match(remplacerTexte(code, '', 'x').erreur, /vide/);
+  assert.equal(remplacerTexte('a\nb\n', 'a\nb', '').contenu, '\n');
+});
+
+test('remplacer_texte : $1 et $& recopiés tels quels (pas d effet String.replace)', () => {
+  assert.equal(remplacerTexte('$x = 1;', '$x = 1;', '$x = $1 . "$&";').contenu, '$x = $1 . "$&";');
+  assert.equal(remplacerTexte('$a $a', '$a', '$1', true).contenu, '$1 $1');
+});
+
+test('remplacer_texte : fichier Windows (CRLF), passage du modèle en LF', () => {
+  const windows = 'ligne 1\r\nligne 2\r\nligne 3\r\n';
+  assert.equal(remplacerTexte(windows, 'ligne 2\nligne 3', 'deux\ntrois').contenu, 'ligne 1\r\ndeux\r\ntrois\r\n');
+});
+
+test('remplacer_texte : retours à la ligne « échappés deux fois » par qwen3', () => {
+  // String.raw garde \n tel quel : deux caractères, comme dans les arguments envoyés par qwen3
+  const fichier = 'function calculer(formule) {\n  return eval(formule);\n}\n';
+  const envoye = String.raw`function calculer(formule) {\n  return eval(formule);\n}`;
+  const resultat = remplacerTexte(fichier, envoye, envoye.replace('calculer', 'evaluer'));
+  assert.equal(resultat.contenu, 'function evaluer(formule) {\n  return eval(formule);\n}\n');
+});
+
+test('remplacer_texte : un vrai \\n dans une chaîne du code reste trouvé tel quel', () => {
+  const fichier = String.raw`console.log("a\nb");` + '\n';
+  assert.equal(remplacerTexte(fichier, String.raw`console.log("a\nb");`, 'console.log("c");').contenu, 'console.log("c");\n');
+});
+
+test('parseTextToolCalls : appel d outil écrit en JSON dans le texte', () => {
+  const texte = 'Je regarde.\n{"name": "lire_fichier", "arguments": {"chemin": "main.js"}}';
+  assert.deepEqual(parseTextToolCalls(texte), [{ function: { name: 'lire_fichier', arguments: { chemin: 'main.js' } } }]);
+});
+
+test('parseTextToolCalls : arguments en texte JSON, ou sous le nom parameters', () => {
+  assert.deepEqual(parseTextToolCalls('{"name":"chercher","arguments":"{\\"texte\\":\\"x\\"}"}')[0].function.arguments, { texte: 'x' });
+  assert.deepEqual(parseTextToolCalls('{"name":"lister_fichiers","parameters":{"dossier":"src"}}')[0].function.arguments, { dossier: 'src' });
+});
+
+test('parseTextToolCalls : ignore les objets qui ne sont pas des outils, et le JSON cassé', () => {
+  assert.deepEqual(parseTextToolCalls('{"name": "supprimer_tout", "arguments": {}}'), []);
+  assert.deepEqual(parseTextToolCalls('const x = { a: 1 }; {"name": "lire_fichier", "arguments": {"chemin": "a'), []);
+});
+
+test('parseTextToolCalls : plusieurs appels dans la même réponse', () => {
+  const texte = '{"name":"lire_fichier","arguments":{"chemin":"a.js"}} puis {"name":"lire_fichier","arguments":{"chemin":"b.js"}}';
+  assert.deepEqual(parseTextToolCalls(texte).map((c) => c.function.arguments.chemin), ['a.js', 'b.js']);
+});
+
+test('matchingBrace : ignore les accolades dans les chaînes, -1 si pas fermée', () => {
+  const s = '{"a": "}{", "b": {"c": 1}} fin';
+  assert.equal(matchingBrace(s, 0), s.indexOf(' fin') - 1);
+  assert.equal(matchingBrace('{"a": "\\"}"}', 0), 11);
+  assert.equal(matchingBrace('{"a": 1', 0), -1);
+});
+
+test('résumé d action : lectures, recherches et listes', () => {
+  assert.equal(resumerAction('lire_fichier', { chemin: 'main.js' }, 'const a = 1;'), 'a lu main.js');
+  assert.equal(resumerAction('lire_fichier', { chemin: 'main.js', ligne: 120 }, '(main.js, à partir de la ligne 120)'), 'a lu main.js à partir de la ligne 120');
+  assert.equal(resumerAction('lire_fichier', { chemin: '.env' }, REFUS_LECTURE + '.env : ce fichier peut contenir des secrets.'), "n'a pas pu lire .env (lecture refusée : fichier sensible)");
+  assert.equal(resumerAction('lire_fichier', { chemin: 'x.js' }, 'Erreur : ENOENT'), "n'a pas pu lire x.js");
+  assert.equal(resumerAction('chercher', { texte: 'moyenne' }, 'notes.js:4: function moyenne(n) {\nnotes.js:20: moyenne(notes)'), 'a cherché « moyenne » (2 résultats)');
+  assert.equal(resumerAction('chercher', { texte: 'x', dossier: 'src' }, 'Aucun résultat pour « x » dans src.'), 'a cherché « x » dans src (aucun résultat)');
+  assert.equal(resumerAction('lister_fichiers', {}, 'a.js\nb.js'), 'a listé les fichiers');
+});
+
+test('résumé d action : écritures réussies, refusées ou ratées, sans jamais mentir', () => {
+  assert.equal(resumerAction('ecrire_fichier', { chemin: 'README.md' }, 'Fichier créé : README.md'), 'a créé README.md');
+  assert.equal(resumerAction('remplacer_texte', { chemin: 'a.js' }, 'Fichier modifié : a.js (2 remplacements)'), 'a modifié a.js');
+  assert.match(resumerAction('remplacer_texte', { chemin: 'a.js' }, "L'utilisateur a refusé la modification."), /modification a été refusée : le fichier n'a pas changé/);
+  assert.match(resumerAction('remplacer_texte', { chemin: 'a.js' }, 'ancien_texte est introuvable'), /n'a pas pu modifier a\.js : le fichier n'a pas changé/);
+  assert.match(resumerAction('ecrire_fichier', { chemin: 'a.js' }, 'Mode prof activé : …'), /n'a pas pu modifier/);
+});
+
+test('résumé d action : mémoire et dossier, rien pour ce qui n est pas une action', () => {
+  assert.equal(resumerAction('memoriser', { fait: 'Sam code en C++.' }, 'Mémorisé.'), 'a retenu : Sam code en C++.');
+  assert.equal(resumerAction('memoriser', { fait: 'x' }, 'Déjà retenu : « x »'), '');
+  assert.equal(resumerAction('ouvrir_dossier', { chemin: 'C:\p' }, 'Dossier ouvert : C:\p'), 'a ouvert le dossier C:\p');
+  assert.equal(resumerAction('ouvrir_dossier', { chemin: 'C:\p' }, "L'utilisateur a refusé"), '');
+  assert.equal(resumerAction('outil_inconnu', {}, 'x'), '');
+});
+
+test('resumerAction : lecture d une page internet, réussie, refusée ou ratée', () => {
+  const url = 'https://exemple.fr/page';
+  assert.equal(resumerAction('lire_page_web', { url }, 'Page : Exemple\nAdresse : https://exemple.fr/page'), `a lu la page ${url}`);
+  assert.equal(resumerAction('lire_page_web', { url }, "L'utilisateur a refusé la lecture de la page https://exemple.fr/page."), `n'a pas pu lire la page ${url} (lecture refusée)`);
+  assert.equal(resumerAction('lire_page_web', { url }, 'La page a répondu 404 : elle n existe pas.'), `n'a pas pu lire la page ${url}`);
+});
+
+test('appelRepete : le même appel est refait deux fois au plus pour un message', () => {
+  const deja = new Map();
+  assert.equal(appelRepete(deja, 'lire_fichier', { chemin: 'a.js' }), false);
+  assert.equal(appelRepete(deja, 'lire_fichier', { chemin: 'a.js' }), false);
+  assert.equal(appelRepete(deja, 'lire_fichier', { chemin: 'a.js' }), true);
+  // D'autres arguments, c'est une autre action
+  assert.equal(appelRepete(deja, 'lire_fichier', { chemin: 'b.js' }), false);
+  assert.equal(appelRepete(deja, 'lire_fichier', { chemin: 'a.js', ligne: 40 }), false);
+});
+
+test('resumerAction : recherche sur internet, avec ou sans résultat', () => {
+  const r = "Résultats de recherche pour « pacman » (ils viennent d'internet) :\n\n1. pacman(8)\n   https://a\n\n2. Pacman - ArchWiki\n   https://b";
+  assert.equal(resumerAction('chercher_web', { requete: 'pacman' }, r), 'a cherché « pacman » sur internet (2 résultats)');
+  assert.equal(resumerAction('chercher_web', { requete: 'xyz' }, 'Aucun résultat pour « xyz ».'), "n'a rien trouvé en cherchant « xyz » sur internet");
+});
+
+
+test('sans projet ni document, seuls les outils utilisables sont proposés', () => {
+  assert.deepEqual(noms({ projet: false, documents: false }), ['ouvrir_dossier', 'chercher_web', 'lire_page_web', 'date_heure']);
+  assert.ok(noms({ projet: false, documents: true }).includes('lire_document'));
+  assert.ok(!noms({ projet: false, documents: true }).includes('lire_fichier'));
+  assert.ok(noms({ projet: true, documents: false }).includes('lancer_tests'));
+  assert.ok(!noms({ projet: true, documents: false }).includes('lire_document'));
+  assert.ok(noms({ projet: false, documents: false, connecteur: true }).includes('lire_connecteur'));
+});
+
+test('date_heure : l horloge du PC, sans rien demander (pas sur une petite machine : l heure y arrive dans une note)', async () => {
+  const { executerOutil } = require('../principal/agent');
+  const { noteHeureSiDemandee } = require('../principal/machine-legere');
+  assert.ok(noms({}).includes('date_heure'));
+  assert.ok(!noms({ legere: true }).includes('date_heure'));
+  const note = noteHeureSiDemandee([{ role: 'system', content: 'x' }, { role: 'user', content: 'Il est quelle heure ?' }]);
+  assert.match(note.content, /^Heure de l'ordinateur : \d{2}:\d{2}, le /);
+  assert.equal(noteHeureSiDemandee([{ role: 'system', content: 'x' }, { role: 'user', content: 'Bonjour' }]), null);
+  assert.ok(noms({ prof: true }).includes('date_heure'));
+  const r = await executerOutil('date_heure', {}, { ui: {} });
+  assert.match(r, /^Nous sommes le \S+ \d{1,2} \S+ \d{4}, il est \d{2}:\d{2} \(/);
+  assert.ok(r.includes(String(new Date().getFullYear())));
+});

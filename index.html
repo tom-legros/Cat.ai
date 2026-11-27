@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:">
+  <title>Cat Ai</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <aside class="cote">
+    <div class="logo" id="logo">
+      <span class="logo__marque" id="logo-marque" aria-hidden="true"></span>
+      <span class="logo__nom">Cat Ai</span>
+      <button id="cote-replier" class="cote__replier" type="button" title="Replier le menu (Ctrl+B)" aria-label="Replier le menu"></button>
+    </div>
+
+    <button id="new-chat" class="bouton--nouveau" type="button"><span data-icone="plus"></span>Nouvelle discussion</button>
+
+    <!-- Les pages de l'app. Les icônes sont posées par interface/pages.js -->
+    <nav class="nav" aria-label="Pages">
+      <button class="nav__lien is-actif" data-page="discussion" type="button" aria-current="page"><span data-icone="bulle"></span>Discussion</button>
+      <button class="nav__lien" data-page="agents" type="button"><span data-icone="agents"></span>Agents</button>
+      <button class="nav__lien" data-page="taches" type="button"><span data-icone="agents"></span>Tâches<span class="etiquette-beta" title="Les agents sont encore en test : regarde toujours leur travail avant de le garder">Bêta</span><span id="taches-badge" class="nav__badge" hidden></span></button>
+      <button class="nav__lien" data-page="modeles" type="button"><span data-icone="boite"></span>Modèles</button>
+    </nav>
+
+    <div class="discussions__entete">
+      <p class="etiquette">Discussions</p>
+      <button id="conv-recherche-ouvrir" class="discussions__loupe-bouton" type="button" aria-expanded="false" aria-controls="conv-recherche" title="Chercher dans l’historique (Ctrl+F)" aria-label="Chercher dans l’historique"><span data-icone="loupe"></span></button>
+    </div>
+    <div class="discussions__recherche" hidden>
+      <span class="discussions__loupe" data-icone="loupe" aria-hidden="true"></span>
+      <input id="conv-recherche" type="search" placeholder="Chercher dans l’historique…" aria-label="Chercher dans les discussions (titre et messages)" aria-controls="conv-list" autocomplete="off" spellcheck="false">
+      <button id="conv-recherche-effacer" class="discussions__effacer" type="button" title="Effacer la recherche" aria-label="Effacer la recherche" hidden>×</button>
+    </div>
+    <p id="conv-statut" class="conseil discussions__statut" role="status" aria-live="polite"></p>
+    <p id="historique-alerte" class="conseil discussions__alerte" role="alert" hidden></p>
+    <ul id="conv-list" class="discussions"></ul>
+
+    <!-- En bas, comme sur Claude : la mémoire, les réglages et l'état de la connexion -->
+    <div class="cote__bas">
+      <p id="memoire-ajout" class="conseil" aria-live="polite"></p>
+      <button id="ouvrir-terminal" class="lien lien--bloc" type="button" title="Ouvrir Cat Ai dans un terminal (catai), sur le dossier ouvert"><span class="lien__icone" data-icone="terminal"></span>Terminal</button>
+      <button id="open-reglages" class="lien lien--bloc" type="button"><span class="lien__icone" data-icone="engrenage"></span>Réglages</button>
+      <p id="status" class="statut" role="status" aria-live="polite">Connexion…</p>
+    </div>
+    <!-- La bordure se tire pour régler la largeur du menu ; double-clic pour la largeur normale -->
+    <div id="cote-poignee" class="cote__poignee" role="separator" aria-orientation="vertical" aria-label="Largeur du menu" tabindex="0" title="Tirer pour régler la largeur · double-clic : largeur normale"></div>
+  </aside>
+
+  <main class="principal">
+    <button id="cote-deplier" class="cote__deplier" type="button" title="Afficher le menu (Ctrl+B)" aria-label="Afficher le menu" hidden></button>
+    <header class="entete"><h1 id="titre-conv" class="entete__titre"></h1><button type="button" id="renommer-conv" class="entete__renommer" title="Renommer la discussion (F2)" aria-label="Renommer la discussion" hidden></button></header>
+    <div id="messages" class="messages">
+      <section id="welcome" class="accueil">
+        <div class="mascotte" id="mascotte">
+          <div class="bulle is-hidden" id="bulle">
+            <p class="bulle__nom">Cat Ai</p>
+            <p class="bulle__texte" id="bulle-texte"></p>
+          </div>
+          <button class="mascotte__bouton" id="mascotte-bouton" type="button" aria-label="Cat Ai : cliquer pour qu'il parle">
+            <span class="zzz" aria-hidden="true"><span>z</span><span>z</span><span>Z</span></span>
+            <canvas id="grand-chat" class="mascotte__chat"></canvas>
+          </button>
+        </div>
+        <h1 class="accueil__titre">On fait quoi aujourd'hui&nbsp;?</h1>
+        <p class="accueil__texte" id="accueil-texte">Tout tourne sur ton PC. Gratuit, sans limite, et je ne dis rien à personne.</p>
+        <!-- Sans aucun modèle (premier lancement) : les deux façons gratuites d'en avoir un, à la place des suggestions -->
+        <div id="demarrage" class="demarrage" hidden>
+          <p class="demarrage__intro">Pour parler, il me faut un cerveau. Choisis-en un, les deux sont gratuits :</p>
+          <div class="demarrage__choix">
+            <div class="demarrage__carte">
+              <p class="etiquette">Sur ton PC</p>
+              <p class="demarrage__titre">Ollama</p>
+              <p class="discret" id="demarrage-ollama-texte"></p>
+              <p class="conseil" id="demarrage-progression" aria-live="polite"></p>
+              <div class="rangee" id="demarrage-ollama-actions"></div>
+            </div>
+            <div class="demarrage__carte">
+              <p class="etiquette">En ligne</p>
+              <p class="demarrage__titre">Gemini</p>
+              <p class="discret" id="demarrage-gemini-texte"></p>
+              <div class="rangee" id="demarrage-gemini-actions"></div>
+            </div>
+          </div>
+        </div>
+        <!-- Suggestions personnelles seulement (perso.json) : l'accueil reste épuré -->
+        <div class="suggestions" hidden></div>
+      </section>
+    </div>
+
+    <form id="composer" class="saisie">
+      <!-- Mode Auto : ce que l'agent a changé sur sa copie, à garder ou à jeter -->
+      <div id="agent-barre" class="agent-barre" role="status" hidden>
+        <span class="agent-barre__icone" data-icone="route"></span>
+        <span id="agent-resume" class="agent-barre__texte"></span>
+        <button id="agent-voir" class="bouton-calme agent-barre__bouton" type="button">Voir</button>
+        <button id="agent-jeter" class="bouton-calme agent-barre__bouton" type="button">Jeter</button>
+        <button id="agent-garder" class="bouton agent-barre__bouton agent-barre__bouton--garder" type="button">Garder</button>
+      </div>
+      <div class="saisie__boite">
+        <ul id="pieces" class="pieces" hidden></ul>
+        <div id="menu-commandes" class="menu-modeles menu-commandes" role="listbox" aria-label="Commandes" hidden></div>
+        <textarea id="input" rows="1" placeholder="Écris au chat…" spellcheck="true" lang="fr"></textarea>
+        <button id="send" type="submit" class="bouton-envoi" title="Envoyer (Entrée)" aria-label="Envoyer">
+            <span data-icone="envoi" data-classe="icone--envoi"></span>
+            <span data-icone="stop" data-classe="icone--stop"></span>
+          </button>
+      </div>
+      <!-- Commandes sous le champ, à portée de clic. -->
+        <div class="saisie__barre">
+          <!-- À gauche : ce qui change la façon de répondre -->
+          <div class="outils__groupe">
+            <span class="raccourci">
+              <button id="joindre" class="pastille" type="button" aria-haspopup="true" aria-label="Ajouter des fichiers, des photos ou un dossier" title="Ajouter des fichiers, des photos ou un dossier (Ctrl+U)">
+                <span data-icone="plus"></span>
+              </button>
+              <div id="menu-joindre" class="menu-modeles menu-modeles--gauche" role="menu" aria-label="Joindre au message" hidden></div>
+            </span>
+            <span class="pastille-groupe" id="projet-groupe" hidden>
+              <button id="open-project" class="pastille" type="button" title="Ouvrir un dossier pour que le chat lise son contenu">
+                <span data-icone="dossier"></span>
+                <span id="project-name">Dossier</span>
+              </button>
+              <button id="close-project" class="pastille pastille--x" type="button" title="Fermer le dossier" hidden>×</button>
+            </span>
+            <button id="mode-prof" class="pastille pastille--mode" type="button" role="switch" aria-checked="false" aria-label="Mode prof : il t'explique et te donne des pistes, mais c'est toi qui trouves" title="Mode prof : il t'explique et te donne des pistes, mais c'est toi qui trouves">
+              <span data-icone="lunettes"></span><span class="pastille__etiquette">Prof</span>
+            </button>
+            <span class="raccourci">
+              <button id="mode-reflexion" class="pastille pastille--mode" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Niveau de réflexion : Rapide ou Réflexion" title="Niveau de réflexion" hidden>
+                <span data-icone="eclair"></span><span class="pastille__etiquette">Rapide</span><span data-icone="chevron" data-classe="icone--chevron"></span>
+              </button>
+              <div id="menu-reflexion" class="menu-modeles menu-modeles--gauche" role="menu" aria-label="Niveau de réflexion" hidden></div>
+            </span>
+            <!-- Avec un dossier ouvert : demander avant chaque modification, ou Auto (sur une copie du projet) -->
+            <span class="raccourci">
+              <button id="mode-agent" class="pastille pastille--mode" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Modifications des fichiers : Demander ou Auto" title="Modifications des fichiers" hidden>
+                <span data-icone="stylo"></span><span class="pastille__etiquette">Demander</span><span data-icone="chevron" data-classe="icone--chevron"></span>
+              </button>
+              <div id="menu-agent" class="menu-modeles menu-modeles--gauche" role="menu" aria-label="Modifications des fichiers" hidden></div>
+            </span>
+          </div>
+          <!-- À droite : qui répond, dans un seul contrôle fournisseur + modèle ; le petit rond = quota du jour -->
+          <div class="outils__groupe">
+            <span class="raccourci">
+              <button id="modele-raccourci" class="pastille pastille--discrete pastille--cerveau" type="button" aria-haspopup="menu" aria-expanded="false" title="Choisir le fournisseur et le modèle (Ctrl+K)">
+                <svg class="quota" viewBox="0 0 20 20" aria-hidden="true"><circle class="quota__fond" cx="10" cy="10" r="7"/><circle id="quota-arc" class="quota__plein" cx="10" cy="10" r="7"/></svg>
+                <span id="fournisseur-icone" class="menu-icone menu-icone--petite"></span><span id="fournisseur-nom">…</span><span class="pastille__point" aria-hidden="true">·</span><span id="modele-nom">…</span><span data-icone="chevron" data-classe="icone--chevron"></span>
+              </button>
+              <div id="menu-modeles" class="menu-modeles menu-modeles--cerveau" role="menu" aria-label="Choisir un fournisseur et un modèle" hidden></div>
+            </span>
+          </div>
+        </div>
+    </form>
+
+    <!-- Page Agents : l'arbre d'agents du mode chantier, à composer (interface/pages.js) -->
+    <section id="page-agents" class="page" hidden>
+      <div class="page__contenu page__contenu--large">
+        <header class="page__tete">
+          <div>
+            <h2 class="page__titre">Agents</h2>
+            <p class="page__resume">Compose ton équipe puis vérifie le plan avant le lancement.</p>
+          </div>
+          <button id="equipe-remettre" class="bouton-calme" type="button">Équipe de départ</button>
+        </header>
+        <div class="equipe-actions">
+          <button id="equipe-dev" class="bouton-calme" type="button">Ajouter un dev</button>
+          <button id="equipe-auteur-tests" class="bouton-calme" type="button">Ajouter un auteur de tests</button>
+          <button id="agents-projet" class="bouton-calme" type="button">Choisir un dossier</button>
+          <button id="equipe-plan" class="bouton" type="button">Lancer un chantier</button>
+          <p id="equipe-statut" class="conseil" aria-live="polite"></p>
+        </div>
+        <div class="atelier">
+          <div class="toile" id="toile" role="region" aria-label="Arbre des agents" tabindex="0"></div>
+          <aside class="fiche" id="fiche" aria-live="polite"></aside>
+        </div>
+        <!-- Le chantier : un plan, puis l'équipe travaille dans une copie du projet (interface/pages.js) -->
+        <section class="chantier" id="chantier">
+          <h3 class="chantier__titre">Lancer un chantier</h3>
+          <p class="chantier__dossier" id="chantier-dossier"></p>
+          <textarea id="chantier-plan" class="chantier__plan" rows="5" spellcheck="true" lang="fr" placeholder="Ton plan, une étape par ligne. Par exemple :&#10;1. Ajoute une fonction produit(a, b) dans calcul.js&#10;2. Ajoute son test dans calcul.test.js"></textarea>
+          <div class="chantier__actions">
+            <button id="chantier-lancer" class="bouton" type="button">Préparer le plan</button>
+            <button id="chantier-importer" class="bouton-calme" type="button">Importer un plan</button>
+            <button id="chantier-preparer" class="bouton-calme" type="button" hidden>Préparer le dossier</button>
+            <p id="chantier-statut" class="chantier__statut" aria-live="polite"></p>
+          </div>
+          <section id="chantier-apercu" class="chantier__apercu" hidden>
+            <h4>Étapes et responsables</h4>
+            <ol id="chantier-affectations"></ol>
+          </section>
+          <div class="chantier__suivi" id="chantier-suivi" hidden>
+            <!-- En direct : qui a la main et depuis quand, puis l'état de chaque étape -->
+            <div class="direct">
+              <div class="direct__agent" id="direct-agent" aria-live="polite"></div>
+              <p class="direct__total" id="direct-total"></p>
+            </div>
+            <p class="chantier__etape" id="chantier-etape"></p>
+            <div class="barre"><div class="barre__pleine" id="chantier-barre"></div></div>
+            <ol class="etapes" id="chantier-etapes"></ol>
+            <details class="chantier__detail">
+              <summary>Journal détaillé</summary>
+              <ol class="chantier__journal" id="chantier-journal"></ol>
+            </details>
+          </div>
+          <div class="chantier__fin" id="chantier-fin" hidden>
+            <pre class="chantier__rapport" id="chantier-rapport"></pre>
+            <div class="chantier__actions">
+              <button id="chantier-garder" class="bouton" type="button">Garder le travail</button>
+              <select id="chantier-nouveau-dev" aria-label="Dev pour la prochaine étape" hidden></select>
+              <button id="chantier-reprendre" class="bouton-calme" type="button" hidden>Relancer l’étape</button>
+              <button id="chantier-jeter" class="bouton-calme" type="button">Jeter</button>
+              <p id="chantier-suite" class="chantier__statut" aria-live="polite"></p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- Page Modèles : ce que le PC peut faire tourner, et les téléchargements (interface/pages.js) -->
+    <!-- Tâches de fond : on donne du travail à l'agent, on part, on revient (interface/taches.js, principal/taches.js) -->
+    <section id="page-taches" class="page" hidden>
+      <div class="page__contenu">
+        <header class="page__tete">
+          <div>
+            <h2 class="page__titre">Tâches <span class="etiquette-beta">Bêta</span></h2>
+            <p id="taches-projet" class="taches__projet"></p>
+            <p class="taches__beta">Les agents sont encore en test : regarde toujours leur travail (Voir) avant de le garder.</p>
+          </div>
+        </header>
+        <form id="tache-form" class="tache-nouvelle">
+          <textarea id="tache-demande" rows="2" placeholder="Ce que l'agent doit faire pendant que tu fais autre chose" aria-label="Nouvelle tâche"></textarea>
+          <select id="tache-mode" class="tache-mode" aria-label="Qui fait la tâche" title="L'agent seul pour une tâche précise, l'équipe (chef, codeurs, relecteur) pour un gros travail">
+            <option value="seul">Agent seul</option>
+            <option value="equipe">Équipe</option>
+          </select>
+          <button id="tache-ajouter" type="submit" class="bouton">Ajouter</button>
+        </form>
+        <p id="tache-erreur" class="tache-erreur" role="alert" hidden></p>
+        <div id="tache-erreur-actions" class="tache__actions tache-erreur__actions" hidden></div>
+        <ul id="taches-liste" class="taches" aria-label="Tâches"></ul>
+        <p id="taches-vide" class="taches-vide">Aucune tâche. Ajoute-en une ici, ou tape /agent (ou /chantier pour l'équipe) dans la discussion.</p>
+      </div>
+    </section>
+
+    <section id="page-modeles" class="page" hidden>
+      <div class="page__contenu page__contenu--large">
+        <header class="page__tete">
+          <div>
+            <h2 class="page__titre">Modèles</h2>
+          </div>
+          <div class="infos-pc" id="infos-pc"></div>
+        </header>
+        <!-- La sélection Cat Ai : le modèle conseillé pour ce PC, puis un spécialiste par usage (interface/pages.js) -->
+        <section class="selection" aria-labelledby="selection-titre">
+          <h3 id="selection-titre" class="section__titre">La sélection Cat Ai</h3>
+          <div id="selection-principal"></div>
+          <ul id="selection-specialistes" class="selection__liste" aria-label="Spécialistes pour ton PC"></ul>
+          <p id="selection-plus-loin" class="selection__plus-loin"></p>
+        </section>
+        <h3 class="section__titre section__titre--tous">Tous les modèles</h3>
+        <!-- Trouver vite : une recherche par nom, un usage, et « Adaptés à mon PC » à la demande -->
+        <div class="modeles-outils">
+          <input id="modeles-recherche" class="modeles-recherche" type="search" placeholder="Chercher un modèle, par exemple qwen3:8b" aria-label="Chercher un modèle par son nom" autocomplete="off" spellcheck="false">
+          <div class="filtres" id="modeles-usages" role="group" aria-label="Usage"></div>
+          <button class="bouton-calme" id="modeles-adaptes" type="button" aria-pressed="true" aria-controls="modeles-liste" hidden>Adaptés à mon PC</button>
+        </div>
+        <p class="conseil" id="modeles-filtre-etat" aria-live="polite"></p>
+        <p class="conseil" id="modeles-etat" aria-live="polite"></p>
+        <p class="conseil" id="modeles-progression" aria-live="polite"></p>
+        <ul class="modeles" id="modeles-liste" aria-label="Tous les modèles"></ul>
+      </div>
+    </section>
+
+    <div id="depot" class="depot" hidden>
+      <p class="depot__texte">Lâche le fichier, je le lis.</p>
+    </div>
+  </main>
+
+  <!-- Réglages : tout au même endroit, en mots simples -->
+  <div id="reglages-modal" class="fenetre" role="dialog" aria-modal="true" aria-labelledby="reglages-titre" hidden>
+    <div class="fenetre__boite fenetre__boite--reglages">
+      <p class="etiquette">Réglages</p>
+      <header class="fenetre__entete">
+        <h2 id="reglages-titre" class="fenetre__titre">Réglages</h2>
+        <button id="close-reglages" class="fenetre__fermer" type="button" aria-label="Fermer les réglages" title="Fermer (Échap)"><span data-icone="plus" data-classe="icone--croix"></span></button>
+      </header>
+      <p id="reglages-statut" class="conseil" role="status" aria-live="polite"></p>
+
+      <!-- Un onglet à la fois, une ligne par réglage : le nom à gauche, le bouton à droite -->
+      <div class="reglages">
+        <nav class="reglages__nav" aria-label="Sections des réglages">
+          <button class="reglages__lien is-actif" type="button" data-section="reglages-section-cerveau"><span data-icone="puce"></span>Cerveau</button>
+          <button class="reglages__lien" type="button" data-section="reglages-section-appareils"><span data-icone="serveur"></span>Appareils</button>
+          <button class="reglages__lien" type="button" data-section="reglages-section-memoire"><span data-icone="livre"></span>Mémoire</button>
+          <button class="reglages__lien" type="button" data-section="reglages-section-apparence"><span data-icone="panneau"></span>Apparence</button>
+          <button class="reglages__lien" type="button" data-section="reglages-section-outils"><span data-icone="terminal"></span>Outils</button>
+        </nav>
+        <div class="reglages__contenu" id="reglages-contenu">
+          <section class="reglages__section" id="reglages-section-cerveau" aria-labelledby="reglages-titre-cerveau">
+            <h3 class="reglages__titre" id="reglages-titre-cerveau">Cerveau</h3>
+            <div class="reglage-groupe">
+              <div class="reglage">
+                <span>Moteur</span>
+                <div class="segments" role="radiogroup" aria-label="Où tourne le chat">
+                  <button type="button" role="radio" aria-checked="true" data-moteur="pc">Ce PC</button>
+                  <button type="button" role="radio" aria-checked="false" data-moteur="autre">Autre PC</button>
+                  <button type="button" role="radio" aria-checked="false" data-moteur="ligne">En ligne</button>
+                </div>
+              </div>
+              <div class="reglage">
+                <span>Le chat utilise</span>
+                <span class="reglage__info" id="reglages-cerveau"></span>
+              </div>
+
+              <!-- Ce PC : Ollama -->
+              <div class="moteur-panneau" data-panneau="pc">
+                <div class="reglage">
+                  <span>Modèles de ce PC</span>
+                  <button id="reglages-voir-modeles" class="bouton-calme" type="button">Voir les modèles</button>
+                </div>
+              </div>
+
+              <!-- Autre PC : le code affiché sur lui -->
+              <div class="moteur-panneau distant" data-panneau="autre" hidden>
+                <div class="reglage">
+                  <span>Code de l'autre PC</span>
+                  <div class="distant__champs">
+                    <input id="distant-code" type="text" inputmode="numeric" maxlength="7" aria-label="Code affiché sur l'autre PC" placeholder="123 456" autocomplete="off" spellcheck="false">
+                    <button id="distant-connecter" class="bouton" type="button">Connecter</button>
+                  </div>
+                </div>
+                <p id="distant-statut" class="reglage__note" aria-live="polite">Sur l'autre PC : Réglages › Appareils › Ajouter un appareil.</p>
+                <div class="reglage" id="distant-ligne-reveil" hidden>
+                  <span>Réveiller par <span class="reglage__discret">Loin de chez toi : un appareil de la maison, comme pour ssh</span></span>
+                  <div class="distant__champs">
+                    <input id="distant-reveil-par" type="text" aria-label="Machine de la maison qui réveille ton PC" placeholder="moi@serveur" autocomplete="off" spellcheck="false">
+                    <button id="distant-reveil-ok" class="bouton-calme" type="button">OK</button>
+                    <button id="distant-reveiller" class="bouton-calme" type="button">Réveiller</button>
+                  </div>
+                </div>
+                <div class="reglage" id="distant-ligne-serveur" hidden>
+                  <span>Sur cet appareil de la maison <span class="reglage__discret">Ajoute une fois cette ligne dans ~/.ssh/authorized_keys : la clé de Cat Ai ne pourra que réveiller ton PC.</span></span>
+                  <button id="distant-reveil-copier" class="bouton-calme" type="button">Copier la ligne</button>
+                </div>
+                <div class="reglage" id="distant-ligne-oublier" hidden>
+                  <span>Débrancher cet autre PC</span>
+                  <button id="distant-oublier" class="bouton-calme" type="button" hidden>Débrancher</button>
+                </div>
+                <details class="distant__guide">
+                  <summary>Il ne trouve pas ton PC ?</summary>
+                  <div class="distant__champs">
+                    <input id="distant-adresse" type="text" aria-label="Adresse de l'autre PC" placeholder="Son adresse : 192.168.1.20 ou 100.x.x.x">
+                    <button id="distant-chercher" class="bouton-calme" type="button">Chercher</button>
+                  </div>
+                  <div id="distant-trouves" class="distant__trouves"></div>
+                  <p class="conseil">Loin de chez toi : installe <a href="https://tailscale.com/download" target="_blank" rel="noopener">Tailscale</a> sur les deux PC, avec le même compte.</p>
+                </details>
+              </div>
+
+              <!-- En ligne : une clé gratuite -->
+              <div class="moteur-panneau" data-panneau="ligne" hidden>
+                <p class="reglage__note">Une clé gratuite par service. <span id="protection-cles">Elle reste secrète sur ton PC.</span> Choisis ensuite le modèle en bas du chat.</p>
+                <div id="fournisseurs-liste" class="fournisseurs"></div>
+                <details class="distant__guide">
+                  <summary>Autre serveur (LM Studio…)</summary>
+                  <div id="fournisseurs-avance" class="fournisseurs"></div>
+                </details>
+              </div>
+            </div>
+            <!-- Sources de vérité du fournisseur et du modèle : lues par le code, choisies ailleurs -->
+            <div class="bloc" hidden>
+              <label for="fournisseur">Fournisseur</label>
+              <select id="fournisseur"></select>
+              <label for="model">Modèle</label>
+              <select id="model"></select>
+              <p id="conseil-modele" class="conseil"></p>
+            </div>
+          </section>
+
+          <section class="reglages__section" id="reglages-section-appareils" aria-labelledby="reglages-titre-appareils" hidden>
+            <h3 class="reglages__titre" id="reglages-titre-appareils">Appareils</h3>
+            <div class="reglage-groupe">
+              <div class="reglage">
+                <span>Partager ma carte graphique</span>
+                <button id="partage-interrupteur" class="bouton-calme" type="button" role="switch" aria-checked="false">Activer</button>
+              </div>
+              <div id="partage-infos" hidden>
+                <div class="reglage">
+                  <span>Ajouter un appareil</span>
+                  <button id="partage-ajouter" class="bouton" type="button">Ajouter</button>
+                </div>
+                <div id="partage-code" class="reglage partage__code" hidden>
+                  <span>Tape ce code sur l'autre PC <span id="partage-code-reste" class="reglage__discret"></span></span>
+                  <span class="partage__ligne"><code id="partage-code-valeur" class="partage__cle"></code> <button id="partage-annuler" class="lien" type="button">Annuler</button></span>
+                </div>
+                <div class="reglage">
+                  <span>Garder le partage quand Cat Ai est fermé</span>
+                  <button id="partage-arriere-plan" class="bouton-calme" type="button" role="switch" aria-checked="false" title="Cat Ai démarre avec l'ordinateur, sans fenêtre. Une icône près de l'horloge permet de le rouvrir ou de le quitter.">Activer</button>
+                </div>
+              </div>
+            </div>
+            <p id="partage-statut" class="reglage__note" aria-live="polite"></p>
+            <ul id="partage-appareils" class="reglage-groupe partage__appareils" aria-label="Appareils ajoutés"></ul>
+            <details class="distant__guide" id="partage-details" hidden>
+              <summary>Détails : adresses, pare-feu</summary>
+              <p class="partage__ligne">À la maison : <code id="partage-maison"></code></p>
+              <p class="partage__ligne" id="partage-ligne-tailscale" hidden>Avec Tailscale : <code id="partage-tailscale"></code></p>
+              <p class="conseil">Si Windows demande d'autoriser Cat Ai sur le réseau, accepte pour les réseaux privés. La connexion est chiffrée.</p>
+            </details>
+          </section>
+
+          <section class="reglages__section" id="reglages-section-memoire" aria-labelledby="reglages-titre-memoire" hidden>
+            <h3 class="reglages__titre" id="reglages-titre-memoire">Mémoire</h3>
+            <div class="reglage-groupe">
+              <div class="reglage">
+                <span>Ce que le chat retient de toi : <span id="memory-count">0</span></span>
+                <button id="open-memory" class="bouton-calme" type="button">Ouvrir la mémoire</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="reglages__section" id="reglages-section-apparence" aria-labelledby="reglages-titre-apparence" hidden>
+            <h3 class="reglages__titre" id="reglages-titre-apparence">Apparence</h3>
+            <div class="reglage-groupe">
+              <div class="reglage">
+                <span>Menu latéral</span>
+                <div class="rangee">
+                  <button id="reglages-largeur-normale" class="bouton-calme" type="button">Largeur normale</button>
+                  <button id="reglages-replier" class="bouton-calme" type="button">Replier</button>
+                </div>
+              </div>
+              <label class="reglage reglages__interrupteur">
+                <span>Réduire les animations</span>
+                <input id="reglages-sans-animations" type="checkbox" role="switch">
+              </label>
+              <label class="reglage reglages__interrupteur">
+                <span>Fonctions expérimentales <span class="reglage__discret">Tâches de fond (agents), encore en test.</span></span>
+                <input id="reglages-experimental" type="checkbox" role="switch">
+              </label>
+            </div>
+          </section>
+
+          <section class="reglages__section" id="reglages-section-outils" aria-labelledby="reglages-titre-outils" hidden>
+            <h3 class="reglages__titre" id="reglages-titre-outils">Outils</h3>
+            <div class="reglage-groupe">
+              <div class="reglage">
+                <span>Commande catai <span id="catai-etat" class="reglage__discret">Cat Ai dans n'importe quel terminal.</span></span>
+                <button id="catai-installer" class="bouton-calme" type="button">Installer</button>
+              </div>
+              <div class="reglage">
+                <span>Recherche sur internet <span id="recherche-statut" class="reglage__discret" aria-live="polite">DuckDuckGo</span></span>
+                <div class="distant__champs">
+                  <input id="recherche-url" type="text" aria-label="Adresse de ton SearXNG" placeholder="Ton SearXNG (facultatif)" autocomplete="off" spellcheck="false">
+                  <button id="recherche-enregistrer" class="bouton-calme" type="button">OK</button>
+                </div>
+              </div>
+              <div class="reglage">
+                <span>Connecteur MCP <span id="mcp-statut" class="reglage__discret" aria-live="polite"></span></span>
+                <form id="mcp-form" class="distant__champs">
+                  <input id="mcp-adresse" type="url" aria-label="Adresse du connecteur MCP local" placeholder="http://127.0.0.1:8765/mcp">
+                  <button class="bouton-calme" type="submit">OK</button>
+                </form>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="maj-modal" class="fenetre" role="dialog" aria-modal="true" aria-labelledby="maj-titre" hidden>
+    <div class="fenetre__boite">
+      <p class="etiquette">Mise à jour</p>
+      <h2 id="maj-titre" class="fenetre__titre"></h2>
+      <p id="maj-texte" class="discret" aria-live="polite"></p>
+      <div id="maj-notes" class="maj-notes" hidden></div>
+      <div class="rangee rangee--fin"><button id="maj-plus-tard" class="lien" type="button">Plus tard</button><button id="maj-bouton" class="bouton" type="button"></button></div>
+    </div>
+  </div>
+
+  <div id="diff-modal" class="fenetre" role="dialog" aria-modal="true" aria-labelledby="diff-chemin" hidden>
+    <div class="fenetre__boite fenetre__boite--large">
+      <p class="etiquette" id="diff-type">Modification</p>
+      <h2 class="fenetre__titre" id="diff-chemin"></h2>
+      <p class="discret" id="diff-stats"></p>
+      <div class="diff" id="diff-contenu"></div>
+      <div class="rangee rangee--fin">
+        <button id="diff-refuser" class="lien">Refuser</button>
+        <button id="diff-accepter" class="bouton">Autoriser</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mode Auto : tous les changements de la copie de l'agent, fichier par fichier -->
+  <div id="agent-diff-modal" class="fenetre" role="dialog" aria-modal="true" aria-labelledby="agent-diff-titre" hidden>
+    <div class="fenetre__boite fenetre__boite--large">
+      <h2 class="fenetre__titre" id="agent-diff-titre">Changements de l'agent</h2>
+      <p class="discret" id="agent-diff-stats"></p>
+      <div class="diff" id="agent-diff-contenu"></div>
+      <div class="rangee rangee--fin">
+        <button id="agent-diff-fermer" class="bouton">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="memory-modal" class="fenetre" role="dialog" aria-modal="true" aria-labelledby="memory-titre" hidden>
+    <div class="fenetre__boite">
+      <p class="etiquette">Mémoire</p>
+      <header class="fenetre__entete">
+        <h2 id="memory-titre" class="fenetre__titre">Ce que le chat retient</h2>
+        <button id="close-memory" class="bouton-calme" type="button">Fermer</button>
+      </header>
+      <p class="discret">D'une discussion à l'autre. Demande au chat de retenir une information : elle est enregistrée après ton accord. Tu peux tout modifier ici.</p>
+      <p class="discret prenom-ligne">Il t'appelle <span id="prenom-actuel"></span>. <button id="changer-prenom" class="lien" type="button">Changer</button></p>
+      <ul id="memory-list" class="souvenirs"></ul>
+      <form id="memory-form" class="rangee">
+        <input id="memory-input" aria-label="Souvenir à ajouter" placeholder="Ex : je code surtout en Python">
+        <button class="bouton">Ajouter</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="prenom-modal" class="fenetre" role="dialog" aria-modal="true" aria-labelledby="prenom-titre" hidden>
+    <div class="fenetre__boite">
+      <p class="etiquette">Premier lancement</p>
+      <h2 id="prenom-titre" class="fenetre__titre">Comment tu t'appelles&nbsp;?</h2>
+      <p class="discret">Le chat s'en sert pour te parler. Tu pourras le changer dans « Mémoire ».</p>
+      <form id="prenom-form" class="rangee prenom-form">
+        <input id="prenom-input" maxlength="30" placeholder="Ton prénom" autocomplete="given-name">
+        <button class="bouton">C'est moi</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Bibliothèques open source (voir les crédits dans README.md) -->
+  <dialog id="message-dialog" aria-labelledby="message-dialog-titre">
+    <form method="dialog">
+      <h2 id="message-dialog-titre" class="fenetre__titre"></h2>
+      <p id="message-dialog-info"></p>
+      <textarea id="message-dialog-texte" aria-label="Texte du message" rows="7" hidden></textarea>
+      <div class="rangee rangee--fin">
+        <button type="submit" value="annuler" class="bouton-calme" autofocus>Annuler</button>
+        <button type="submit" value="valider" id="message-dialog-valider" class="bouton"></button>
+      </div>
+    </form>
+  </dialog>
+  <script src="node_modules/marked/lib/marked.umd.js"></script>
+  <script src="node_modules/dompurify/dist/purify.min.js"></script>
+  <script src="node_modules/@highlightjs/cdn-assets/highlight.min.js"></script>
+  <script src="node_modules/diff/dist/diff.min.js"></script>
+  <script src="node_modules/katex/dist/katex.min.js"></script>
+  <script src="chat.js"></script>
+  <!-- L'interface, dans l'ordre : chaque fichier peut utiliser ce que les précédents déclarent -->
+  <script src="interface/icones.js"></script>
+  <script src="interface/personnalite.js"></script>
+  <script src="interface/maths.js"></script>
+  <script src="interface/markdown.js"></script>
+  <script src="interface/qcm.js"></script>
+  <script src="interface/modeles.js"></script>
+  <script src="interface/difference.js"></script>
+  <script src="interface/saisie.js"></script>
+  <script src="interface/commandes.js"></script>
+  <script src="interface/sprites.js"></script>
+  <script src="renderer.js"></script>
+  <script src="interface/pages.js"></script>
+  <script src="interface/barre-laterale.js"></script>
+  <script src="interface/taches.js"></script>
+</body>
+</html>

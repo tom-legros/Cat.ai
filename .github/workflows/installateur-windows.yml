@@ -1,0 +1,99 @@
+# Construit l'installateur Windows sur GitHub, à partir du code du dépôt.
+# SignPath Foundation n'accepte de signer que des fichiers construits ainsi,
+# de façon vérifiable, et pas sur le PC du développeur.
+#
+# La signature ne se fait que si le secret SIGNPATH_API_TOKEN existe
+# (il sera ajouté une fois la demande à SignPath acceptée). Sans lui,
+# on obtient le même installateur, mais pas signé.
+
+name: Installateur Windows
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    env:
+      SIGNATURE_ACTIVE: ${{ secrets.SIGNPATH_API_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm test
+
+      # Étape 1 : l'app seule, sans installateur, dans dist/win-unpacked.
+      # On la signe avant de l'emballer : le Contrôle intelligent des
+      # applications vérifie aussi le programme une fois installé.
+      - name: Construire l'app
+        run: npx electron-builder --win dir --publish never
+
+      - name: Envoyer l'app à signer
+        id: app-non-signee
+        if: env.SIGNATURE_ACTIVE == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-non-signee
+          path: dist/win-unpacked/Cat Ai.exe
+
+      - name: Signer l'app
+        if: env.SIGNATURE_ACTIVE == 'true'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: cat-ai
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: application
+          github-artifact-id: ${{ steps.app-non-signee.outputs.artifact-id }}
+          output-artifact-directory: signe/app
+
+      - name: Remettre l'app signée à sa place
+        if: env.SIGNATURE_ACTIVE == 'true'
+        shell: pwsh
+        run: Copy-Item "signe/app/Cat Ai.exe" "dist/win-unpacked/Cat Ai.exe" -Force
+
+      # Étape 2 : l'installateur, construit autour de l'app déjà prête.
+      - name: Construire l'installateur
+        run: npx electron-builder --win nsis --prepackaged dist/win-unpacked --publish never
+
+      - name: Envoyer l'installateur à signer
+        id: installateur-non-signe
+        if: env.SIGNATURE_ACTIVE == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: installateur-non-signe
+          path: dist/Cat-Ai-*-installateur.exe
+
+      - name: Signer l'installateur
+        if: env.SIGNATURE_ACTIVE == 'true'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: cat-ai
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: installateur
+          github-artifact-id: ${{ steps.installateur-non-signe.outputs.artifact-id }}
+          output-artifact-directory: signe/installateur
+
+      - name: Remettre l'installateur signé à sa place
+        if: env.SIGNATURE_ACTIVE == 'true'
+        shell: pwsh
+        run: Copy-Item "signe/installateur/*.exe" "dist/" -Force
+
+      # L'installateur final se télécharge depuis la page de l'exécution,
+      # puis s'ajoute à la release à la main.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installateur-windows
+          path: dist/Cat-Ai-*-installateur.exe
